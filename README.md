@@ -41,6 +41,26 @@
 
 <p align="center"><a href="https://discord.gg/8pRpHETxa4"><img src="https://img.shields.io/badge/Join_the_community-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a></p>
 
+## New in This Fork
+
+> Forked from [santifer/career-ops](https://github.com/santifer/career-ops). See [FORK_NOTES.md](FORK_NOTES.md) for full details.
+
+| Addition | What it does |
+|----------|-------------|
+| **JSearch API integration** | Aggregates LinkedIn + Indeed + Glassdoor in one call (free tier: 200 req/month) |
+| **Greenhouse/Lever aggregators** | Scans 100+ ATS boards via public APIs — no browser, no LLM cost |
+| **Wellfound route interception** | Captures internal API responses instead of scraping DOM — survives redesigns |
+| **Indeed RSS/HTML fallback** | Structured feed parser (Indeed WAF blocks it; JSearch covers the gap) |
+| **We Work Remotely scraper** | Updated selectors for WWR's 2026 redesign with company name extraction |
+| **Remotive API scraper** | JSON API for remote-focused PM roles |
+| **Dynamic slug discovery** | `discover-ats-slugs.mjs` auto-finds new Greenhouse/Lever boards monthly |
+| **Title-level scoring** | `score-and-publish.mjs` scores all scraped roles against your profile and publishes to Obsidian |
+| **Obsidian sync scripts** | Auto-sync pipeline and evaluation reports to an Obsidian vault via iCloud |
+| **launchd scheduler** | macOS plist to run scans every N days automatically |
+| **English evaluation mode** | `modes/oferta.md` translated to English with customizable archetype detection |
+
+---
+
 ## What Is This
 
 Career-Ops turns any AI coding CLI into a full job search command center. Instead of manually tracking applications in a spreadsheet, you get an AI-powered pipeline that:
@@ -78,26 +98,30 @@ Built by someone who used it to evaluate 740+ job offers, generate 100+ tailored
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/santifer/career-ops.git
+git clone https://github.com/joegarvey7/career-ops.git
 cd career-ops && npm install
-npx playwright install chromium   # Required for PDF generation
+npx playwright install chromium   # Required for PDF generation and scrapers
 
 # 2. Check setup
 npm run doctor                     # Validates all prerequisites
 
-# 3. Configure
+# 3. Set up your profile
 cp config/profile.example.yml config/profile.yml  # Edit with your details
-cp templates/portals.example.yml portals.yml       # Customize companies
+cp cv.example.md cv.md                            # Replace placeholders with your CV
+cp modes/_profile.example.md modes/_profile.md    # Customize your archetypes
+cp templates/portals.example.yml portals.yml      # Customize target companies
 
-# 4. Add your CV
-# Create cv.md in the project root with your CV in markdown
+# 4. (Optional) Set up JSearch API for LinkedIn/Indeed/Glassdoor scanning
+#    Sign up for free: https://rapidapi.com/letscrape-6bfed1765432/api/jsearch
+#    Add your key to config/profile.yml:
+#      api_keys:
+#        jsearch: YOUR_KEY_HERE
 
 # 5. Personalize with Claude
 claude   # Open Claude Code in this directory
 
 # Then ask Claude to adapt the system to you:
 # "Change the archetypes to backend engineering roles"
-# "Translate the modes to English"
 # "Add these 5 companies to portals.yml"
 # "Update my profile with this CV I'm pasting"
 
@@ -106,6 +130,36 @@ claude   # Open Claude Code in this directory
 ```
 
 > **The system is designed to be customized by Claude itself.** Modes, archetypes, scoring weights, negotiation scripts -- just ask Claude to change them. It reads the same files it uses, so it knows exactly what to edit.
+
+### Custom scrapers (this fork)
+
+```bash
+# Run all 6 scrapers (Greenhouse, Lever, JSearch, Wellfound, Indeed, remote boards)
+npm run scan-all
+
+# Run a single scraper
+npm run scan:greenhouse           # 55+ Greenhouse boards via API
+npm run scan:jsearch              # LinkedIn + Indeed + Glassdoor via JSearch
+npm run scan:wellfound            # Wellfound via route interception
+
+# Discover new ATS boards (run monthly)
+npm run discover-slugs
+
+# Dry run (preview without writing)
+node scan-all.mjs --dry-run
+```
+
+### Obsidian sync (optional)
+
+To auto-sync your pipeline and reports to an Obsidian vault:
+
+1. Edit `scan-and-sync.sh` and `report-sync.sh` — update the `OBSIDIAN_FILE` and `OBSIDIAN_EVALS` paths to point to your vault
+2. Run manually: `bash scan-and-sync.sh && bash report-sync.sh`
+3. To automate on macOS, create a launchd plist (see `FORK_NOTES.md` for the pattern) pointing to your scripts and install with:
+   ```bash
+   cp your-plist.plist ~/Library/LaunchAgents/
+   launchctl load ~/Library/LaunchAgents/your-plist.plist
+   ```
 
 See [docs/SETUP.md](docs/SETUP.md) for the full setup guide.
 
@@ -184,17 +238,29 @@ Features: 6 filter tabs, 4 sort modes, grouped/flat view, lazy-loaded previews, 
 ```
 career-ops/
 ├── CLAUDE.md                    # Agent instructions
-├── cv.md                        # Your CV (create this)
+├── cv.example.md                # Template CV (copy to cv.md)
 ├── article-digest.md            # Your proof points (optional)
 ├── config/
 │   └── profile.example.yml      # Template for your profile
 ├── modes/                       # 14 skill modes
-│   ├── _shared.md               # Shared context (customize this)
-│   ├── oferta.md                # Single evaluation
+│   ├── _shared.md               # Shared context (auto-updatable)
+│   ├── _profile.example.md      # Template for your archetypes (copy to _profile.md)
+│   ├── oferta.md                # Single evaluation (English)
 │   ├── pdf.md                   # PDF generation
 │   ├── scan.md                  # Portal scanner
 │   ├── batch.md                 # Batch processing
 │   └── ...
+├── scrapers/                    # Custom job scrapers (this fork)
+│   ├── lib/common.mjs           # Shared: filters, dedup, TSV, browser helpers
+│   ├── greenhouse-agg.mjs       # Greenhouse API aggregator (55+ boards)
+│   ├── lever-agg.mjs            # Lever API aggregator (43+ boards)
+│   ├── linkedin.mjs             # JSearch RapidAPI (LinkedIn+Indeed+Glassdoor)
+│   ├── indeed.mjs               # Indeed HTML fetch (degraded; JSearch covers)
+│   ├── wellfound.mjs            # Wellfound route interception
+│   └── remote-boards.mjs        # Remotive API + We Work Remotely
+├── scan-all.mjs                 # Master scraper orchestrator
+├── score-and-publish.mjs        # Score roles + publish to Obsidian
+├── discover-ats-slugs.mjs       # Monthly ATS slug discovery
 ├── templates/
 │   ├── cv-template.html         # ATS-optimized CV template
 │   ├── portals.example.yml      # Scanner config template
@@ -208,6 +274,7 @@ career-ops/
 ├── output/                      # Generated PDFs (gitignored)
 ├── fonts/                       # Space Grotesk + DM Sans
 ├── docs/                        # Setup, customization, architecture
+├── FORK_NOTES.md                # What changed from upstream
 └── examples/                    # Sample CV, report, proof points
 ```
 

@@ -14,7 +14,15 @@
     "update": "node update-system.mjs apply",
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
-    "scan": "node scan.mjs"
+    "scan": "node scan.mjs",
+    "scan-all": "node scan-all.mjs",
+    "scan:wellfound": "node scan-all.mjs --source wellfound",
+    "scan:indeed": "node scan-all.mjs --source indeed",
+    "scan:jsearch": "node scan-all.mjs --source jsearch",
+    "scan:greenhouse": "node scan-all.mjs --source greenhouse-agg",
+    "scan:lever": "node scan-all.mjs --source lever-agg",
+    "scan:remote": "node scan-all.mjs --source remote-boards",
+    "discover-slugs": "node discover-ats-slugs.mjs"
   },
   "keywords": [
     "ai",
