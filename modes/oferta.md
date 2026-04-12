@@ -18,6 +18,55 @@ Classify the JD into one of these four (or a hybrid of the closest two). This de
 
 **Hard gate before proceeding:** If the JD is an engineering role (Software/ML/Data/Platform/Solutions Engineer, SRE, DevOps, Applied Scientist, Technical PM requiring coding), STOP evaluating and mark the offer `SKIP — title mismatch`. Joe is a strategic PM, not an engineer.
 
+## Structured Scoring Checklist — Adjusted Score
+
+**Before writing the Global score**, evaluate the JD against these six weighted dimensions. Each dimension is scored 0–5 independently. The weighted composite IS the Global score written to the report header.
+
+| # | Dimension | Scoring Logic | Weight |
+|---|-----------|--------------|--------|
+| 1 | **CV Match** | Count JD "must-have" requirements with strong CV evidence vs. total must-haves. 5 = 90%+ match, 4 = 75%+, 3 = 60%+, 2 = 40%+, 1 = <40% | 0.30 |
+| 2 | **Domain Fit** | Does the JD require domain expertise Joe lacks? 5 = exact domain match, 4 = adjacent domain, 3 = transferable, 2 = weak transfer, 1 = no relevant domain experience | 0.20 |
+| 3 | **Location** | 5 = remote, 4 = Seattle/acceptable metro hybrid, 3 = TX/AZ/KC hybrid, 2 = other US hybrid (negotiable), 1 = on-site only or international | 0.15 |
+| 4 | **Comp** | 5 = above $350K target, 4 = $250–350K, 3 = $200–250K, 2 = near floor, 1 = below $200K floor | 0.10 |
+| 5 | **Hands-On Risk** | Does the JD require coding, prototyping, code review, or technical exercises? 5 = no technical IC work, 4 = light technical (SQL, data analysis), 3 = ambiguous, 2 = likely coding expected, 1 = explicit coding/prototyping requirement | 0.15 |
+| 6 | **Career Trajectory** | Does this role move Joe toward his goals (builder-oriented, less people management, AI products)? 5 = perfect trajectory, 4 = good, 3 = neutral, 2 = lateral, 1 = regression | 0.10 |
+
+**Formula:** `adj_score = Σ (dimension_score × weight)`
+
+**Output the checklist in the report** between Block A and Block B as a scoring table:
+
+```markdown
+## Scoring Checklist
+
+| Dimension | Score | Weight | Weighted | Rationale |
+|-----------|-------|--------|----------|-----------|
+| CV Match | X | 0.30 | X.XX | ... |
+| Domain Fit | X | 0.20 | X.XX | ... |
+| Location | X | 0.15 | X.XX | ... |
+| Comp | X | 0.10 | X.XX | ... |
+| Hands-On Risk | X | 0.15 | X.XX | ... |
+| Career Trajectory | X | 0.10 | X.XX | ... |
+| **Global** | | | **X.X** | |
+```
+
+**Scale mapping (for report header and scanner tier):**
+- adj_score ≥ 4.0 → 🟢 APPLY
+- adj_score 3.0–3.9 → 🟡 REVIEW
+- adj_score 2.0–2.9 → 🟠 WEAK
+- adj_score < 2.0 → ⚪ SKIP
+
+**Hard gates still apply:** If Comp < $200K → SKIP regardless of composite. If hands-on coding requirement → cap at 3.0 and flag. These override the formula.
+
+**Reference files for evaluation:** Read from `context/` (synced from Obsidian Canonical Files) when available:
+- `context/Resume_Content_Source_of_Truth.md` — canonical resume content
+- `context/Resume_Language_Style_Guide.md` — red/green flag keywords for JD matching
+- `context/Career_Accomplishments_Tracker.md` — detailed accomplishments
+- `context/Current_Role_Metrics.md` — current role metrics
+
+Fall back to `cv.md`, `config/profile.yml`, and `modes/_profile.md` when context files don't exist.
+
+---
+
 ## Block A — Role Summary
 
 Table with:

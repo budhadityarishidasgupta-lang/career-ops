@@ -2,18 +2,20 @@
 // score-and-publish.mjs — Incremental scoring + Obsidian publishing
 //
 // On each run:
-//   1. Reads existing Obsidian table (preserves user-edited Status, Added timestamps)
+//   1. Reads existing Obsidian table (preserves user-edited Status, Added timestamps, Adj. scores)
 //   2. Finds the latest daily digest OR reads all pipeline data
 //   3. Scores ONLY new roles not already in Obsidian (dedup by URL)
 //   4. Re-scores existing OPEN roles (🔲 New, 👀 Reviewing) in case scoring logic changed
 //   5. Preserves rows where user set status (✅ Applied, ❌ Closed, ⏸️ Paused, 🚫 Rejected)
-//   6. Writes back with Added timestamp column
+//   6. Reconciles evaluation scores from reports/ into Adj. column
+//   7. Writes back with Adj. + Added timestamp columns
 //
-// Table columns: Score | Company | Role | Level | Domain | Link | Status | Added
+// Table columns: Score | Adj. | Company | Role | Level | Domain | Link | Status | Added
 //
 // Usage:
 //   node score-and-publish.mjs            # Incremental (default)
 //   node score-and-publish.mjs --full     # Re-score everything from pipeline + all digests
+//   node score-and-publish.mjs --reconcile # Also reconcile evaluation scores from reports/
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
@@ -28,6 +30,7 @@ const NOW = new Date();
 const TODAY = NOW.toISOString().slice(0, 10);
 const TIMESTAMP = NOW.toISOString().slice(0, 16).replace('T', ' ');
 const FULL_MODE = process.argv.includes('--full');
+const RECONCILE_MODE = process.argv.includes('--reconcile');
 
 // ── Statuses that mean "user took action — don't re-score or remove" ──
 const LOCKED_STATUSES = ['✅ Applied', '❌ Closed', '⏸️ Paused', '🚫 Rejected', '🎯 Interview', '🤝 Offer'];
@@ -100,6 +103,14 @@ function getDomainScore(title, company) {
   return { score: Math.max(0, Math.min(3, score)), signals };
 }
 
+function getRecommendation(score) {
+  if (score === 0) return 'SKIP';
+  if (score >= 4.0) return '🟢 APPLY';
+  if (score >= 3.0) return '🟡 REVIEW';
+  if (score >= 2.0) return '🟠 WEAK';
+  return '⚪ SKIP';
+}
+
 function computeScore(title, company) {
   const titleInfo = getTitleScore(title);
   const domainInfo = getDomainScore(title, company);
@@ -115,12 +126,7 @@ function computeScore(title, company) {
   if (titleInfo.score >= 5 && companyInfo.tier <= 2) composite = Math.max(composite, 4.0);
   if (titleInfo.score >= 4.5 && companyInfo.tier <= 2.5) composite = Math.max(composite, 3.5);
 
-  const recommendation =
-    composite === 0 ? 'SKIP' :
-    composite >= 4.0 ? '🟢 APPLY' :
-    composite >= 3.0 ? '🟡 REVIEW' :
-    composite >= 2.0 ? '🟠 WEAK' :
-    '⚪ SKIP';
+  const recommendation = getRecommendation(composite);
 
   return {
     score: Math.round(composite * 10) / 10,
@@ -137,6 +143,27 @@ function extractCompanyFromUrl(url) {
   const m2 = url.match(/remote-jobs\/([a-z0-9]+(?:-[a-z0-9]+)?)/i);
   if (m2) return m2[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   return '';
+}
+
+// ── Extract evaluation scores from reports/ ──
+
+function loadEvaluationScores() {
+  const scores = new Map(); // URL → { score, reportFile }
+  const reportsDir = join(ROOT, 'reports');
+  if (!existsSync(reportsDir)) return scores;
+
+  for (const file of readdirSync(reportsDir).filter(f => f.endsWith('.md'))) {
+    const content = readFileSync(join(reportsDir, file), 'utf8');
+    const urlMatch = content.match(/^\*\*URL:\*\*\s*(.+)$/m);
+    const scoreMatch = content.match(/^\*\*Score:\*\*\s*([\d.]+)\/5/m);
+    if (urlMatch && scoreMatch) {
+      scores.set(urlMatch[1].trim(), {
+        score: parseFloat(scoreMatch[1]),
+        reportFile: file,
+      });
+    }
+  }
+  return scores;
 }
 
 // ── Parse existing Obsidian table ──
@@ -156,22 +183,79 @@ function parseObsidianTable() {
     if (cols.length < 5) continue;
 
     // Detect format by column count:
-    //   8 cols: Score | Company | Role | Level | Domain | Link | Status | Added
-    //   7 cols: Score | Company | Role | Level | Domain | Link | Added (no status — collapsed sections)
+    //   9 cols: Score | Adj. | Company | Role | Level | Domain | Link | Status | Added
+    //   8 cols: Score | Adj. | Company | Role | Level | Domain | Link | Added (no status — collapsed)
+    //        OR Score | Company | Role | Level | Domain | Link | Status | Added (legacy, no Adj.)
+    //   7 cols: Score | Company | Role | Level | Domain | Link | Added (legacy collapsed)
     //   6 cols: Score | Company | Role | Status | Link | Added (actioned section)
+    let adj = '';
     let status = '🔲 New';
     let added = '';
+    let company, role, level, domain;
 
-    if (cols.length >= 8) {
+    // Determine if this row has the Adj. column by checking if col[1] looks like
+    // a score (number with optional /5) or is empty (blank adj).
+    // Works for both full rows (9 cols) and actioned rows (7 cols with Adj.)
+    const adjLike = cols[1] === '' || cols[1] === '—' || cols[1].match(/^[\d.]+(?:\/5)?$/);
+    const hasAdj = adjLike && cols.length >= 7;
+
+    if (hasAdj && cols.length >= 9) {
+      // Full new format: Score | Adj. | Company | Role | Level | Domain | Link | Status | Added
+      adj = cols[1] || '';
+      company = cols[2] || '';
+      role = cols[3] || '';
+      level = cols[4] || '';
+      domain = cols[5] || '';
+      status = cols[7] || '🔲 New';
+      added = cols[8] || '';
+    } else if (hasAdj && cols.length === 8) {
+      // Collapsed new format (no Status): Score | Adj. | Company | Role | Level | Domain | Link | Added
+      adj = cols[1] || '';
+      company = cols[2] || '';
+      role = cols[3] || '';
+      level = cols[4] || '';
+      domain = cols[5] || '';
+      if (cols[7].match(/^\d{4}-\d{2}-\d{2}/)) {
+        added = cols[7];
+      } else {
+        status = cols[7];
+      }
+    } else if (hasAdj && cols.length === 7) {
+      // Actioned new format: Score | Adj. | Company | Role | Status | Link | Added
+      adj = cols[1] || '';
+      company = cols[2] || '';
+      role = cols[3] || '';
+      level = '';
+      domain = '';
+      status = cols[4] || '';
+      added = cols[6] || '';
+    } else if (cols.length >= 8) {
+      // Legacy full: Score | Company | Role | Level | Domain | Link | Status | Added
+      company = cols[1] || '';
+      role = cols[2] || '';
+      level = cols[3] || '';
+      domain = cols[4] || '';
       status = cols[6] || '🔲 New';
       added = cols[7] || '';
-    } else if (cols.length >= 7) {
-      // Check if col 6 looks like a timestamp or a status
+    } else if (cols.length === 7) {
+      // Legacy collapsed: Score | Company | Role | Level | Domain | Link | Added
+      company = cols[1] || '';
+      role = cols[2] || '';
+      level = cols[3] || '';
+      domain = cols[4] || '';
       if (cols[6].match(/^\d{4}-\d{2}-\d{2}/)) {
         added = cols[6];
       } else {
         status = cols[6];
       }
+    } else if (cols.length === 6) {
+      // Legacy actioned: Score | Company | Role | Status | Link | Added
+      company = cols[1] || '';
+      role = cols[2] || '';
+      level = '';
+      domain = '';
+      status = cols[3] || '';
+      added = cols[5] || '';
     }
 
     // Clean status — strip any [View](...) remnants from column parsing
@@ -180,10 +264,11 @@ function parseObsidianTable() {
 
     existing.set(url, {
       score: cols[0] || '',
-      company: cols[1] || '',
-      role: cols[2] || '',
-      level: cols[3] || '',
-      domain: cols[4] || '',
+      adj,
+      company,
+      role,
+      level,
+      domain,
       url,
       status,
       added,
@@ -240,21 +325,32 @@ function gatherNewRoles() {
 
 const existingRows = parseObsidianTable();
 const candidateRoles = gatherNewRoles();
+const evalScores = RECONCILE_MODE ? loadEvaluationScores() : new Map();
 
-const finalRows = []; // {score, company, role, level, domain, url, status, added, recommendation, companyLabel}
+const finalRows = []; // {score, adj, company, role, level, domain, url, status, added, recommendation, companyLabel}
 let newCount = 0;
 let rescoredCount = 0;
 let preservedCount = 0;
+let reconciledCount = 0;
 
 // Step 1: Process existing rows — re-score open ones, preserve locked ones
 for (const [url, row] of existingRows) {
   const isLocked = LOCKED_STATUSES.includes(row.status);
   const isOpen = OPEN_STATUSES.includes(row.status);
 
+  // Reconcile: if evaluation exists for this URL, use its score as Adj.
+  let adj = row.adj || '';
+  if (RECONCILE_MODE && evalScores.has(url)) {
+    const evalScore = evalScores.get(url).score;
+    adj = `${evalScore}`;
+    if (adj !== row.adj) reconciledCount++;
+  }
+
   if (isLocked) {
     // Preserve as-is (user took action)
     finalRows.push({
       score: row.score,
+      adj,
       company: row.company,
       role: row.role,
       level: row.level,
@@ -268,10 +364,14 @@ for (const [url, row] of existingRows) {
     });
     preservedCount++;
   } else if (isOpen || FULL_MODE) {
-    // Re-score
+    // Re-score surface score
     const scored = computeScore(row.role, row.company);
+    // Effective score for tiering: use Adj. when present, fall back to surface Score
+    const effectiveScore = adj ? parseFloat(adj) : scored.score;
+    const recommendation = getRecommendation(effectiveScore);
     finalRows.push({
       score: `${scored.score} ${scored.companyLabel}`.trim(),
+      adj,
       company: row.company,
       role: row.role,
       level: scored.level,
@@ -279,16 +379,17 @@ for (const [url, row] of existingRows) {
       url: row.url,
       status: row.status, // keep their current open status
       added: row.added,
-      recommendation: scored.recommendation,
+      recommendation,
       companyLabel: scored.companyLabel,
       _locked: false,
       _numericScore: scored.score,
+      _effectiveScore: effectiveScore,
     });
     rescoredCount++;
   } else {
     // Unknown status — preserve
     finalRows.push({
-      score: row.score, company: row.company, role: row.role,
+      score: row.score, adj, company: row.company, role: row.role,
       level: row.level, domain: row.domain, url: row.url,
       status: row.status, added: row.added,
       recommendation: '🟠 WEAK', companyLabel: '', _locked: true,
@@ -302,8 +403,17 @@ for (const [url, role] of candidateRoles) {
   if (existingRows.has(url)) continue; // already in table
 
   const scored = computeScore(role.title, role.company);
+  // Check if evaluation already exists for this new role
+  let adj = '';
+  if (RECONCILE_MODE && evalScores.has(url)) {
+    adj = `${evalScores.get(url).score}`;
+    reconciledCount++;
+  }
+  const effectiveScore = adj ? parseFloat(adj) : scored.score;
+  const recommendation = getRecommendation(effectiveScore);
   finalRows.push({
     score: `${scored.score} ${scored.companyLabel}`.trim(),
+    adj,
     company: role.company,
     role: role.title,
     level: scored.level,
@@ -311,21 +421,23 @@ for (const [url, role] of candidateRoles) {
     url: role.url,
     status: '🔲 New',
     added: TIMESTAMP,
-    recommendation: scored.recommendation,
+    recommendation,
     companyLabel: scored.companyLabel,
     _locked: false,
     _numericScore: scored.score,
+    _effectiveScore: effectiveScore,
   });
   newCount++;
 }
 
-// Sort: locked rows stay grouped at top by status, then open rows by score desc
+// Sort: locked rows stay grouped at top by status, then open rows by effective score desc
+// Effective score = Adj. when present, otherwise surface Score
 finalRows.sort((a, b) => {
   // Locked rows with user action go to separate sections
   if (a._locked && !b._locked) return 1;
   if (!a._locked && b._locked) return -1;
   if (a._locked && b._locked) return 0;
-  return (b._numericScore || 0) - (a._numericScore || 0) || a.company.localeCompare(b.company);
+  return (b._effectiveScore || 0) - (a._effectiveScore || 0) || a.company.localeCompare(b.company);
 });
 
 // ── Build Obsidian markdown ──
@@ -354,23 +466,26 @@ md += `| 🎯 Interview | In interview process | Locked |\n`;
 md += `| 🤝 Offer | Offer received | Locked |\n\n`;
 
 md += `## Scoring Guide\n`;
-md += `- 🟢 **APPLY** (4.0+): Strong title + domain + company match\n`;
+md += `- **Score** = surface score (title + domain + company tier)\n`;
+md += `- **Adj.** = adjusted score from JD-depth evaluation (authoritative when present)\n`;
+md += `- Tier assignment uses Adj. when available, falls back to Score\n`;
+md += `- 🟢 **APPLY** (4.0+): Strong match — apply\n`;
 md += `- 🟡 **REVIEW** (3.0-3.9): Good potential, needs JD review\n`;
 md += `- 🟠 **WEAK** (2.0-2.9): Level or domain mismatch\n`;
 md += `- ⚪ **SKIP** (<2.0): Too junior or hard mismatch\n\n`;
 
 function writeTable(rows, includeStatus = true) {
   if (includeStatus) {
-    md += `| Score | Company | Role | Level | Domain | Link | Status | Added |\n`;
-    md += `|-------|---------|------|-------|--------|------|--------|-------|\n`;
+    md += `| Score | Adj. | Company | Role | Level | Domain | Link | Status | Added |\n`;
+    md += `|-------|------|---------|------|-------|--------|------|--------|-------|\n`;
     for (const r of rows) {
-      md += `| ${r.score} | ${r.company} | ${r.role} | ${r.level} | ${r.domain} | [View](${r.url}) | ${r.status} | ${r.added} |\n`;
+      md += `| ${r.score} | ${r.adj || ''} | ${r.company} | ${r.role} | ${r.level} | ${r.domain} | [View](${r.url}) | ${r.status} | ${r.added} |\n`;
     }
   } else {
-    md += `| Score | Company | Role | Level | Domain | Link | Added |\n`;
-    md += `|-------|---------|------|-------|--------|------|-------|\n`;
+    md += `| Score | Adj. | Company | Role | Level | Domain | Link | Added |\n`;
+    md += `|-------|------|---------|------|-------|--------|------|-------|\n`;
     for (const r of rows) {
-      md += `| ${r.score} | ${r.company} | ${r.role} | ${r.level} | ${r.domain} | [View](${r.url}) | ${r.added} |\n`;
+      md += `| ${r.score} | ${r.adj || ''} | ${r.company} | ${r.role} | ${r.level} | ${r.domain} | [View](${r.url}) | ${r.added} |\n`;
     }
   }
 }
@@ -402,10 +517,10 @@ if (skipRows.length > 0) {
 if (lockedRows.length > 0) {
   md += `## 📌 Actioned (${lockedRows.length})\n\n`;
   md += `> These roles have a user-set status and are not re-scored.\n\n`;
-  md += `| Score | Company | Role | Status | Link | Added |\n`;
-  md += `|-------|---------|------|--------|------|-------|\n`;
+  md += `| Score | Adj. | Company | Role | Status | Link | Added |\n`;
+  md += `|-------|------|---------|------|--------|------|-------|\n`;
   for (const r of lockedRows) {
-    md += `| ${r.score} | ${r.company} | ${r.role} | ${r.status} | [View](${r.url}) | ${r.added} |\n`;
+    md += `| ${r.score} | ${r.adj || ''} | ${r.company} | ${r.role} | ${r.status} | [View](${r.url}) | ${r.added} |\n`;
   }
   md += '\n';
 }
@@ -415,10 +530,13 @@ writeFileSync(OBSIDIAN_FILE, md);
 
 // Summary
 console.log(`\n━━━ Score & Publish ━━━`);
-console.log(`Mode:           ${FULL_MODE ? 'full rebuild' : 'incremental'}`);
+console.log(`Mode:           ${FULL_MODE ? 'full rebuild' : 'incremental'}${RECONCILE_MODE ? ' + reconcile' : ''}`);
 console.log(`New roles:      ${newCount}`);
 console.log(`Re-scored:      ${rescoredCount}`);
 console.log(`Preserved:      ${preservedCount}`);
+if (RECONCILE_MODE) {
+  console.log(`Reconciled:     ${reconciledCount} (from ${evalScores.size} evaluation reports)`);
+}
 console.log(`Total in table: ${finalRows.length}`);
 console.log(`🟢 APPLY:       ${applyRows.length}`);
 console.log(`🟡 REVIEW:      ${reviewRows.length}`);

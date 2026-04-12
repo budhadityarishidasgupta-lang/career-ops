@@ -58,6 +58,9 @@ AI-powered job search automation built on Claude Code: pipeline tracking, offer 
 | `article-digest.md` | Compact proof points from portfolio (optional) |
 | `interview-prep/story-bank.md` | Accumulated STAR+R stories across evaluations |
 | `interview-prep/{company}-{role}.md` | Company-specific interview intel reports |
+| `score-and-publish.mjs` | Surface scoring + Obsidian scanner publishing (`--reconcile` to feed eval scores back) |
+| `reconcile-scores.mjs` | Standalone: extract eval scores from `reports/` and write `Adj.` column to scanner (`--dry-run`, `--json`) |
+| `context/` | Canonical files synced from Obsidian (resume source of truth, style guide, accomplishments, metrics) |
 | `analyze-patterns.mjs` | Pattern analysis script (JSON output) |
 | `followup-cadence.mjs` | Follow-up cadence calculator (JSON output) |
 | `data/follow-ups.md` | Follow-up history tracker |
