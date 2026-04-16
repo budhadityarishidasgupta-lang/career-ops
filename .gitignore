@@ -50,4 +50,6 @@ INSTRUCTIONS.md
 # Auto-generated scratch scripts (may contain hardcoded personal data)
 scratch-*.mjs
 scratch-*.cjs
+# But keep the core scanner tracked
+!scratch-scan.mjs
 

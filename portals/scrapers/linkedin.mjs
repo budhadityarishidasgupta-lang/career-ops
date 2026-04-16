@@ -5,9 +5,13 @@ export async function scrapeLinkedIn(keywords, location = 'India') {
   const jobs = [];
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    viewport: { width: 1280, height: 800 }
   });
   const page = await context.newPage();
+  
+  // Randomized delay to mimic human behavior
+  await new Promise(r => setTimeout(r, Math.random() * 2000 + 1000));
 
   try {
     // Public search URL (often bypasses login wall for first page)
@@ -16,6 +20,9 @@ export async function scrapeLinkedIn(keywords, location = 'India') {
     
     await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 30000 });
     
+    // Wait for jobs to settle
+    await new Promise(r => setTimeout(r, 1000));
+
     // Check if we hit a login wall immediately
     const isLoginWall = await page.evaluate(() => document.body.innerText.includes('Sign in to see') || !!document.querySelector('.authwall-join-form'));
     

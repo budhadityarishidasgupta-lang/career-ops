@@ -16,8 +16,9 @@ export async function scrapeInstahyre(keywords, locations = ['Pune', 'Bengaluru'
       
       await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 30000 });
       
-      // Wait for job cards to appear
-      await page.waitForSelector('.job-listing-container', { timeout: 10000 }).catch(() => null);
+      // Wait for job cards to appear with realistic timing
+      await page.waitForSelector('.job-listing-container', { timeout: 15000 }).catch(() => null);
+      await new Promise(r => setTimeout(r, 1000));
 
       const results = await page.evaluate(() => {
         const cards = Array.from(document.querySelectorAll('.job-listing-container'));
