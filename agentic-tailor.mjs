@@ -237,9 +237,10 @@ async function tailorPackage(jd, profile, companyName) {
       resumeHtml = resumeHtml.replace(new RegExp(`{{${key}}}`, 'g'), val || '');
     });
 
-    const companySlug = entry.company.replace(/\s+/g, '_');
-    const resumePathHtml = `output/Resume_Akash_Kaintura_${companySlug}.html`;
-    const resumePathPdf = `output/Resume_Akash_Kaintura_${companySlug}.pdf`;
+    const sanitizeFilename = (str) => str.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_').substring(0, 50);
+    const companySlug = sanitizeFilename(entry.company);
+    const resumePathHtml = `output/Resume_Akash_Kaintura_SSE_${companySlug}.html`;
+    const resumePathPdf = `output/Resume_Akash_Kaintura_SSE_${companySlug}.pdf`;
 
     if (!fs.existsSync('output')) fs.mkdirSync('output');
     fs.writeFileSync(resumePathHtml, resumeHtml);
@@ -255,8 +256,8 @@ async function tailorPackage(jd, profile, companyName) {
       clHtml = clHtml.replace(new RegExp(`{{${key}}}`, 'g'), val || '');
     });
 
-    const clPathHtml = `output/Cover_Letter_Akash_Kaintura_${companySlug}.html`;
-    const clPathPdf = `output/Cover_Letter_Akash_Kaintura_${companySlug}.pdf`;
+    const clPathHtml = `output/Cover_Letter_Akash_Kaintura_SSE_${companySlug}.html`;
+    const clPathPdf = `output/Cover_Letter_Akash_Kaintura_SSE_${companySlug}.pdf`;
     fs.writeFileSync(clPathHtml, clHtml);
 
     console.log(`✅ Package ready: ${resumePathHtml} & ${clPathHtml}`);
