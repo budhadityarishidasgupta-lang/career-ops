@@ -1,13 +1,9 @@
 # Personal data (user fills these)
 .env
 .env.local
-data/*.json
-data/applications.md
-data/pipeline.md
-data/scan-history.tsv
-data/*.bak
-dashboard.log
+data/
 !data/.gitkeep
+dashboard.log
 reports/*.md
 !reports/.gitkeep
 output/*
@@ -48,6 +44,9 @@ cv.md
 INSTRUCTIONS.md
 
 # Auto-generated scratch scripts (may contain hardcoded personal data)
+scratch/
+!scratch/fetch-indeed-job.mjs
+!scratch/ingest-lever.mjs
 scratch-*.mjs
 scratch-*.cjs
 # But keep the core scanner tracked
