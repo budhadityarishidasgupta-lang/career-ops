@@ -101,10 +101,10 @@ export default function LandingPage() {
           <Play size={10} className="fill-white/20" />
           Initialized v2.0-cloud-saas
         </div>
-        <div className="flex gap-8 text-white/40 text-xs">
-          <a href="#" className="hover:text-white transition-colors">Documentation</a>
-          <a href="#" className="hover:text-white transition-colors">Privacy Core</a>
-          <a href="#" className="hover:text-white transition-colors">Infrastructure Status</a>
+        <div className="flex gap-8 text-white/40 text-xs text-balance">
+          <Link href="/docs" className="hover:text-white transition-colors">Documentation</Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Core</Link>
+          <Link href="/status" className="hover:text-white transition-colors">Infrastructure Status</Link>
         </div>
       </footer>
     </div>
