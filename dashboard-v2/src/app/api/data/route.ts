@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
+// @ts-ignore
 import yaml from 'js-yaml';
 
 export async function GET() {
@@ -57,7 +58,7 @@ export async function GET() {
 
     // 4. Scan Output for PDFs
     const outDir = path.join(process.cwd(), '..', 'output');
-    let pdfs = [];
+    let pdfs: any[] = [];
     if (fs.existsSync(outDir)) {
       pdfs = fs.readdirSync(outDir)
         .filter(f => f.endsWith('.pdf'))

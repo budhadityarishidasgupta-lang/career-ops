@@ -114,7 +114,7 @@ export default function Dashboard() {
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           className="h-8 w-8 border-2 border-amber-500 border-t-transparent rounded-full"
         />
-      <</div>
+      </div>
     );
   }
 
@@ -125,9 +125,9 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 mb-10 px-2">
           <div className="h-8 w-8 bg-amber-500 rounded-lg flex items-center justify-center">
             <Briefcase className="h-5 w-5 text-black" />
-          <</div>
+          </div>
           <span className="text-xl font-bold tracking-tight">Career-Ops <span className="text-xs text-amber-500 font-mono opacity-60">v2</span></span>
-        <</div>
+        </div>
 
         <nav className="space-y-2 flex-1">
           <NavItem icon={<LayoutDashboard size={18}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
@@ -139,7 +139,7 @@ export default function Dashboard() {
 
         <div className="mt-auto pt-6 border-t border-white/5">
           <NavItem icon={<Settings size={18}/>} label="Settings" active={false} onClick={() => {}} />
-        <</div>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -148,7 +148,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold mb-1">Welcome back, {data?.profile?.candidate?.full_name?.split(' ')[0]}</h1>
             <p className="text-white/40">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-          <</div>
+          </div>
           <div className="flex gap-4">
              <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2">
                 <Search size={16} />
@@ -161,7 +161,7 @@ export default function Dashboard() {
                 <Play size={16} />
                 <span>Quick Run</span>
              </button>
-          <</div>
+          </div>
         </header>
 
         <section className="grid grid-cols-4 gap-6 mb-10">
@@ -178,14 +178,14 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-2xl font-bold mb-2">Application Funnel</h3>
                     <p className="text-white/40">Real-time status tracking</p>
-                  <</div>
+                  </div>
                   <div className="flex items-end gap-4 h-32">
                     <div className="flex-1 bg-amber-500/20 border-t-2 border-amber-500 rounded-lg h-[80%]" />
                     <div className="flex-1 bg-amber-500/15 border-t-2 border-amber-500/60 rounded-lg h-[50%]" />
                     <div className="flex-1 bg-amber-500/10 border-t-2 border-amber-500/30 rounded-lg h-[20%]" />
                     <div className="flex-1 bg-white/5 rounded-lg h-[5%]" />
-                  <</div>
-               <</div>
+                  </div>
+               </div>
                <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
                   <h3 className="text-2xl font-bold mb-6">Recent Activity</h3>
                   <div className="space-y-4">
@@ -194,10 +194,10 @@ export default function Dashboard() {
                         <div className="h-2 w-2 rounded-full bg-amber-500" />
                         <span className="font-semibold">{app.company}</span>
                         <span className="text-white/40">applied {new Date(app.applied_at).toLocaleDateString()}</span>
-                      <</div>
+                      </div>
                     ))}
-                  <</div>
-               <</div>
+                  </div>
+               </div>
             </motion.div>
           )}
 
@@ -205,7 +205,7 @@ export default function Dashboard() {
             <motion.div key="apps" className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm">
               <div className="p-6 border-b border-white/5">
                 <h2 className="text-xl font-bold">Applications</h2>
-              <</div>
+              </div>
               <div className="overflow-x-auto max-h-[600px] scroll-smooth">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 bg-[#09090b] shadow-[0_1px_0_rgba(255,255,255,0.05)]">
@@ -228,10 +228,10 @@ export default function Dashboard() {
                         <td className="px-6 py-4">
                            <div className="flex items-center gap-2">
                              <div className="h-1.5 w-12 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500" style={{ width: `${app.score * 10 || 0}%` }}><</div>
-                             <</div>
+                                <div className="h-full bg-amber-500" style={{ width: `${app.score * 10 || 0}%` }}></div>
+                             </div>
                              <span className="text-xs font-mono text-amber-500">{app.score}</span>
-                           <</div>
+                           </div>
                         </td>
                         <td className="px-6 py-4">
                            <button 
@@ -245,7 +245,7 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-              <</div>
+              </div>
             </motion.div>
           )}
 
@@ -253,7 +253,7 @@ export default function Dashboard() {
             <motion.div key="pipeline" className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm">
               <div className="p-6 border-b border-white/5">
                 <h2 className="text-xl font-bold">Job Pipeline (Vercel/Greenhouse Scanned)</h2>
-              <</div>
+              </div>
               <div className="overflow-x-auto text-sm max-h-[600px] scroll-smooth">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 bg-[#09090b] shadow-[0_1px_0_rgba(255,255,255,0.05)]">
@@ -271,7 +271,7 @@ export default function Dashboard() {
                       <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                         <td className="px-6 py-4 text-amber-500/40 font-mono text-xs">#{job.pipeline_id}</td>
                         <td className="px-6 py-4">
-                           <div className="font-semibold text-[#fafafa]">{job.company}<</div>
+                           <div className="font-semibold text-[#fafafa]">{job.company}</div>
                            <a href={job.url} target="_blank" className="text-xs text-amber-500 hover:underline">{job.url.substring(0, 40)}...</a>
                         </td>
                         <td className="px-6 py-4 text-white/80">{job.title || 'Unknown Role'}</td>
@@ -299,7 +299,7 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-              <</div>
+              </div>
             </motion.div>
           )}
 
@@ -311,26 +311,26 @@ export default function Dashboard() {
                      <p className="text-white/60 leading-relaxed italic border-l-2 border-amber-500 pl-4">
                         "{data?.profile?.narrative?.exit_story}"
                      </p>
-                  <</div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     {data?.profile?.narrative?.superpowers?.map((s: any, i: number) => (
                       <div key={i} className="p-4 bg-white/5 border border-white/5 rounded-xl text-sm text-white/40">
                          {s}
-                      <</div>
+                      </div>
                     ))}
-                  <</div>
-               <</div>
+                  </div>
+               </div>
                <div className="bg-[#050505] border border-white/10 rounded-3xl p-6 flex flex-col">
                   <h3 className="font-bold mb-6 flex items-center gap-2 underline underline-offset-8 decoration-amber-500">Generated PDFs</h3>
                   <div className="space-y-2 overflow-y-auto flex-1 pr-2">
                     {data?.pdfs?.map((pdf: any, i: number) => (
                       <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/50 transition-all flex items-center justify-between group">
-                         <div className="truncate text-xs font-mono text-white/60">{pdf.name}<</div>
+                         <div className="truncate text-xs font-mono text-white/60">{pdf.name}</div>
                          <FileText size={14} className="group-hover:text-amber-500 transition-colors" />
-                      <</div>
+                      </div>
                     ))}
-                  <</div>
-               <</div>
+                  </div>
+               </div>
             </motion.div>
           )}
 
@@ -342,28 +342,28 @@ export default function Dashboard() {
                        <div className="h-2.5 w-2.5 bg-red-500/50 rounded-full" />
                        <div className="h-2.5 w-2.5 bg-amber-500/50 rounded-full" />
                        <div className="h-2.5 w-2.5 bg-emerald-500/50 rounded-full" />
-                    <</div>
+                    </div>
                     <span className="text-xs font-mono text-white/40 ml-2">career-ops-terminal.zsh</span>
-                 <</div>
+                 </div>
                  <div className="flex gap-4 items-center">
                     {isExecuting && (
                       <div className="flex items-center gap-2">
                          <div className="h-2 w-2 bg-amber-500 rounded-full animate-ping" />
                          <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Active</span>
-                      <</div>
+                      </div>
                     )}
                     <button onClick={() => setLogs([])} className="text-xs text-white/20 hover:text-white transition-colors uppercase tracking-widest font-bold">Clear</button>
-                 <</div>
-              <</div>
+                 </div>
+              </div>
                   <div id="terminal-logs" className="flex-1 p-6 font-mono text-sm overflow-y-auto whitespace-pre-wrap bg-[#050505] scroll-smooth">
                      {logs.length === 0 && !isExecuting ? (
-                       <div className="text-white/20 italic">Ready for command... type &apos;help&apos; to begin<</div>
+                       <div className="text-white/20 italic">Ready for command... type &apos;help&apos; to begin</div>
                      ) : (
                        <div className="space-y-0.5">
                          {logs.map((log, i) => (
                            <div key={i} className={`${log.type === 'stderr' ? 'text-red-400' : 'text-amber-500/80'} leading-relaxed`}>
                               {log.content}
-                           <</div>
+                           </div>
                          ))}
                          {isExecuting && (
                             <motion.span 
@@ -372,21 +372,21 @@ export default function Dashboard() {
                               className="inline-block w-2.5 h-5 bg-amber-500 align-middle ml-1"
                             />
                          )}
-                       <</div>
+                       </div>
                      )}
-                  <</div>
+                  </div>
 
                   {/* Quick Action Bar */}
                   <div className="flex gap-2 p-3 bg-white/[0.03] border-t border-white/5 overflow-x-auto no-scrollbar">
                      <div className="flex items-center gap-2 px-2 border-r border-white/10 mr-1">
                         <TerminalIcon size={12} className="text-white/20" />
                         <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest whitespace-nowrap">AI Tools</span>
-                     <</div>
+                     </div>
                      <button onClick={() => runCommand('scan')} className="px-3 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-bold border border-amber-500/20 transition-all whitespace-nowrap">SCAN</button>
                      <button onClick={() => runCommand('offer-list')} className="px-3 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-bold border border-amber-500/20 transition-all whitespace-nowrap">OFFER-LIST</button>
                      <button onClick={() => runCommand('apply')} className="px-3 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-[10px] font-bold border border-emerald-500/20 transition-all whitespace-nowrap">APPLY</button>
                      <button onClick={() => runCommand('help')} className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-white/40 text-[10px] font-bold border border-white/10 transition-all whitespace-nowrap">HELP</button>
-                  <</div>
+                  </div>
 
                   <div className="p-4 bg-[#050505]">
                      <div className="flex items-center gap-2 group">
@@ -403,14 +403,13 @@ export default function Dashboard() {
                              autoFocus
                            />
                         </form>
-                     <</div>
-                  <</div>
-</div>
+                     </div>
+                  </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-    <</div>
+    </div>
   );
 }
 
@@ -437,8 +436,8 @@ function StatCard({ icon, label, value, color }: { icon: any, label: string, val
       <div className="flex items-center justify-between mb-4">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">{label}</span>
-      <</div>
-      <div className="text-3xl font-bold tracking-tight">{value}<</div>
-    <</div>
+      </div>
+      <div className="text-3xl font-bold tracking-tight">{value}</div>
+    </div>
   );
 }

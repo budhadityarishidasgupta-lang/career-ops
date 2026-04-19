@@ -1,8 +1,8 @@
 # Personal data (user fills these)
 .env
 .env.local
-data/
-!data/.gitkeep
+/data/
+!/data/.gitkeep
 dashboard.log
 reports/*.md
 !reports/.gitkeep
