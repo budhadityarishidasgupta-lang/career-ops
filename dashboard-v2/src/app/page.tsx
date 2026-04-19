@@ -240,29 +240,81 @@ export default function Dashboard() {
 
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
-            <motion.div key="dash" className="grid grid-cols-2 gap-10">
-               <div className="bg-white/5 p-8 rounded-3xl border border-white/10 aspect-video flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2">Application Funnel</h3>
-                    <p className="text-white/40">Real-time status tracking</p>
-                  </div>
-                  <div className="flex items-end gap-4 h-32">
-                    <div className="flex-1 bg-amber-500/20 border-t-2 border-amber-500 rounded-lg h-[80%]" />
-                    <div className="flex-1 bg-amber-500/15 border-t-2 border-amber-500/60 rounded-lg h-[50%]" />
-                    <div className="flex-1 bg-amber-500/10 border-t-2 border-amber-500/30 rounded-lg h-[20%]" />
-                    <div className="flex-1 bg-white/5 rounded-lg h-[5%]" />
-                  </div>
-               </div>
-               <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-                  <h3 className="text-2xl font-bold mb-6">Recent Activity</h3>
-                  <div className="space-y-4">
-                    {data?.applications?.slice(0, 4).map((app: any, i: number) => (
-                      <div key={i} className="flex items-center gap-4 text-sm">
-                        <div className="h-2 w-2 rounded-full bg-amber-500" />
-                        <span className="font-semibold">{app.company}</span>
-                        <span className="text-white/40">applied {new Date(app.applied_at).toLocaleDateString()}</span>
+            <motion.div key="dash" className="space-y-10">
+               {/* Onboarding Checklist (Only for new users) */}
+               {(!data?.profile?.candidate?.full_name || !data?.openai_key) && (
+                 <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-amber-500/10 border border-amber-500/20 p-8 rounded-3xl relative overflow-hidden group"
+                 >
+                   <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <ShieldCheck size={120} />
+                   </div>
+                   <div className="relative z-10 max-w-xl">
+                      <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                        <Play className="fill-amber-500 text-amber-500" size={20} />
+                        Launch Checklist
+                      </h3>
+                      <p className="text-white/60 mb-6">Complete these steps to activate your AI-driven job discovery engine.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <button 
+                          onClick={() => setActiveTab('settings')}
+                          className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${data?.profile?.candidate?.full_name ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                        >
+                          <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${data?.profile?.candidate?.full_name ? 'bg-emerald-500 text-white' : 'bg-white/10'}`}>
+                            {data?.profile?.candidate?.full_name ? <CheckCircle2 size={14}/> : '1'}
+                          </div>
+                          <span className="text-sm font-semibold">Profile Identity</span>
+                        </button>
+
+                        <button 
+                          onClick={() => setActiveTab('settings')}
+                          className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${data?.openai_key ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                        >
+                          <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${data?.openai_key ? 'bg-emerald-500 text-white' : 'bg-white/10'}`}>
+                            {data?.openai_key ? <CheckCircle2 size={14}/> : '2'}
+                          </div>
+                          <span className="text-sm font-semibold">AI Credentials</span>
+                        </button>
                       </div>
-                    ))}
+
+                      {!data?.profile?.candidate?.full_name && (
+                        <p className="mt-6 text-xs font-mono text-amber-500/60 uppercase tracking-widest">
+                          Next Step: Head to Settings to configure your career narrative
+                        </p>
+                      )}
+                   </div>
+                 </motion.div>
+               )}
+
+               <div className="grid grid-cols-2 gap-10">
+                  <div className="bg-white/5 p-8 rounded-3xl border border-white/10 aspect-video flex flex-col justify-between">
+                     <div>
+                       <h3 className="text-2xl font-bold mb-2">Application Funnel</h3>
+                       <p className="text-white/40">Real-time status tracking</p>
+                     </div>
+                     <div className="flex items-end gap-4 h-32">
+                       <div className="flex-1 bg-amber-500/20 border-t-2 border-amber-500 rounded-lg h-[80%]" />
+                       <div className="flex-1 bg-amber-500/15 border-t-2 border-amber-500/60 rounded-lg h-[50%]" />
+                       <div className="flex-1 bg-amber-500/10 border-t-2 border-amber-500/30 rounded-lg h-[20%]" />
+                       <div className="flex-1 bg-white/5 rounded-lg h-[5%]" />
+                     </div>
+                  </div>
+                  <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
+                     <h3 className="text-2xl font-bold mb-6">Recent Activity</h3>
+                     <div className="space-y-4">
+                       {data?.applications?.length > 0 ? data.applications.slice(0, 4).map((app: any, i: number) => (
+                         <div key={i} className="flex items-center gap-4 text-sm">
+                           <div className="h-2 w-2 rounded-full bg-amber-500" />
+                           <span className="font-semibold">{app.company}</span>
+                           <span className="text-white/40">applied {new Date(app.applied_at).toLocaleDateString()}</span>
+                         </div>
+                       )) : (
+                         <p className="text-white/20 italic text-sm">No recent activity detected.</p>
+                       )}
+                     </div>
                   </div>
                </div>
             </motion.div>
