@@ -14,7 +14,8 @@ import {
   Terminal as TerminalIcon,
   LogOut,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'next-auth/react';
