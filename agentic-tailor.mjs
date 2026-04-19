@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
+let hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
 const TARGET_MAP = 'data/current_eval.json';
 const PROFILE_PATH = 'config/profile.yml';
 const TEMPLATE = 'templates/ats-template.html';
@@ -186,10 +186,20 @@ async function tailorPackage(jd, profile, companyName) {
   try {
     await checkSync();
 
-    const profile = yaml.load(fs.readFileSync(PROFILE_PATH, 'utf8'));
-    const mapping = JSON.parse(fs.readFileSync(TARGET_MAP, 'utf8'));
-    const entry = mapping[id];
-    if (!entry) throw new Error(`ID ${id} not found.`);
+    const [jobRecord] = await sql`SELECT user_id, url, company, title FROM jobs WHERE id = ${parseInt(id)}`;
+    if (!jobRecord) throw new Error(`Job ID ${id} not found in database.`);
+
+    const [profileRow] = await sql`SELECT resume_context, hf_token FROM user_profiles WHERE user_id = ${jobRecord.user_id}`;
+    if (!profileRow) throw new Error(`Profile not configured for user associated with Job ID ${id}. Please setup via the Dashboard Settings.`);
+
+    const profile = profileRow.resume_context;
+    
+    // Override HuggingFace global instance if the user has provided their own token
+    if (profileRow.hf_token) {
+       hf = new HfInference(profileRow.hf_token);
+    }
+
+    const entry = jobRecord;
 
     console.log(`🎯 Target identified: ${entry.company}`);
     const jdText = await scrapeJD(entry.url);

@@ -4,13 +4,24 @@ import sql from './db/client.mjs';
 import fs from 'fs';
 import yaml from 'js-yaml';
 
-const config = yaml.load(fs.readFileSync('portals.yml', 'utf8'));
+const userId = process.env.SCAN_USER_ID || process.argv[2] || 1;
+// Attempt to load distinct profile config
+let config = { title_filter: { positive: [], negative: [] }, tracked_companies: [] };
+try {
+  const [profile] = await sql`SELECT targeting_keywords FROM user_profiles WHERE user_id = ${userId}`;
+  if (profile?.targeting_keywords) {
+     config.title_filter = profile.targeting_keywords;
+  }
+} catch(e) {
+  // Graceful fallback to legacy generic file
+  config = yaml.load(fs.readFileSync('portals.yml', 'utf8'));
+}
 const companies = config.tracked_companies || [];
 
 // load already seen urls from db
 const seenUrls = new Set();
 try {
-  const existing = await sql`SELECT url FROM jobs`;
+  const existing = await sql`SELECT url FROM jobs WHERE user_id = ${userId}`;
   existing.forEach(r => seenUrls.add(r.url));
   console.log(`✓ Loaded ${seenUrls.size} existing jobs from database for deduplication.`);
 } catch (e) {
@@ -274,9 +285,10 @@ async function run() {
   if (totalAdded > 0) {
     console.log(`\n📦 UPSERTing ${totalAdded} new jobs to PostgreSQL...`);
     for (const job of newJobs) {
+      job.user_id = parseInt(userId);
       await sql`
-        INSERT INTO jobs ${sql(job, 'url', 'company', 'title', 'source')}
-        ON CONFLICT (url) DO NOTHING
+        INSERT INTO jobs ${sql(job, 'url', 'company', 'title', 'source', 'user_id')}
+        ON CONFLICT (user_id, url) DO NOTHING
       `;
     }
   }

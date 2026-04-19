@@ -138,7 +138,7 @@ export default function Dashboard() {
         </nav>
 
         <div className="mt-auto pt-6 border-t border-white/5">
-          <NavItem icon={<Settings size={18}/>} label="Settings" active={false} onClick={() => {}} />
+          <NavItem icon={<Settings size={18}/>} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
       </aside>
 
@@ -405,6 +405,25 @@ export default function Dashboard() {
                         </form>
                      </div>
                   </div>
+            </motion.div>
+          )}
+          {activeTab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex-1 overflow-y-auto w-full max-w-4xl">
+               <div className="bg-[#050505] border border-white/10 rounded-2xl p-8 mb-8 shadow-2xl">
+                 <h2 className="text-2xl font-bold mb-2">SaaS Multi-User Settings</h2>
+                 <p className="text-white/40 mb-8">Update your profile for AI Tailoring and keyword targeting.</p>
+                 <div className="space-y-6">
+                    <div>
+                       <label className="block text-sm font-medium mb-2 opacity-60">Target Keywords (e.g., "Software Engineer")</label>
+                       <input type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500 transition-colors text-white" placeholder="React, Node, AI..." />
+                    </div>
+                    <div>
+                       <label className="block text-sm font-medium mb-2 opacity-60">OpenAI API Key for Agentic Tailor</label>
+                       <input type="password" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500 transition-colors text-white" placeholder="sk-..." />
+                    </div>
+                 </div>
+                 <button className="mt-8 px-6 py-3 bg-amber-500 text-black font-bold rounded-lg hover:bg-amber-400 transition-colors">Save Settings</button>
+               </div>
             </motion.div>
           )}
         </AnimatePresence>
