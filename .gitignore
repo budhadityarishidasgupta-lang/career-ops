@@ -52,3 +52,4 @@ scratch-*.cjs
 # But keep the core scanner tracked
 !scratch-scan.mjs
 
+.vercel
