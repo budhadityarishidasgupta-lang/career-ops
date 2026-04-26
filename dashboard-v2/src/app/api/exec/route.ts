@@ -108,10 +108,12 @@ export async function GET(req: NextRequest) {
         const configDir = path.join(userTmpDir, 'config');
         const dataDir = path.join(userTmpDir, 'data');
         const outputDir = path.join(userTmpDir, 'output');
+        const templatesDir = path.join(userTmpDir, 'templates');
         
         fs.mkdirSync(configDir, { recursive: true });
         fs.mkdirSync(dataDir, { recursive: true });
         fs.mkdirSync(outputDir, { recursive: true });
+        fs.mkdirSync(templatesDir, { recursive: true });
 
         // Write the profile.yml for the script to read
         const profileYaml = yaml.dump(profile.resume_context);
@@ -120,30 +122,34 @@ export async function GET(req: NextRequest) {
         // Write keywords to a separate file if needed by scripts
         fs.writeFileSync(path.join(configDir, 'keywords.json'), JSON.stringify(profile.targeting_keywords));
 
+        // Provide fallback scanner/template assets expected by scripts in cwd.
+        const rootPortalsPath = path.join(process.cwd(), '..', 'portals.yml');
+        if (fs.existsSync(rootPortalsPath)) {
+          fs.copyFileSync(rootPortalsPath, path.join(userTmpDir, 'portals.yml'));
+        }
+        const rootAtsTemplatePath = path.join(process.cwd(), '..', 'templates', 'ats-template.html');
+        if (fs.existsSync(rootAtsTemplatePath)) {
+          fs.copyFileSync(rootAtsTemplatePath, path.join(templatesDir, 'ats-template.html'));
+        }
+        const rootCoverLetterTemplatePath = path.join(process.cwd(), '..', 'templates', 'cover-letter.html');
+        if (fs.existsSync(rootCoverLetterTemplatePath)) {
+          fs.copyFileSync(rootCoverLetterTemplatePath, path.join(templatesDir, 'cover-letter.html'));
+        }
+
         // 4. Execute Script from the new 'scripts' location
         const scriptPath = path.join(process.cwd(), 'scripts', scriptName);
         
         // We run in the temp dir so the script finds its config/profile.yml there
         // but we need to tell Node where to find its modules and local imports
-        const child = spawn('node', [scriptPath, userId, ...scriptArgs], {
+        const child = spawn('node', [scriptPath, ...scriptArgs], {
           cwd: userTmpDir,
           env: { 
             ...process.env, 
             FORCE_COLOR: '1',
             SCAN_USER_ID: userId,
             NODE_PATH: path.join(process.cwd(), 'node_modules'),
-            // Point back to the scripts directory for local imports like './db/client.mjs'
           }
         });
-
-        // Ensure db client is available in temp workspace
-        if (!fs.existsSync(path.join(userTmpDir, 'db'))) {
-          fs.mkdirSync(path.join(userTmpDir, 'db'), { recursive: true });
-        }
-        fs.copyFileSync(
-          path.join(process.cwd(), 'scripts', 'db', 'client.mjs'), 
-          path.join(userTmpDir, 'db', 'client.mjs')
-        );
 
         child.stdout.on('data', (data) => send({ type: 'stdout', content: data.toString() }));
         child.stderr.on('data', (data) => send({ type: 'stderr', content: data.toString() }));
