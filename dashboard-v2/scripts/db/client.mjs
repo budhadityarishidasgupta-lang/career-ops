@@ -1,7 +1,21 @@
 import pg from 'pg';
 
+const normalizeDbUrl = (value) => {
+  if (!value) return value;
+  // Keep compatibility with providers that still append these params.
+  let next = value
+    .replace('&channel_binding=require', '')
+    .replace('?channel_binding=require&', '?')
+    .replace('?channel_binding=require', '');
+
+  if (next.includes('sslmode=require') && !next.includes('uselibpqcompat=')) {
+    next += next.includes('?') ? '&uselibpqcompat=true' : '?uselibpqcompat=true';
+  }
+  return next;
+};
+
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: normalizeDbUrl(process.env.DATABASE_URL),
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
   max: 10,
 });

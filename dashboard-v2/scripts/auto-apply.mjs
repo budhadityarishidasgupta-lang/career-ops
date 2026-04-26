@@ -3,9 +3,8 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { chromium } from 'playwright';
 import sql from './db/client.mjs';
-import { HfInference } from '@huggingface/inference';
 
-const hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
+let hf = null;
 const TARGET_MAP = 'data/current_eval.json';
 const PROFILE_PATH = 'config/profile.yml';
 
@@ -15,6 +14,18 @@ const rawUserId = process.env.SCAN_USER_ID || 1;
 const userId = Number.parseInt(String(rawUserId), 10);
 if (!Number.isFinite(userId)) {
   throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
+
+async function getHfClient() {
+  if (hf) return hf;
+  try {
+    const mod = await import('@huggingface/inference');
+    hf = new mod.HfInference(process.env.HUGGINGFACE_TOKEN);
+    return hf;
+  } catch (e) {
+    console.warn('⚠ HuggingFace SDK unavailable in this runtime. Falling back to static field mapping.');
+    return null;
+  }
 }
 
 // Load profile for auto-filling
@@ -131,6 +142,9 @@ async function scanFormFields(frame) {
 }
 
 async function reasonFieldMappings(fields, profile, companyName) {
+  const hfClient = await getHfClient();
+  if (!hfClient) return null;
+
   console.log(`🤖 Consulting MiniMax-M2.7 for form reasoning...`);
   
   const fieldList = fields.map((f, i) => `${i}: "${f.label}" (Context: ${f.context}) [Type: ${f.type}]`).join('\n');
@@ -163,7 +177,7 @@ async function reasonFieldMappings(fields, profile, companyName) {
   `;
 
   try {
-    const response = await hf.chatCompletion({
+    const response = await hfClient.chatCompletion({
       model: "MiniMaxAI/MiniMax-M2.7",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 2000,

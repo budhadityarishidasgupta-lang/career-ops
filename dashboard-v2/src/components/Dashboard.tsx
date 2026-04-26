@@ -497,34 +497,34 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'terminal' && (
-            <motion.div key="terminal" className="bg-[#1c1917] rounded-[2rem] flex flex-col h-[600px] overflow-hidden shadow-2xl relative border-8 border-[#f5f5f4]">
-              <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+            <motion.div key="terminal" className="bg-white rounded-[2rem] flex flex-col h-[600px] overflow-hidden shadow-2xl relative border border-[#e7e5e4]">
+              <div className="p-5 border-b border-[#f5f5f4] flex justify-between items-center bg-[#faf9f6]">
                  <div className="flex items-center gap-3">
                     <div className="h-3 w-3 bg-[#f59e0b] rounded-full" />
-                    <span className="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em] font-bold">Career-Ops Output Console</span>
+                    <span className="text-[10px] font-mono text-[#a8a29e] uppercase tracking-[0.2em] font-bold">Career-Ops Output Console</span>
                  </div>
-                 <button onClick={() => setLogs([])} className="text-[10px] text-white/20 hover:text-white transition-colors uppercase tracking-widest font-bold">Flush Buffers</button>
+                 <button onClick={() => setLogs([])} className="text-[10px] text-[#a8a29e] hover:text-[#1c1917] transition-colors uppercase tracking-widest font-bold">Flush Buffers</button>
               </div>
-              <div id="terminal-logs" className="flex-1 p-8 font-mono text-sm overflow-y-auto whitespace-pre-wrap bg-[#1c1917] text-white/80 scroll-smooth leading-relaxed">
+              <div id="terminal-logs" className="flex-1 p-8 font-mono text-sm overflow-y-auto whitespace-pre-wrap bg-white text-[#44403c] scroll-smooth leading-relaxed select-text cursor-text">
                  {logs.length === 0 && !isExecuting ? (
-                   <div className="text-white/10 italic">Awaiting secure handshake...</div>
+                   <div className="text-[#a8a29e] italic select-text">Awaiting secure handshake...</div>
                  ) : (
                    <div className="space-y-1">
                      {logs.map((log, i) => (
-                       <div key={i} className={log.type === 'stderr' ? 'text-rose-400' : 'text-[#f59e0b]'}>
+                      <div key={i} className={`select-text ${log.type === 'stderr' ? 'text-rose-600' : 'text-[#1c1917]'}`}>
                           {log.content}
                        </div>
                      ))}
                      {isExecuting && (
-                        <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.8, repeat: Infinity }} className="inline-block w-2 h-5 bg-[#f59e0b] ml-1" />
+                        <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.8, repeat: Infinity }} className="inline-block w-2 h-5 bg-[#1c1917] ml-1" />
                      )}
                    </div>
                  )}
               </div>
 
-              <div className="p-5 bg-white/[0.02] border-t border-white/5">
+              <div className="p-5 bg-[#faf9f6] border-t border-[#f5f5f4]">
                  <div className="flex items-center gap-3">
-                    <span className="text-[#f59e0b] font-bold font-mono">auth@career-ops:~$</span>
+                    <span className="text-[#1c1917] font-bold font-mono">auth@career-ops:~$</span>
                     <form onSubmit={handleCommandSubmit} className="flex-1">
                        <input 
                          type="text"
@@ -533,7 +533,7 @@ export default function Dashboard() {
                          onKeyDown={handleKeyDown}
                          placeholder="scan / apply <id> / help"
                          disabled={isExecuting}
-                         className="w-full bg-transparent outline-none border-none text-white font-mono placeholder:text-white/5 caret-[#f59e0b]"
+                         className="w-full bg-transparent outline-none border-none text-[#1c1917] font-mono placeholder:text-[#a8a29e] caret-[#1c1917] select-text"
                          autoFocus
                        />
                     </form>

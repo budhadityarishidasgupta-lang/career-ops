@@ -2,12 +2,11 @@ import fs from 'fs';
 import { stat } from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
-import { HfInference } from '@huggingface/inference';
 import { chromium } from 'playwright';
 import yaml from 'js-yaml';
 import sql from './db/client.mjs';
 
-let hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
+let hf = null;
 const TARGET_MAP = 'data/current_eval.json';
 const PROFILE_PATH = 'config/profile.yml';
 const TEMPLATE = 'templates/ats-template.html';
@@ -22,6 +21,18 @@ if (!Number.isFinite(userId)) {
 if (!idOrUrl) {
   console.error("Usage: tailor <job_id_or_url>");
   process.exit(1);
+}
+
+async function getHfClient(token) {
+  if (hf) return hf;
+  try {
+    const mod = await import('@huggingface/inference');
+    hf = new mod.HfInference(token || process.env.HUGGINGFACE_TOKEN);
+    return hf;
+  } catch (e) {
+    console.warn('⚠ HuggingFace SDK unavailable in this runtime. Using fallback tailoring.');
+    return null;
+  }
 }
 
 
@@ -114,6 +125,18 @@ async function scrapeJD(url) {
 }
 
 async function tailorPackage(jd, profile, companyName) {
+  const hfClient = await getHfClient();
+  if (!hfClient) {
+    return {
+      resume: {
+        summary: profile?.narrative?.exit_story || 'Experienced software engineer with product-minded execution and delivery focus.',
+        core_competencies: (profile?.narrative?.superpowers || []).slice(0, 12),
+        experience: (profile?.experience?.[0]?.bullets || []).slice(0, 3),
+      },
+      cover_letter: `Dear Hiring Team at ${companyName},\n\nI am excited to apply for this role. My background aligns strongly with the core requirements in your job description, and I focus on high-quality delivery, measurable outcomes, and cross-functional collaboration.\n\nI would value the opportunity to contribute and discuss how I can help your team.\n\nBest regards,\n${profile?.candidate?.full_name || 'Candidate'}`
+    };
+  }
+
   console.log("🤖 Generating Tailored Package with MiniMaxAI/MiniMax-M2.7...");
   
   const cvContext = `Headline: ${profile.narrative.headline}\nSummary: ${profile.narrative.exit_story}\nSuperpowers: ${profile.narrative.superpowers.join(', ')}`;
@@ -147,7 +170,7 @@ async function tailorPackage(jd, profile, companyName) {
     }
   `;
 
-  const response = await hf.chatCompletion({
+  const response = await hfClient.chatCompletion({
     model: "MiniMaxAI/MiniMax-M2.7",
     messages: [
       { role: "system", content: "You are a professional recruiting assistant. Return ONLY valid JSON." },
@@ -206,7 +229,9 @@ async function tailorPackage(jd, profile, companyName) {
     
     // Override HuggingFace global instance if the user has provided their own token
     if (profileRow.hf_token) {
-       hf = new HfInference(profileRow.hf_token);
+      await getHfClient(profileRow.hf_token);
+    } else {
+      await getHfClient();
     }
 
     console.log(`🎯 Target identified: ${entry.company}`);
