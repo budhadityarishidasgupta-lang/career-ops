@@ -3,10 +3,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { chromium } from 'playwright';
 import sql from './db/client.mjs';
-import dotenv from 'dotenv';
 import { HfInference } from '@huggingface/inference';
-
-dotenv.config();
 
 const hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
 const TARGET_MAP = 'data/current_eval.json';
@@ -14,6 +11,11 @@ const PROFILE_PATH = 'config/profile.yml';
 
 let urlOrIdx = process.argv[2];
 let company = process.argv[3] || '';
+const rawUserId = process.env.SCAN_USER_ID || 1;
+const userId = Number.parseInt(String(rawUserId), 10);
+if (!Number.isFinite(userId)) {
+  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
 
 // Load profile for auto-filling
 let profile = { candidate: {} };
@@ -52,9 +54,8 @@ if (/^\d+$/.test(urlOrIdx)) {
 }
 
 async function recordApplication(url, status, resume) {
-  const userId = process.env.SCAN_USER_ID || 1;
   try {
-    let job = await sql`SELECT id FROM jobs WHERE url = ${url} LIMIT 1`;
+    let job = await sql`SELECT id FROM jobs WHERE url = ${url} AND user_id = ${userId} LIMIT 1`;
     
     if (job.length === 0) {
       // Create a manual job entry if it doesn't exist

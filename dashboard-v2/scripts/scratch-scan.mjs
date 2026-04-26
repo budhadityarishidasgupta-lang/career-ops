@@ -2,7 +2,11 @@
 
 import sql from './db/client.mjs';
 
-const userId = process.env.SCAN_USER_ID || process.argv[2] || 1;
+const rawUserId = process.env.SCAN_USER_ID || process.argv[2] || 1;
+const userId = Number.parseInt(String(rawUserId), 10);
+if (!Number.isFinite(userId)) {
+  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
 // Attempt to load distinct profile config
 let config = { title_filter: { positive: [], negative: [] }, tracked_companies: [] };
 try {
@@ -291,7 +295,7 @@ async function run() {
     for (const job of newJobs) {
       await sql`
         INSERT INTO jobs (url, company, title, source, user_id)
-        VALUES (${job.url}, ${job.company}, ${job.title}, ${job.source}, ${parseInt(userId)})
+        VALUES (${job.url}, ${job.company}, ${job.title}, ${job.source}, ${userId})
         ON CONFLICT (user_id, url) DO NOTHING
       `;
     }
@@ -299,8 +303,8 @@ async function run() {
 
   // log scan to history
   await sql`
-    INSERT INTO scans (portal, jobs_found, duration_ms)
-    VALUES ('Multi-Source Scan', ${totalFound}, ${Date.now() - startTime})
+    INSERT INTO scans (portal, jobs_found, duration_ms, user_id)
+    VALUES ('Multi-Source Scan', ${totalFound}, ${Date.now() - startTime}, ${userId})
   `;
 
   console.log('\n═══════════════════════════════════════════');

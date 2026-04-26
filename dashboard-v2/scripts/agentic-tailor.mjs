@@ -6,9 +6,6 @@ import { HfInference } from '@huggingface/inference';
 import { chromium } from 'playwright';
 import yaml from 'js-yaml';
 import sql from './db/client.mjs';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 let hf = new HfInference(process.env.HUGGINGFACE_TOKEN);
 const TARGET_MAP = 'data/current_eval.json';
@@ -16,7 +13,11 @@ const PROFILE_PATH = 'config/profile.yml';
 const TEMPLATE = 'templates/ats-template.html';
 
 const idOrUrl = process.argv[2];
-const userId = process.env.SCAN_USER_ID || 1;
+const rawUserId = process.env.SCAN_USER_ID || 1;
+const userId = Number.parseInt(String(rawUserId), 10);
+if (!Number.isFinite(userId)) {
+  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
 
 if (!idOrUrl) {
   console.error("Usage: tailor <job_id_or_url>");
@@ -185,7 +186,15 @@ async function tailorPackage(jd, profile, companyName) {
         }
       } catch (e) {}
     } else {
-      const [jobRecord] = await sql`SELECT user_id, url, company, title FROM jobs WHERE id = ${parseInt(idOrUrl)}`;
+      const jobId = Number.parseInt(String(idOrUrl), 10);
+      if (!Number.isFinite(jobId)) {
+        throw new Error(`Invalid job id: ${idOrUrl}`);
+      }
+      const [jobRecord] = await sql`
+        SELECT user_id, url, company, title
+        FROM jobs
+        WHERE id = ${jobId} AND user_id = ${userId}
+      `;
       if (!jobRecord) throw new Error(`Job ID ${idOrUrl} not found in database.`);
       entry = jobRecord;
     }

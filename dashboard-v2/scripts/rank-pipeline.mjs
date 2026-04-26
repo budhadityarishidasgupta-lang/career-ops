@@ -3,7 +3,11 @@ import fs from 'fs';
 
 const OUTPUT_JSON = 'data/current_eval.json';
 
-const userId = process.env.SCAN_USER_ID || 1;
+const rawUserId = process.env.SCAN_USER_ID || 1;
+const userId = Number.parseInt(String(rawUserId), 10);
+if (!Number.isFinite(userId)) {
+  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
 
 async function getScores() {
   const [profile] = await sql`SELECT targeting_keywords FROM user_profiles WHERE user_id = ${userId}`;
