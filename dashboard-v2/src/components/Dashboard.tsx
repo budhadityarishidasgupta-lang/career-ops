@@ -633,7 +633,7 @@ export default function Dashboard() {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className={`bg-white rounded-[2.5rem] border border-[#e7e5e4] shadow-2xl max-w-sm w-full p-10 relative overflow-hidden pointer-events-auto transition-all duration-500 ${spotlightRect ? 'mt-64' : ''}`}
+                className="bg-white rounded-[2.5rem] border border-[#e7e5e4] shadow-2xl max-w-sm w-full p-10 relative pointer-events-auto transition-all duration-500 max-h-[calc(100vh-2rem)] overflow-y-auto"
                 style={spotlightRect ? {
                     position: 'absolute',
                     top: Math.min(window.innerHeight - 450, Math.max(20, spotlightRect.top + spotlightRect.height + 20)),

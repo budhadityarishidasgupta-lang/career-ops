@@ -10,6 +10,7 @@ function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
+  const provider = searchParams.get('provider') || '';
   
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +84,10 @@ function VerifyContent() {
 
       setIsSuccess(true);
       setTimeout(() => {
+        if (provider === 'github') {
+          router.push('/login?verified=true&autogithub=1');
+          return;
+        }
         router.push('/login?verified=true');
       }, 2000);
 
@@ -91,7 +96,7 @@ function VerifyContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [email, router, token]);
+  }, [email, provider, router, token]);
 
   const handleResend = async () => {
     if (!email || resendCooldown > 0 || isLoading) return;

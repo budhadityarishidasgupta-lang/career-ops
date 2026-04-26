@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, Key, Mail, ArrowRight, Github, Loader2, AlertCircle, CheckCircle2, Shield } from 'lucide-react';
@@ -13,8 +13,10 @@ function LoginContent() {
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const isVerified = searchParams.get('verified') === 'true';
   const authError = searchParams.get('error');
+  const autoGithub = searchParams.get('autogithub') === '1';
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoGithubStarted = useRef(false);
 
   const oauthErrorMessage =
     authError === 'github-email-missing'
@@ -22,6 +24,12 @@ function LoginContent() {
       : authError === 'github-auth-failed'
         ? 'GitHub sign-in failed. Please try again.'
         : null;
+
+  useEffect(() => {
+    if (!autoGithub || autoGithubStarted.current) return;
+    autoGithubStarted.current = true;
+    signIn('github', { callbackUrl });
+  }, [autoGithub, callbackUrl]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

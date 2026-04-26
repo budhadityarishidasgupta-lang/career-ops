@@ -76,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (!emailVerified) {
               const verificationToken = await generateVerificationToken(user.email);
               await sendVerificationEmail(user.email, verificationToken.token);
-              return `/verify?email=${encodeURIComponent(user.email)}`;
+              return `/verify?email=${encodeURIComponent(user.email)}&provider=github`;
             }
 
             if (userId) {
