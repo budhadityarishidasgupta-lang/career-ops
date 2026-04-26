@@ -65,6 +65,11 @@ export async function GET(req: NextRequest) {
           send({ type: 'done', code: 0 });
           controller.close();
           return;
+        } else if (cmd === 'clear') {
+          send({ type: 'clear' });
+          send({ type: 'done', code: 0 });
+          controller.close();
+          return;
         } else if (cmd === 'help' || cmd === '?') {
           const helpText = `
   ┌─────────────────────────────────────────────────────┐

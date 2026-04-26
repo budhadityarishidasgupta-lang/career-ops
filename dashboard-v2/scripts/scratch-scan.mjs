@@ -37,6 +37,23 @@ try {
 }
 const companies = config.tracked_companies || [];
 
+async function importScraper(moduleName) {
+  const candidates = [
+    new URL(`../../portals/scrapers/${moduleName}.mjs`, import.meta.url),
+    new URL(`../portals/scrapers/${moduleName}.mjs`, import.meta.url),
+    new URL(`../../../portals/scrapers/${moduleName}.mjs`, import.meta.url),
+    `file://${process.cwd()}/portals/scrapers/${moduleName}.mjs`,
+  ];
+  for (const candidate of candidates) {
+    try {
+      return await import(candidate);
+    } catch {
+      // try next candidate
+    }
+  }
+  throw new Error(`Cannot resolve scraper module: ${moduleName}.mjs`);
+}
+
 // load already seen urls from db
 const seenUrls = new Set();
 try {
@@ -216,13 +233,13 @@ async function run() {
   if (shouldRunDiscovery) {
     console.log('\n🌟 Discovery Phase — Searching all portals from portals.yml');
     try {
-      const { scrapeInstahyre }     = await import('../../portals/scrapers/instahyre.mjs');
-      const { scrapeFlexiple }      = await import('../../portals/scrapers/flexiple.mjs');
-      const { scrapeLinkedIn }      = await import('../../portals/scrapers/linkedin.mjs');
-      const { scrapeNaukri }        = await import('../../portals/scrapers/naukri.mjs');
-      const { scrapeCutshort }      = await import('../../portals/scrapers/cutshort.mjs');
-      const { scrapeIndeed }        = await import('../../portals/scrapers/indeed.mjs');
-      const { discoverJobs }        = await import('../../portals/scrapers/discovery.mjs');
+      const { scrapeInstahyre }     = await importScraper('instahyre');
+      const { scrapeFlexiple }      = await importScraper('flexiple');
+      const { scrapeLinkedIn }      = await importScraper('linkedin');
+      const { scrapeNaukri }        = await importScraper('naukri');
+      const { scrapeCutshort }      = await importScraper('cutshort');
+      const { scrapeIndeed }        = await importScraper('indeed');
+      const { discoverJobs }        = await importScraper('discovery');
       
       // Only process enabled queries
       const queries = (config.search_queries || []).filter(q => q.enabled !== false);
@@ -267,8 +284,8 @@ async function run() {
     if (enableExtendedScan) {
       console.log('\n🏢 Enterprise Phase — Scanning Workday & SuccessFactors');
       try {
-        const { scrapeWorkday }       = await import('../../portals/scrapers/workday.mjs');
-        const { scrapeSuccessFactors} = await import('../../portals/scrapers/successfactors.mjs');
+        const { scrapeWorkday }       = await importScraper('workday');
+        const { scrapeSuccessFactors} = await importScraper('successfactors');
 
         // This is where you would iterate through specific enterprise entries if added to tracked_companies
         // For now, I'll add a few known targets to ensure they are checked

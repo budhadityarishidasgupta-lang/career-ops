@@ -45,6 +45,7 @@ async function getChromium() {
 // ── UTILITIES ──
 
 function renderExperience(exp, tailoredBullets) {
+  if (!Array.isArray(exp) || exp.length === 0) return '';
   return exp.map((job, idx) => `
     <div class="job">
       <div class="job-header">
@@ -62,6 +63,7 @@ function renderExperience(exp, tailoredBullets) {
 }
 
 function renderEducation(edu) {
+  if (!Array.isArray(edu) || edu.length === 0) return '';
   return edu.map(e => `
     <div class="edu-item">
       <div class="edu-header">${e.degree} (${e.period}), ${e.school}</div>
@@ -79,6 +81,7 @@ function renderProjects(projects) {
 }
 
 function renderCategorizedSkills(skills) {
+  if (!Array.isArray(skills) || skills.length === 0) return '';
   // BP Style categorization logic
   const cats = {
     "Languages & runtime": ["TypeScript", "JavaScript", "Python", "Go", "SQL", "Bash", "Node.js", "NestJS", "React"],
@@ -101,13 +104,17 @@ function renderCategorizedSkills(skills) {
 // sync cv.md if profile.yml is newer
 async function checkSync() {
   try {
+    const syncScriptPath = path.join(process.cwd(), 'sync-profile.mjs');
+    if (!fs.existsSync(syncScriptPath)) {
+      return;
+    }
     const profileStat = await stat(path.join(process.cwd(), 'config', 'profile.yml'));
     let cvStat;
     try { cvStat = await stat(path.join(process.cwd(), 'cv.md')); } catch {}
 
     if (!cvStat || profileStat.mtime > cvStat.mtime) {
       console.log('🔄 Profile change detected. Synchronizing cv.md...');
-      execSync('node sync-profile.mjs');
+      execSync(`"${process.execPath}" "${syncScriptPath}"`);
     }
   } catch (e) {
     console.warn('⚠️ Could not check profile sync:', e.message);
@@ -288,7 +295,7 @@ async function tailorPackage(jd, profile, companyName) {
       SECTION_SUMMARY: 'Professional Summary',
       SUMMARY_TEXT: tailoring.summary,
       SECTION_COMPETENCIES: 'Core Competencies',
-      COMPETENCIES: tailoring.core_competencies.map(skill => `<span class="competency-tag">${skill}</span>`).join(''),
+      COMPETENCIES: (Array.isArray(tailoring.core_competencies) ? tailoring.core_competencies : []).map(skill => `<span class="competency-tag">${skill}</span>`).join(''),
       SECTION_EXPERIENCE: 'Professional Experience',
       EXPERIENCE: renderExperience(profile.experience, tailoring.experience),
       SECTION_PROJECTS: 'Selected Achievements',

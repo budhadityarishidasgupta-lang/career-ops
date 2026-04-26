@@ -117,6 +117,8 @@ export default function Dashboard() {
       if (data.type === 'done') {
         setIsExecuting(false);
         eventSource.close();
+      } else if (data.type === 'clear') {
+        setLogs([]);
       } else {
         setLogs(prev => [...prev, data]);
       }
