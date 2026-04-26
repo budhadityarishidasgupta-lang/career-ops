@@ -249,6 +249,12 @@ export default function Dashboard() {
     );
   }
 
+  const firstNameFromProfile = data?.profile?.candidate?.full_name?.trim()?.split(/\s+/)?.[0];
+  const firstNameFromSession =
+    session?.user?.name?.trim()?.split(/\s+/)?.[0] ||
+    session?.user?.email?.split('@')?.[0];
+  const displayName = firstNameFromProfile || firstNameFromSession || null;
+
   return (
     <div className="flex h-screen bg-[#faf9f6] text-[#1c1917] font-sans selection:bg-[#1c1917]/10">
       {/* Sidebar: Updated to warm stone/beige */}
@@ -286,7 +292,9 @@ export default function Dashboard() {
       <main className="flex-1 overflow-y-auto p-12 bg-white">
         <header className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-[#1c1917]">Welcome back, {data?.profile?.candidate?.full_name?.split(' ')[0]}</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-[#1c1917]">
+              {displayName ? `Welcome back, ${displayName}` : 'Welcome back'}
+            </h1>
             <p className="text-[#a8a29e] font-medium mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           <div className="flex gap-4">
