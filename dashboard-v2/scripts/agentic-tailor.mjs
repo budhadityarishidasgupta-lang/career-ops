@@ -2,11 +2,15 @@ import fs from 'fs';
 import { stat } from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
+import { pathToFileURL } from 'url';
 import sql from './db/client.mjs';
 
 let hf = null;
+let hfUnavailable = false;
 const TARGET_MAP = 'data/current_eval.json';
 const TEMPLATE = 'templates/ats-template.html';
+const require = createRequire(import.meta.url);
 
 const idOrUrl = process.argv[2];
 const rawUserId = process.env.SCAN_USER_ID || 1;
@@ -21,12 +25,20 @@ if (!idOrUrl) {
 }
 
 async function getHfClient(token) {
+  if (hfUnavailable) return null;
   if (hf) return hf;
   try {
-    const mod = await import('@huggingface/inference');
+    const candidatePaths = [
+      process.env.APP_ROOT && path.join(process.env.APP_ROOT, 'node_modules'),
+      process.env.APP_ROOT,
+      process.cwd(),
+    ].filter(Boolean);
+    const resolved = require.resolve('@huggingface/inference', { paths: candidatePaths });
+    const mod = await import(pathToFileURL(resolved).href);
     hf = new mod.HfInference(token || process.env.HUGGINGFACE_TOKEN);
     return hf;
   } catch (e) {
+    hfUnavailable = true;
     console.warn('⚠ HuggingFace SDK unavailable in this runtime. Using fallback tailoring.');
     return null;
   }

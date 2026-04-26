@@ -193,6 +193,7 @@ export async function GET(req: NextRequest) {
             ...process.env, 
             FORCE_COLOR: '1',
             SCAN_USER_ID: userId,
+            APP_ROOT: process.cwd(),
             NODE_PATH: path.join(process.cwd(), 'node_modules'),
           }
         });
