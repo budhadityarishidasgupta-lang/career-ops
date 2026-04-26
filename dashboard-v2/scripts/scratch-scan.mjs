@@ -1,8 +1,6 @@
 // scanner - check greenhouse, ashby, lever, workable for new jobs
 
 import sql from './db/client.mjs';
-import fs from 'fs';
-import yaml from 'js-yaml';
 
 const userId = process.env.SCAN_USER_ID || process.argv[2] || 1;
 // Attempt to load distinct profile config
@@ -13,8 +11,9 @@ try {
      config.title_filter = profile.targeting_keywords;
   }
 } catch(e) {
-  // Graceful fallback to legacy generic file
-  config = yaml.load(fs.readFileSync('portals.yml', 'utf8'));
+  // Graceful fallback when DB is unavailable in the current environment.
+  // Keep the scan engine alive with an empty config instead of crashing on yaml deps.
+  config = { title_filter: { positive: [], negative: [] }, tracked_companies: [], search_queries: [] };
 }
 const companies = config.tracked_companies || [];
 
