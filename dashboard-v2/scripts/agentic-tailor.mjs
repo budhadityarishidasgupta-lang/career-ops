@@ -8,6 +8,7 @@ import sql from './db/client.mjs';
 
 let hf = null;
 let hfUnavailable = false;
+let hfTokenInUse = '';
 const TARGET_MAP = 'data/current_eval.json';
 const TEMPLATE = 'templates/ats-template.html';
 const require = createRequire(import.meta.url);
@@ -25,6 +26,7 @@ if (!idOrUrl) {
 }
 
 async function getHfClient(token) {
+  hfTokenInUse = token || process.env.HUGGINGFACE_TOKEN || '';
   if (hfUnavailable) return null;
   if (hf) return hf;
   try {
@@ -42,6 +44,28 @@ async function getHfClient(token) {
     console.warn('⚠ HuggingFace SDK unavailable in this runtime. Using fallback tailoring.');
     return null;
   }
+}
+
+async function callHfChatViaHttp(messages) {
+  if (!hfTokenInUse) return null;
+  const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${hfTokenInUse}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'MiniMaxAI/MiniMax-M2.7',
+      messages,
+      max_tokens: 2000,
+      temperature: 0.2,
+    }),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`HuggingFace API error ${response.status}: ${body.slice(0, 200)}`);
+  }
+  return response.json();
 }
 
 async function getChromium() {
@@ -172,7 +196,11 @@ async function scrapeJD(url) {
 
 async function tailorPackage(jd, profile, companyName) {
   const hfClient = await getHfClient();
-  if (!hfClient) {
+  if (hfClient) {
+    console.log("🤖 Generating Tailored Package with MiniMaxAI/MiniMax-M2.7...");
+  } else if (hfTokenInUse) {
+    console.log("🤖 HuggingFace SDK unavailable; using direct HuggingFace API fallback...");
+  } else {
     return {
       resume: {
         summary: profile?.narrative?.exit_story || 'Experienced software engineer with product-minded execution and delivery focus.',
@@ -182,8 +210,6 @@ async function tailorPackage(jd, profile, companyName) {
       cover_letter: `Dear Hiring Team at ${companyName},\n\nI am excited to apply for this role. My background aligns strongly with the core requirements in your job description, and I focus on high-quality delivery, measurable outcomes, and cross-functional collaboration.\n\nI would value the opportunity to contribute and discuss how I can help your team.\n\nBest regards,\n${profile?.candidate?.full_name || 'Candidate'}`
     };
   }
-
-  console.log("🤖 Generating Tailored Package with MiniMaxAI/MiniMax-M2.7...");
   
   const cvContext = `Headline: ${profile.narrative.headline}\nSummary: ${profile.narrative.exit_story}\nSuperpowers: ${profile.narrative.superpowers.join(', ')}`;
   const prompt = `
@@ -216,15 +242,22 @@ async function tailorPackage(jd, profile, companyName) {
     }
   `;
 
-  const response = await hfClient.chatCompletion({
-    model: "MiniMaxAI/MiniMax-M2.7",
-    messages: [
-      { role: "system", content: "You are a professional recruiting assistant. Return ONLY valid JSON." },
-      { role: "user", content: prompt }
-    ],
-    max_tokens: 2000,
-    temperature: 0.2
-  });
+  const messages = [
+    { role: "system", content: "You are a professional recruiting assistant. Return ONLY valid JSON." },
+    { role: "user", content: prompt }
+  ];
+
+  let response;
+  if (hfClient) {
+    response = await hfClient.chatCompletion({
+      model: "MiniMaxAI/MiniMax-M2.7",
+      messages,
+      max_tokens: 2000,
+      temperature: 0.2
+    });
+  } else {
+    response = await callHfChatViaHttp(messages);
+  }
 
   try {
     const content = response.choices[0].message.content;

@@ -37,13 +37,75 @@ try {
 }
 const companies = config.tracked_companies || [];
 
+const DISCOVERY_SITE_BY_PORTAL = {
+  linkedin: 'linkedin.com/jobs',
+  naukri: 'naukri.com',
+  indeed: 'indeed.com',
+  instahyre: 'instahyre.com',
+  flexiple: 'flexiple.com',
+  cutshort: 'cutshort.io',
+  greenhouse: 'boards.greenhouse.io',
+  lever: 'jobs.lever.co',
+  'japan-dev': 'japan-dev.com/jobs',
+};
+
+function buildDiscoveryQuery(q) {
+  const baseQuery = `${q.query || ''} ${q.location || ''}`.trim();
+  const site = DISCOVERY_SITE_BY_PORTAL[q.portal];
+  if (!site) return baseQuery || q.query || '';
+  return `site:${site} ${baseQuery}`.trim();
+}
+
+async function discoverJobsWithoutBrowser(query, portalName = 'General') {
+  const searchUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const jobs = [];
+  const seen = new Set();
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { 'User-Agent': 'career-ops-scanner/2.0' },
+    });
+    if (!res.ok) return jobs;
+    const html = await res.text();
+    const linkRegex = /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+    while ((match = linkRegex.exec(html)) !== null) {
+      const rawUrl = match[1];
+      const titleHtml = match[2] || '';
+      const url = rawUrl.replace(/&amp;/g, '&');
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      const title = titleHtml
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!title) continue;
+      jobs.push({
+        url,
+        title,
+        company: portalName,
+        source: `Discovery - ${portalName}`,
+      });
+    }
+  } catch {
+    return jobs;
+  }
+  return jobs;
+}
+
 async function importScraper(moduleName) {
+  const appRoot = process.env.APP_ROOT || '';
   const candidates = [
+    appRoot ? `file://${appRoot}/runtime-assets/portals/scrapers/${moduleName}.mjs` : null,
+    appRoot ? `file://${appRoot}/portals/scrapers/${moduleName}.mjs` : null,
     new URL(`../../portals/scrapers/${moduleName}.mjs`, import.meta.url),
     new URL(`../portals/scrapers/${moduleName}.mjs`, import.meta.url),
     new URL(`../../../portals/scrapers/${moduleName}.mjs`, import.meta.url),
     `file://${process.cwd()}/portals/scrapers/${moduleName}.mjs`,
-  ];
+    `file:///var/task/dashboard-v2/runtime-assets/portals/scrapers/${moduleName}.mjs`,
+    `file:///var/task/runtime-assets/portals/scrapers/${moduleName}.mjs`,
+    `file:///var/task/dashboard-v2/portals/scrapers/${moduleName}.mjs`,
+    `file:///var/task/portals/scrapers/${moduleName}.mjs`,
+  ].filter(Boolean);
   for (const candidate of candidates) {
     try {
       return await import(candidate);
@@ -271,10 +333,14 @@ async function run() {
             results = await scrapeIndeed(q.query, q.location || 'India');
           } else if (discoverJobs) {
             // Fallback: Use Discovery Engine for generic site: queries (Naukri, Indeed, Glassdoor, etc.)
-            results = await discoverJobs(q.query, q.name);
+            results = await discoverJobs(buildDiscoveryQuery(q), q.name);
           } else {
-            console.warn(`  ⚠ No scraper available for ${q.portal}; skipping`);
-            continue;
+            // Final fallback with no Playwright dependency.
+            results = await discoverJobsWithoutBrowser(buildDiscoveryQuery(q), q.name);
+            if (!results.length) {
+              console.warn(`  ⚠ No scraper available for ${q.portal}; skipping`);
+              continue;
+            }
           }
           
           stats.discovery.found += results.length;
