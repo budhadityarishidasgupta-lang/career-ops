@@ -40,7 +40,11 @@ export async function GET(req: NextRequest) {
         let scriptName = '';
         let scriptArgs = args;
 
-        if (cmd === 'rank' || cmd === 'offer-list') {
+        const isNumericShortcut = /^\d+$/.test(cmd);
+        if (isNumericShortcut) {
+          scriptName = 'agentic-tailor.mjs';
+          scriptArgs = [cmd];
+        } else if (cmd === 'rank' || cmd === 'offer-list') {
           scriptName = 'rank-pipeline.mjs';
         } else if (cmd === 'scan') {
           scriptName = 'scratch-scan.mjs';
@@ -82,6 +86,7 @@ export async function GET(req: NextRequest) {
   │                                                     │
   │  APPLICATION                                        │
   │    tailor <id|url>   Tailor Resume+Cover Letter     │
+  │    <id>              Shortcut for: tailor <id>      │
   │    apply <id|url>    Auto-fill application form     │
   │                                                     │
   │  UTILITIES                                          │

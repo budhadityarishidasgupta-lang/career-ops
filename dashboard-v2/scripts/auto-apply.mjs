@@ -130,9 +130,12 @@ async function recordApplication(url, status, resume) {
 
     if (job.length > 0) {
       await sql`
-        INSERT INTO applications (job_id, status, resume_file, applied_at)
-        VALUES (${job[0].id}, ${status}, ${resume}, CURRENT_TIMESTAMP)
-        ON CONFLICT (job_id) DO UPDATE SET status = ${status}, applied_at = CURRENT_TIMESTAMP
+        INSERT INTO applications (job_id, user_id, status, resume_file, applied_at)
+        VALUES (${job[0].id}, ${userId}, ${status}, ${resume}, CURRENT_TIMESTAMP)
+        ON CONFLICT (job_id) DO UPDATE SET
+          status = ${status},
+          resume_file = ${resume},
+          applied_at = CURRENT_TIMESTAMP
       `;
       console.log(`✓ Status '${status}' recorded for ${company} in DB.`);
     }
