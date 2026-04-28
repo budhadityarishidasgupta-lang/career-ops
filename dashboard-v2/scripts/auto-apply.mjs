@@ -34,6 +34,56 @@ async function getChromium() {
   }
 }
 
+function writeApplicationPack({ companyName, targetUrl, profile, resumePath, note }) {
+  if (!fs.existsSync('output')) fs.mkdirSync('output');
+  const safe = (s) => String(s || '').replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_').slice(0, 60);
+  const companySlug = safe(companyName || 'Company');
+  const outPath = path.join('output', `Application_Pack_${companySlug}.md`);
+
+  const c = profile?.candidate || {};
+  const n = profile?.narrative || {};
+  const l = profile?.legal || {};
+  const comp = profile?.compensation || {};
+
+  const content = `# Application Pack — ${companyName || 'Unknown'}
+
+- **Target URL:** ${targetUrl}
+- **Generated:** ${new Date().toISOString()}
+- **Mode:** Draft (no browser automation available)
+
+## Candidate details
+- Name: ${c.full_name || ''}
+- Email: ${c.email || ''}
+- Phone: ${c.phone || ''}
+- Location: ${c.location || ''}
+- LinkedIn: ${c.linkedin || ''}
+- GitHub/Portfolio: ${c.github || c.portfolio_url || ''}
+
+## Attachments
+- Resume: ${resumePath || '(not found — run tailor first or upload manually)'}
+
+## Quick answers (copy/paste)
+- Why are you interested in this role?
+  - ${n.exit_story || 'I focus on shipping reliable software with measurable outcomes, and I’m excited to contribute in a role that values strong engineering fundamentals and ownership.'}
+- What’s your strongest skill?
+  - ${(Array.isArray(n.superpowers) && n.superpowers.length > 0) ? n.superpowers.slice(0, 3).join(', ') : 'Backend engineering, reliability, and product-minded execution.'}
+- Notice period
+  - ${l.notice_period || ''}
+- Work authorization
+  - ${l.work_authorization || ''}
+- Sponsorship required
+  - ${l.sponsorship_required || ''}
+- Compensation expectations
+  - ${l.salary_expectations || comp.target_range || ''}
+
+## Notes
+${note || ''}
+`;
+
+  fs.writeFileSync(outPath, content);
+  return outPath;
+}
+
 // Load profile for auto-filling from user-scoped DB context.
 let profile = { candidate: {}, narrative: {}, legal: {}, compensation: {} };
 
@@ -267,8 +317,30 @@ async function matchAndFillFields(fields, profile, aiMapping) {
 
   const chromium = await getChromium();
   if (!chromium) {
-    console.error("✗ Playwright runtime is unavailable in this environment. 'apply' requires browser automation.");
-    process.exit(1);
+    console.warn("⚠ Playwright runtime is unavailable in this environment. Switching to draft mode (no submission).");
+
+    // Load profile from DB if possible.
+    try {
+      const [profileRow] = await sql`SELECT resume_context FROM user_profiles WHERE user_id = ${userId} LIMIT 1`;
+      if (profileRow?.resume_context) profile = profileRow.resume_context;
+    } catch {}
+
+    const tailoredPdf = findTailoredCV(company);
+    const packPath = writeApplicationPack({
+      companyName: company || 'Unknown',
+      targetUrl,
+      profile,
+      resumePath: tailoredPdf,
+      note: "Open the target link, upload the resume, paste answers from this pack, and submit manually.",
+    });
+
+    console.log('─────────────────────────────────────────────────────');
+    console.log('✅ DRAFT PACK READY (manual submit):');
+    console.log(`   ${path.resolve(packPath)}`);
+    console.log('─────────────────────────────────────────────────────');
+
+    await recordApplication(targetUrl, 'DRAFT', tailoredPdf || 'pending');
+    process.exit(0);
   }
 
   const browser = await chromium.launch({ headless: false }); 
