@@ -354,6 +354,19 @@ async function main() {
       console.log('\n(dry run — run without --dry-run to save results)');
     } else {
       console.log(`\nResults saved to ${PIPELINE_PATH} and ${SCAN_HISTORY_PATH}`);
+
+      // Notify dashboard (optional — fails silently if dashboard is not running)
+      try {
+        const payload = newOffers.map(o => ({
+          title: o.title, company: o.company, url: o.url,
+          source: o.source, location: o.location || undefined,
+        }));
+        await fetch('http://localhost:3000/api/jobs/ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch { /* dashboard not running — no-op */ }
     }
   }
 

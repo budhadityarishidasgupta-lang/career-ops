@@ -45,3 +45,9 @@ bun.lock
 .claude/memory/
 career-dashboard
 package-lock.json
+
+# Web dashboard
+web/server/dist/
+web/client/dist/
+web/.env
+web/server/.env

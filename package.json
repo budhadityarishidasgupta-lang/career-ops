@@ -15,7 +15,17 @@
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
-    "gemini:eval": "node gemini-eval.mjs"
+    "gemini:eval": "node gemini-eval.mjs",
+    "web:dev": "concurrently \"npm run web:server:dev\" \"npm run web:client:dev\"",
+    "web:server:dev": "cd web/server && npm run dev",
+    "web:client:dev": "cd web/client && npm run dev",
+    "web:db:up": "cd web && docker compose up -d",
+    "web:db:down": "cd web && docker compose down",
+    "web:migrate": "cd web/server && DATABASE_URL=postgres://career_ops:career_ops_dev@localhost:5434/career_ops npx drizzle-kit migrate",
+    "web:seed": "cd web/server && DATABASE_URL=postgres://career_ops:career_ops_dev@localhost:5434/career_ops CAREER_OPS_ROOT=../.. npx tsx src/db/seed.ts",
+    "web:build": "cd web/server && npm run build && cd ../client && npm run build",
+    "web:start": "cd web/server && npm start",
+    "web:test": "cd web/server && npx vitest run"
   },
   "keywords": [
     "ai",

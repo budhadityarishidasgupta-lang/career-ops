@@ -366,6 +366,13 @@ if (!DRY_RUN) {
 console.log(`\n📊 Summary: +${added} added, 🔄${updated} updated, ⏭️${skipped} skipped`);
 if (DRY_RUN) console.log('(dry-run — no changes written)');
 
+// Notify dashboard (optional — fails silently if dashboard is not running)
+if (!DRY_RUN) {
+  try {
+    await fetch('http://localhost:3000/api/sync/import', { method: 'POST' });
+  } catch { /* dashboard not running — no-op */ }
+}
+
 // Optional verify
 if (VERIFY && !DRY_RUN) {
   console.log('\n--- Running verification ---');
