@@ -122,8 +122,8 @@ async function recordApplication(url, status, resume) {
     if (job.length === 0) {
       // Create a manual job entry if it doesn't exist
       job = await sql`
-        INSERT INTO jobs (user_id, url, company, title, source, status, score)
-        VALUES (${userId}, ${url}, ${company || 'Manual Entry'}, 'Job via Direct URL', 'manual', 'active', 0)
+        INSERT INTO jobs (user_id, url, company, title, source, score)
+        VALUES (${userId}, ${url}, ${company || 'Manual Entry'}, 'Job via Direct URL', 'manual', 0)
         RETURNING id
       `;
     }

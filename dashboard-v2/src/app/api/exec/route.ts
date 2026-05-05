@@ -199,7 +199,7 @@ export async function GET(req: NextRequest) {
             FORCE_COLOR: '1',
             SCAN_USER_ID: userId,
             APP_ROOT: process.cwd(),
-            NODE_PATH: path.join(process.cwd(), 'node_modules'),
+            NODE_PATH: `${path.join(process.cwd(), 'node_modules')}:${path.join(process.cwd(), '..', 'node_modules')}`,
           }
         });
 

@@ -318,17 +318,47 @@ async function tailorPackage(jd, profile, companyName) {
         }
       } catch (e) {}
     } else {
-      const jobId = Number.parseInt(String(idOrUrl), 10);
+      let jobId = Number.parseInt(String(idOrUrl), 10);
       if (!Number.isFinite(jobId)) {
         throw new Error(`Invalid job id: ${idOrUrl}`);
       }
-      const [jobRecord] = await sql`
-        SELECT user_id, url, company, title
-        FROM jobs
-        WHERE id = ${jobId} AND user_id = ${userId}
-      `;
-      if (!jobRecord) throw new Error(`Job ID ${idOrUrl} not found in database.`);
-      entry = jobRecord;
+      
+      // If the ID is a small number (e.g., from rank output), try to resolve it from the mapping file
+      if (jobId < 1000 && fs.existsSync('data/current_eval.json')) {
+        try {
+          const mapping = JSON.parse(fs.readFileSync('data/current_eval.json', 'utf8'));
+          if (mapping[jobId] && mapping[jobId].url) {
+            console.log(`📎 Resolved index ${jobId} to URL: ${mapping[jobId].url}`);
+            const resolvedUrl = mapping[jobId].url;
+            // Now lookup by URL
+            const [jobRecord] = await sql`
+              SELECT user_id, url, company, title
+              FROM jobs
+              WHERE url = ${resolvedUrl} AND user_id = ${userId}
+              LIMIT 1
+            `;
+            if (jobRecord) {
+              entry = jobRecord;
+            } else {
+               // Fallback if not found in db, just use the mapping info
+               entry = { url: resolvedUrl, company: mapping[jobId].company, title: mapping[jobId].title };
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse current_eval.json mapping:', err.message);
+        }
+      }
+
+      // If entry still empty (not resolved from map), try direct DB lookup by ID
+      if (!entry.url) {
+        const [jobRecord] = await sql`
+          SELECT user_id, url, company, title
+          FROM jobs
+          WHERE id = ${jobId} AND user_id = ${userId}
+        `;
+        if (!jobRecord) throw new Error(`Job ID ${idOrUrl} not found in database.`);
+        entry = jobRecord;
+      }
     }
 
     const [profileRow] = await sql`SELECT resume_context, hf_token FROM user_profiles WHERE user_id = ${userId}`;
