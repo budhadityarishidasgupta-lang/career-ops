@@ -444,10 +444,25 @@ async function tailorPackage(jd, profile, companyName) {
 
     console.log(`✅ Package ready: ${resumePathHtml} & ${clPathHtml}`);
 
+    // Persist to Neon DB so it can be viewed on the Vercel dashboard!
+    try {
+      await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS resume_html TEXT, ADD COLUMN IF NOT EXISTS cover_letter_html TEXT;`;
+      
+      // We assume entry.id exists if it came from DB, else we try to find it by URL
+      if (entry.id) {
+        await sql`UPDATE jobs SET resume_html = ${resumeHtml}, cover_letter_html = ${clHtml} WHERE id = ${entry.id} AND user_id = ${userId}`;
+      } else {
+        await sql`UPDATE jobs SET resume_html = ${resumeHtml}, cover_letter_html = ${clHtml} WHERE url = ${entry.url} AND user_id = ${userId}`;
+      }
+      console.log(`💾 HTML assets persisted to database. You can view/print them from the dashboard!`);
+    } catch (dbErr) {
+      console.warn(`⚠ Could not save HTML to database: ${dbErr.message}`);
+    }
+
     const generatePdfScript = path.join(process.cwd(), 'generate-pdf.mjs');
     const pdfChromium = await getChromium();
     if (!pdfChromium) {
-      console.log("⚠ Playwright unavailable in this runtime. Skipping PDF generation; HTML artifacts generated successfully.");
+      console.log("⚠ Playwright unavailable in this runtime. Skipping PDF generation. (View HTML in Dashboard)");
     } else if (fs.existsSync(generatePdfScript)) {
       console.log("📄 Generating PDFs...");
       try {
@@ -455,10 +470,10 @@ async function tailorPackage(jd, profile, companyName) {
         execSync(`"${process.execPath}" "${generatePdfScript}" "${clPathHtml}" "${clPathPdf}"`);
         console.log(`✨ SUCCESS! Resume & Cover Letter saved for ${entry.company}`);
       } catch (pdfErr) {
-        console.warn(`⚠ PDF generation unavailable in this runtime (${pdfErr.message}). HTML artifacts generated successfully.`);
+        console.warn(`⚠ PDF generation unavailable in this runtime (${pdfErr.message}).`);
       }
     } else {
-      console.log("⚠ generate-pdf.mjs unavailable in this runtime. HTML artifacts generated successfully.");
+      console.log("⚠ generate-pdf.mjs unavailable in this runtime.");
     }
 
   } catch (err) {

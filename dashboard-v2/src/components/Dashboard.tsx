@@ -521,7 +521,25 @@ export default function Dashboard() {
               </div>
               <div id="terminal-logs" className="flex-1 p-8 font-mono text-sm overflow-y-auto whitespace-pre-wrap bg-white text-[#292524] scroll-smooth leading-relaxed select-text cursor-text">
                  {logs.length === 0 && !isExecuting ? (
-                   <div className="text-[#57534e] italic select-text">Awaiting secure handshake...</div>
+                   <div className="select-text">
+                     <pre className="font-mono text-[10px] sm:text-xs text-[#a8a29e] mb-6 leading-tight">
+{`   _____                           ____            
+  / ___/___ _________  ___  _____ / __ \\____  _____
+ / /__ / __ \`/ ___/ _ \\/ _ \\/ ___// / / / __ \\/ ___/
+/ /___/ /_/ / /  /  __/  __/ /   / /_/ / /_/ (__  ) 
+\\____/\\__,_/_/   \\___/\\___/_/    \\____/ .___/____/  
+                                     /_/            
+System Initialized — v2.0`}
+                     </pre>
+                     <div className="text-[#78716c] space-y-2 mb-4">
+                       <p><strong className="text-[#57534e]">scan --deep</strong> <span className="text-[#a8a29e]">→</span> Trigger heavy Playwright scan via GitHub Actions</p>
+                       <p><strong className="text-[#57534e]">offer-list</strong>  <span className="text-[#a8a29e]">→</span> Score and rank newly discovered jobs</p>
+                       <p><strong className="text-[#57534e]">tailor &lt;id&gt;</strong> <span className="text-[#a8a29e]">→</span> Generate custom Resume & Cover Letter HTML</p>
+                       <p><strong className="text-[#57534e]">apply &lt;id&gt;</strong>  <span className="text-[#a8a29e]">→</span> Initialize auto-apply sequence</p>
+                       <p><strong className="text-[#57534e]">help</strong>        <span className="text-[#a8a29e]">→</span> View full command reference</p>
+                     </div>
+                     <div className="text-[#a8a29e] italic mt-8">Awaiting input...</div>
+                   </div>
                  ) : (
                    <div className="space-y-1">
                      {logs.map((log, i) => (
