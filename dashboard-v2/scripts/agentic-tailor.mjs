@@ -9,7 +9,7 @@ import sql from './db/client.mjs';
 let hf = null;
 let hfUnavailable = false;
 let hfTokenInUse = '';
-const HF_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
+const HF_MODEL = 'MiniMaxAI/MiniMax-M2.7';
 const TARGET_MAP = 'data/current_eval.json';
 const TEMPLATE = 'templates/ats-template.html';
 const require = createRequire(import.meta.url);

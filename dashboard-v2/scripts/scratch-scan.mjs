@@ -114,7 +114,26 @@ async function discoverJobsWithoutBrowser(query, portalName = 'General') {
   return jobs;
 }
 
+// Check Playwright availability ONCE at startup to avoid 7+ redundant import failures
+let playwrightAvailable = null; // null = untested, true/false = tested
+
+async function checkPlaywrightAvailability() {
+  if (playwrightAvailable !== null) return playwrightAvailable;
+  try {
+    await import('playwright');
+    playwrightAvailable = true;
+    console.log('✓ Playwright runtime detected — full scraper mode enabled.');
+  } catch {
+    playwrightAvailable = false;
+    console.log('ℹ️ Playwright unavailable in this runtime — using DuckDuckGo discovery engine (no browser required).');
+  }
+  return playwrightAvailable;
+}
+
 async function importScraper(moduleName) {
+  // Skip all scraper imports if Playwright is unavailable — they all depend on it
+  if (!await checkPlaywrightAvailability()) return null;
+
   const appRoot = process.env.APP_ROOT || '';
   const candidates = [
     appRoot ? `file://${appRoot}/runtime-assets/portals/scrapers/${moduleName}.mjs` : null,
@@ -123,10 +142,6 @@ async function importScraper(moduleName) {
     new URL(`../portals/scrapers/${moduleName}.mjs`, import.meta.url),
     new URL(`../../../portals/scrapers/${moduleName}.mjs`, import.meta.url),
     `file://${process.cwd()}/portals/scrapers/${moduleName}.mjs`,
-    `file:///var/task/dashboard-v2/runtime-assets/portals/scrapers/${moduleName}.mjs`,
-    `file:///var/task/runtime-assets/portals/scrapers/${moduleName}.mjs`,
-    `file:///var/task/dashboard-v2/portals/scrapers/${moduleName}.mjs`,
-    `file:///var/task/portals/scrapers/${moduleName}.mjs`,
   ].filter(Boolean);
   for (const candidate of candidates) {
     try {
@@ -135,7 +150,7 @@ async function importScraper(moduleName) {
       // try next candidate
     }
   }
-  console.warn(`⚠ Scraper module unavailable: ${moduleName}.mjs`);
+  console.warn(`⚠ Scraper module not found: ${moduleName}.mjs`);
   return null;
 }
 
@@ -357,12 +372,8 @@ async function run() {
             // Fallback: Use Discovery Engine for generic site: queries (Naukri, Indeed, Glassdoor, etc.)
             results = await discoverJobs(buildDiscoveryQuery(q), q.name);
           } else {
-            // Final fallback with no Playwright dependency.
+            // Browser-free discovery (DuckDuckGo search) — primary path in serverless
             results = await discoverJobsWithoutBrowser(buildDiscoveryQuery(q), q.name);
-            if (!results.length) {
-              console.warn(`  ⚠ No scraper available for ${q.portal}; skipping`);
-              continue;
-            }
           }
           
           stats.discovery.found += results.length;
