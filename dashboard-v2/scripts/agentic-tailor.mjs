@@ -241,7 +241,7 @@ async function tailorPackage(jd, profile, companyName) {
     };
   }
   
-  const cvContext = `Headline: ${profile.narrative.headline}\nSummary: ${profile.narrative.exit_story}\nSuperpowers: ${(profile.narrative.superpowers || []).join(', ')}`;
+  const cvContext = `Headline: ${profile?.narrative?.headline || ''}\nSummary: ${profile?.narrative?.exit_story || ''}\nSuperpowers: ${(profile?.narrative?.superpowers || []).join(', ')}`;
   const prompt = `
     You are an expert technical recruiter and resume writer. I will provide a Job Description (JD) and my professional profile.
     
