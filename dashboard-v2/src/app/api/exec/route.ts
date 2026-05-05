@@ -106,17 +106,15 @@ export async function GET(req: NextRequest) {
   │              career-ops — Command Reference          │
   ├─────────────────────────────────────────────────────┤
   │                                                     │
-  │  DISCOVERY                                          │
-  │    scan --deep       Deep scan (via GitHub Actions)  │
-  │    scan              Fast discovery scan (Serverless)│
-  │    offer-list        Score & rank pipeline jobs      │
-  │                                                     │
-  │  APPLICATION                                        │
-  │    tailor <id>       Tailor Resume (Serverless/Fast) │
-  │    tailor <id> --deep Generate full PDF (GitHub Action)│
-  │    apply <id> --deep  Auto-apply (via GitHub Actions)│
+  │  PIPELINE SEQUENCE                                  │
+  │    1. scan --deep      Find new jobs (GitHub Actions)│
+  │    2. rank             Score & rank pipeline jobs    │
+  │    3. tailor <id>      Generate Resume & Cover Letter│
+  │    4. apply <id> --deep Auto-apply (GitHub Actions)  │
   │                                                     │
   │  UTILITIES                                          │
+  │    scan              Fast discovery scan (Serverless)│
+  │    tailor <id> --deep Generate full PDF (GitHub Action)│
   │    ls                List project files              │
   │    clear             Clear terminal screen           │
   │    help              Show this reference             │
