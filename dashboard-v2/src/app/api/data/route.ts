@@ -15,21 +15,42 @@ export async function GET() {
     const userId = session.user.id;
 
     // 0. Fetch lightweight job counters (used for background-action completion toasts)
-    const jobMetaRows = await sql`
-      SELECT
-        COUNT(*)::int AS jobs_total,
-        COUNT(*) FILTER (WHERE score IS NOT NULL AND score > 0)::int AS jobs_ranked,
-        MAX(created_at) AS last_job_created_at,
-        MAX(updated_at) AS last_job_updated_at
-      FROM jobs
-      WHERE user_id = ${userId}
-    `;
-    const jobMeta = jobMetaRows[0] || {
-      jobs_total: 0,
-      jobs_ranked: 0,
-      last_job_created_at: null,
-      last_job_updated_at: null,
-    };
+    // NOTE: Some DB schemas don't have `updated_at` on `jobs`. We fall back gracefully.
+    let jobMeta: {
+      jobs_total: number;
+      jobs_ranked: number;
+      last_job_created_at: any;
+      last_job_updated_at: any;
+    } = { jobs_total: 0, jobs_ranked: 0, last_job_created_at: null, last_job_updated_at: null };
+
+    try {
+      const jobMetaRows = await sql`
+        SELECT
+          COUNT(*)::int AS jobs_total,
+          COUNT(*) FILTER (WHERE score IS NOT NULL AND score > 0)::int AS jobs_ranked,
+          MAX(created_at) AS last_job_created_at,
+          MAX(updated_at) AS last_job_updated_at
+        FROM jobs
+        WHERE user_id = ${userId}
+      `;
+      jobMeta = jobMetaRows[0] || jobMeta;
+    } catch {
+      const jobMetaRows = await sql`
+        SELECT
+          COUNT(*)::int AS jobs_total,
+          COUNT(*) FILTER (WHERE score IS NOT NULL AND score > 0)::int AS jobs_ranked,
+          MAX(created_at) AS last_job_created_at
+        FROM jobs
+        WHERE user_id = ${userId}
+      `;
+      const row = jobMetaRows[0] || {};
+      jobMeta = {
+        jobs_total: row.jobs_total ?? 0,
+        jobs_ranked: row.jobs_ranked ?? 0,
+        last_job_created_at: row.last_job_created_at ?? null,
+        last_job_updated_at: row.last_job_created_at ?? null,
+      };
+    }
 
     // 1. Fetch Applications
     const applications = await sql`
