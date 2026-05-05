@@ -174,6 +174,32 @@ export default function Dashboard() {
               // Reliable background completion signals (GitHub Actions / cron)
               const prevMeta = prevData.meta || {};
               const nextMeta = d.meta || {};
+              // Completion toast (even when 0 jobs were added/ranked)
+              if (
+                nextMeta.lastBackgroundEventId &&
+                nextMeta.lastBackgroundEventId !== prevMeta.lastBackgroundEventId
+              ) {
+                const script: string = String(nextMeta.lastBackgroundActionScript || '');
+                const status: string = String(nextMeta.lastBackgroundStatus || '');
+                const label =
+                  script === 'scratch-scan.mjs'
+                    ? 'Scan'
+                    : script === 'rank-pipeline.mjs'
+                      ? 'Rank'
+                      : script === 'agentic-tailor.mjs'
+                        ? 'Tailor'
+                        : script === 'auto-apply.mjs'
+                          ? 'Apply'
+                          : 'Background job';
+                const outcome =
+                  status === 'success'
+                    ? 'completed'
+                    : status === 'cancelled'
+                      ? 'cancelled'
+                      : 'failed';
+                setToast({ show: true, message: `✅ ${label} ${outcome}.` });
+                setTimeout(() => setToast({ show: false, message: '' }), 5000);
+              }
               if (
                 typeof prevMeta.jobsTotal === 'number' &&
                 typeof nextMeta.jobsTotal === 'number' &&

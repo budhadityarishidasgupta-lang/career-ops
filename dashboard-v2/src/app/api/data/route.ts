@@ -128,6 +128,32 @@ export async function GET() {
       pdfs = [];
     }
 
+    // 6. Fetch latest background completion event (GitHub Actions / cron)
+    let latestEvent: any = null;
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS background_events (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          action_script TEXT NOT NULL,
+          action_args TEXT,
+          status TEXT NOT NULL,
+          run_url TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `;
+      const evRows = await sql`
+        SELECT id, action_script, status, created_at
+        FROM background_events
+        WHERE user_id = ${String(userId)}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      latestEvent = evRows[0] || null;
+    } catch {
+      latestEvent = null;
+    }
+
     return NextResponse.json({
       applications,
       pipeline,
@@ -139,6 +165,10 @@ export async function GET() {
         jobsRanked: jobMeta.jobs_ranked ?? 0,
         lastJobCreatedAt: jobMeta.last_job_created_at ?? null,
         lastJobUpdatedAt: jobMeta.last_job_updated_at ?? null,
+        lastBackgroundEventId: latestEvent?.id ?? null,
+        lastBackgroundActionScript: latestEvent?.action_script ?? null,
+        lastBackgroundStatus: latestEvent?.status ?? null,
+        lastBackgroundCompletedAt: latestEvent?.created_at ?? null,
       },
       timestamp: new Date().toISOString()
     });

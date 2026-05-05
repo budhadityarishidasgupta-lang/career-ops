@@ -48,3 +48,24 @@ jobs:
           ACTION_SCRIPT: ${{ github.event.inputs.action_script }}
           ACTION_ARGS: ${{ github.event.inputs.action_args }}
         run: node .github/scripts/run-scrapers.mjs
+
+      - name: Notify dashboard (completion)
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.event.inputs.user_id != '' }}
+        env:
+          DASHBOARD_WEBHOOK_URL: ${{ secrets.DASHBOARD_WEBHOOK_URL }}
+          WORKER_WEBHOOK_SECRET: ${{ secrets.WORKER_WEBHOOK_SECRET }}
+          USER_ID: ${{ github.event.inputs.user_id }}
+          ACTION_SCRIPT: ${{ github.event.inputs.action_script }}
+          ACTION_ARGS: ${{ github.event.inputs.action_args }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DASHBOARD_WEBHOOK_URL" ] || [ -z "$WORKER_WEBHOOK_SECRET" ]; then
+            echo "Dashboard webhook not configured; skipping."
+            exit 0
+          fi
+          curl -sS -X POST "$DASHBOARD_WEBHOOK_URL" \
+            -H "content-type: application/json" \
+            -H "x-worker-secret: $WORKER_WEBHOOK_SECRET" \
+            --data "{\"user_id\":\"$USER_ID\",\"action_script\":\"$ACTION_SCRIPT\",\"action_args\":\"$ACTION_ARGS\",\"status\":\"$JOB_STATUS\",\"run_url\":\"$RUN_URL\"}" \
+            && echo "Notified dashboard."
