@@ -103,6 +103,20 @@ export async function GET(
           if (msg.includes('NoSuchKey')) {
             return new NextResponse('PDF not found in R2 (rerun tailor --deep)', { status: 404 });
           }
+          // Resilience: if R2 auth/config is temporarily broken, fall back to DB BYTEA (older runs)
+          // so the user can still download a PDF when it exists.
+          if (msg.includes('AccessDenied') || msg.includes('SignatureDoesNotMatch') || msg.includes('InvalidAccessKeyId')) {
+            const pdfFallback = type === 'cl' ? job.cover_letter_pdf : job.resume_pdf;
+            if (pdfFallback) {
+              return new NextResponse(pdfFallback, {
+                headers: {
+                  'Content-Type': 'application/pdf',
+                  ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
+                  'X-CareerOps-PDF-Source': 'db-fallback',
+                },
+              });
+            }
+          }
           return new NextResponse(`R2 error: ${msg}`, { status: 500 });
         }
         if (!stream) return new NextResponse('PDF not available (empty object)', { status: 404 });
@@ -110,6 +124,7 @@ export async function GET(
           headers: {
             'Content-Type': 'application/pdf',
             ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
+            'X-CareerOps-PDF-Source': 'r2',
           },
         });
       }
@@ -123,6 +138,7 @@ export async function GET(
         headers: {
           'Content-Type': 'application/pdf',
           ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
+          'X-CareerOps-PDF-Source': 'db',
         },
       });
     }
