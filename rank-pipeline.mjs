@@ -3,6 +3,12 @@ import fs from 'fs';
 
 const OUTPUT_JSON = 'data/current_eval.json';
 
+const rawUserId = process.env.SCAN_USER_ID || 1;
+const userId = Number.parseInt(String(rawUserId), 10);
+if (!Number.isFinite(userId)) {
+  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+}
+
 // scoring weights for ranking
 const SCORES = {
   'staff': 2, 'principal': 2, 'lead': 2, 'engineer': 1.5,
@@ -32,11 +38,12 @@ async function run() {
     // Optimization: Only score/rank the most recent 500 jobs to keep it fast
     const jobs = await sql`
       SELECT id, url, company, title, source FROM jobs
+      WHERE user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 500
     `;
 
-    console.log(`  ✓ Fetched ${jobs.length} recent jobs from database.`);
+    console.log(`  ✓ Fetched ${jobs.length} recent jobs from database for user ${userId}.`);
     if (jobs.length === 0) {
       console.log("  ⚠ No jobs found to score. Run 'scan' first.");
       process.exit(0);
@@ -64,6 +71,7 @@ async function run() {
     scoredJobs.forEach((job, index) => {
       const idx = index + 1;
       mapping[idx] = { 
+        id: job.id,
         url: job.url, 
         company: job.company, 
         title: job.title, 
@@ -71,7 +79,7 @@ async function run() {
         score: job.score 
       };
       const scoreStr = job.score > 0 ? `[Score: ${job.score}]` : `[Score: 0]`;
-      console.log(`${idx}. ${scoreStr.padEnd(12)} ${job.company.substring(0,18).padEnd(19)} | ${job.title}`);
+      console.log(`${String(job.id).padStart(5)}  (rank ${String(idx).padStart(3)})  ${scoreStr.padEnd(12)} ${job.company.substring(0,18).padEnd(19)} | ${job.title}`);
     });
 
     console.log('-------------------');
