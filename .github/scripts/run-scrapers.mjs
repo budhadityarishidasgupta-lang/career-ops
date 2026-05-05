@@ -30,6 +30,11 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 
+function runScraper(userId) {
+  return new Promise((resolve, reject) => {
+    console.log(`\n▶️  Starting scan for user [${userId}]`);
+    const start = Date.now();
+
     const script = process.env.ACTION_SCRIPT || 'scratch-scan.mjs';
     const scriptArgs = process.env.ACTION_ARGS ? process.env.ACTION_ARGS.split(' ') : [];
 
