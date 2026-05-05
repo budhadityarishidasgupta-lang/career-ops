@@ -34,7 +34,8 @@ try {
      config.title_filter = profile.targeting_keywords;
   }
   // Generate search queries from user's configured portals + keywords
-  const selectedPortals = profile?.resume_context?.search?.portals || [];
+  const dbPortals = profile?.resume_context?.search?.portals || [];
+  const selectedPortals = dbPortals.length > 0 ? dbPortals : ['linkedin', 'naukri', 'indeed', 'instahyre', 'cutshort'];
   if (selectedPortals.length > 0) {
     const primaryKeyword = (config.title_filter?.positive?.[0] || 'software engineer').toLowerCase();
     const location = profile?.resume_context?.candidate?.location || 'India';
