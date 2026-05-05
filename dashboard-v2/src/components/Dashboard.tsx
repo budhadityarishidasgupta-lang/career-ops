@@ -536,7 +536,7 @@ export default function Dashboard() {
                            </div>
                         </td>
                         <td className="px-8 py-6 text-[#1c1917]">
-                           <button onClick={() => { setActiveTab('terminal'); runCommand(`apply ${app.app_id}`); }} className="p-2 border border-[#e7e5e4] rounded-lg hover:bg-[#1c1917] hover:text-white transition-all">
+                           <button onClick={() => { setActiveTab('terminal'); runCommand(`apply ${app.app_id} --deep`); }} className="p-2 border border-[#e7e5e4] rounded-lg hover:bg-[#1c1917] hover:text-white transition-all">
                              <Play size={14} />
                            </button>
                         </td>
@@ -574,7 +574,7 @@ export default function Dashboard() {
                         <td className="px-8 py-6 font-mono font-bold text-[#1c1917]">{job.score}</td>
                         <td className="px-8 py-6 flex gap-3">
                            <button onClick={() => { setActiveTab('terminal'); runCommand(`offer-match ${job.pipeline_id}`); }} className="px-4 py-2 bg-[#1c1917] text-white rounded-xl font-bold text-xs hover:bg-[#27272a] transition-all">Tailor</button>
-                           <button onClick={() => { setActiveTab('terminal'); runCommand(`apply ${job.pipeline_id}`); }} className="px-4 py-2 bg-white border border-[#e7e5e4] text-[#1c1917] rounded-xl font-bold text-xs hover:bg-[#f5f5f4] transition-all">Apply</button>
+                           <button onClick={() => { setActiveTab('terminal'); runCommand(`apply ${job.pipeline_id} --deep`); }} className="px-4 py-2 bg-white border border-[#e7e5e4] text-[#1c1917] rounded-xl font-bold text-xs hover:bg-[#f5f5f4] transition-all">Apply</button>
                         </td>
                       </tr>
                     ))}

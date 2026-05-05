@@ -106,11 +106,33 @@ if (!urlOrIdx) {
 // ── RESOLVE TARGET ──
 let targetUrl = urlOrIdx;
 if (/^\d+$/.test(urlOrIdx)) {
+  // 1) Try rank-index mapping (from `rank` output)
   if (fs.existsSync(TARGET_MAP)) {
-    const mapping = JSON.parse(fs.readFileSync(TARGET_MAP, 'utf8'));
-    if (mapping[urlOrIdx]) {
-      targetUrl = mapping[urlOrIdx].url;
-      company = mapping[urlOrIdx].company;
+    try {
+      const mapping = JSON.parse(fs.readFileSync(TARGET_MAP, 'utf8'));
+      if (mapping[urlOrIdx]) {
+        targetUrl = mapping[urlOrIdx].url;
+        company = mapping[urlOrIdx].company;
+      }
+    } catch {}
+  }
+
+  // 2) If still not a URL, interpret as a real DB job id
+  if (/^\d+$/.test(targetUrl)) {
+    const jobId = Number.parseInt(urlOrIdx, 10);
+    if (Number.isFinite(jobId)) {
+      try {
+        const [job] = await sql`
+          SELECT url, company
+          FROM jobs
+          WHERE id = ${jobId} AND user_id = ${userId}
+          LIMIT 1
+        `;
+        if (job?.url) {
+          targetUrl = job.url;
+          company = company || job.company || '';
+        }
+      } catch {}
     }
   }
 }

@@ -83,6 +83,7 @@ async function run() {
     scoredJobs.forEach((job, index) => {
       const idx = index + 1;
       mapping[idx] = { 
+        id: job.id,
         url: job.url, 
         company: job.company, 
         title: job.title, 
@@ -90,7 +91,8 @@ async function run() {
         score: job.score 
       };
       const scoreStr = job.score > 0 ? `[Score: ${job.score}]` : `[Score: 0]`;
-      console.log(`${idx}. ${scoreStr.padEnd(12)} ${job.company.substring(0,18).padEnd(19)} | ${job.title}`);
+      // Print real job id for downstream commands (tailor/apply expect a DB job id or URL).
+      console.log(`${String(job.id).padStart(5)}  (rank ${String(idx).padStart(3)})  ${scoreStr.padEnd(12)} ${job.company.substring(0,18).padEnd(19)} | ${job.title}`);
     });
 
     console.log('-------------------');
