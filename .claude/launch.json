@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wizard-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dashboard-web/server.mjs"],
+      "port": 4749,
+      "env": {
+        "PORT": "4749",
+        "HOST": "127.0.0.1",
+        "CONFIG_DIR": "./tmp/preview-config",
+        "DATA_DIR": "./tmp/preview-data"
+      }
+    }
+  ]
+}

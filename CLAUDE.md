@@ -338,3 +338,34 @@ Write one TSV file per evaluation to `batch/tracker-additions/{num}-{company-slu
 - No markdown bold (`**`) in status field
 - No dates in status field (use the date column)
 - No extra text (use the notes column)
+
+## Testing
+
+```bash
+npm test                                # 56 unit tests over wizard helpers
+node --test tests/onboard.test.mjs      # run a single suite
+```
+
+Tests cover the pure helpers in `dashboard-web/lib/`:
+- `onboard.mjs` — `yamlQuote`, `validateOnboardPayload`, `serializeProfileYaml`, `extractProfileFromResume`, `kebabCase`
+- `path-safety.mjs` — `makeSafeResolver` (path-traversal defense for `/reports/*` and `getCompForReport`)
+
+When you change any of these, run the suite. Smoke-tests of mutating endpoints MUST point at a tmp config dir, not the real one — see [MISTAKES.md](MISTAKES.md) for the cautionary tale:
+
+```bash
+TEST_CFG=$(mktemp -d)
+PORT=4749 HOST=127.0.0.1 CONFIG_DIR="$TEST_CFG" node dashboard-web/server.mjs
+```
+
+## Onboarding wizard
+
+The `⊕ Profile` button opens a 6-step wizard (`dashboard-web/server.mjs` → `openOnboard()` → `wizGoTo(1..6)`):
+
+1. **Resume** — drop `.txt`/`.md` or paste; PDFs trigger a "Open in tab → ⌘+A → ⌘+C" assist with auto-paste detection.
+2. **Confirm basics** — name/email/phone/location/linkedin/headline pre-filled from extraction; user edits.
+3. **Roles + comp** — chip multi-select (16 presets) + free-text additions + comp range/min/currency/location-pref.
+4. **Deal-breakers** — chip multi-select (9 presets) + free-text additions.
+5. **Narrative** — 3 superpower bullets, one best-achievement, repeatable proof-points (name + URL + hero-metric).
+6. **Review** — structured summary, one CTA writes `config/profile.yml` (snapshot to `.bak.{timestamp}` first; rotation keeps newest 10) and kicks off CV PDF generation in the background.
+
+Detect-existing-profile: `/api/onboard/profile-summary` is fetched on open; if a substantive profile exists, a banner warns the user that re-running will overwrite (with backup). Empty-state banner appears when extraction yields < 3 fields. A11y: `role=dialog`, `aria-modal`, `aria-labelledby`, focus trap, Escape closes, Enter advances, chips carry `aria-pressed` and activate on Enter/Space.

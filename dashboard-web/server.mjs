@@ -11,6 +11,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { URLSearchParams } from 'url';
 import { spawn } from 'child_process';
+import {
+  validateOnboardPayload,
+  serializeProfileYaml,
+  extractProfileFromResume,
+} from './lib/onboard.mjs';
+import { makeSafeResolver } from './lib/path-safety.mjs';
 
 const PORT = Number(process.env.PORT || 4747);
 // Bind to loopback by default; opt-in to LAN exposure via HOST=0.0.0.0
@@ -3426,6 +3432,38 @@ const HTML = /* html */ `<!DOCTYPE html>
     .wiz-summary .wiz-summary-row em { color: var(--text-ter); font-style: normal; }
     .wiz-empty { color: var(--text-ter); font-style: italic; font-size: 11px; }
 
+    /* Inline banners for empty-state / PDF-detected / existing-profile flows */
+    .wiz-banner {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 12px; margin-bottom: 14px;
+      border-radius: var(--r-md); font-size: 12px; line-height: 1.45;
+      border: .5px solid transparent;
+    }
+    .wiz-banner-info {
+      background: rgba(10,132,255,.08); color: #6cb2ff;
+      border-color: rgba(10,132,255,.22);
+    }
+    .wiz-banner-warn {
+      background: rgba(255,159,10,.08); color: #ffb340;
+      border-color: rgba(255,159,10,.25);
+    }
+    .wiz-banner-icon { font-size: 14px; line-height: 1.2; flex-shrink: 0; }
+    .wiz-banner-action {
+      margin-left: auto; background: transparent; border: .5px solid currentColor;
+      color: inherit; padding: 3px 9px; border-radius: 6px; cursor: pointer;
+      font-size: 11px; font-weight: 600;
+    }
+    .wiz-banner-action:hover { background: currentColor; color: var(--surface); }
+
+    /* Mobile: stack the two-column rows */
+    @media (max-width: 520px) {
+      .onboard-box { padding: 18px; max-width: 96vw; }
+      .wiz-row { grid-template-columns: 1fr; }
+      .wiz-proof { grid-template-columns: 1fr; }
+      .wiz-proof-rm { justify-self: end; }
+      .onboard-actions { flex-wrap: wrap; }
+    }
+
     /* ── Apply banner ── */
     .apply-banner {
       display: none;
@@ -3820,17 +3858,20 @@ const HTML = /* html */ `<!DOCTYPE html>
 <div class="toast" id="toast"></div>
 
 <!-- Onboarding / Resume Drop modal -->
-<div class="onboard-modal" id="onboard-modal">
+<div class="onboard-modal" id="onboard-modal" role="dialog" aria-modal="true" aria-labelledby="wiz-title" aria-describedby="wiz-subtitle">
   <div class="onboard-box">
     <div class="onboard-header">
       <div>
         <div class="onboard-title" id="wiz-title">Drop Your Resume</div>
         <div class="onboard-sub" id="wiz-subtitle">Step 1 of 6 · We'll read it and ask a few questions.</div>
       </div>
-      <button class="onboard-close" onclick="closeOnboard()">✕</button>
+      <button class="onboard-close" onclick="closeOnboard()" aria-label="Close onboarding wizard">✕</button>
     </div>
 
-    <div class="wiz-steps" id="wiz-steps"></div>
+    <div class="wiz-steps" id="wiz-steps" aria-label="Wizard progress"></div>
+
+    <!-- Banner slot: existing profile / PDF instructions / empty-state messages -->
+    <div id="wiz-banner-slot" aria-live="polite"></div>
 
     <!-- Step 1: Resume -->
     <div class="wiz-step active" data-step="1">
@@ -4788,14 +4829,101 @@ const HTML = /* html */ `<!DOCTYPE html>
     };
   }
 
-  function openOnboard() {
+  async function openOnboard() {
     window.wizState = defaultWizState();
-    document.getElementById('onboard-modal').classList.add('open');
+    const modal = document.getElementById('onboard-modal');
+    modal.classList.add('open');
     document.getElementById('onboard-text').value = '';
+    document.getElementById('wiz-banner-slot').innerHTML = '';
+
+    // Detect-existing-profile: if profile.yml has substantive data, ask
+    // before clobbering it.
+    try {
+      const r = await fetch('/api/onboard/profile-summary');
+      if (r.ok) {
+        const s = await r.json();
+        if (s.exists && (s.full_name || (s.target_roles && s.target_roles.length))) {
+          wizShowBanner({
+            type: 'warn',
+            icon: '⚠',
+            html: 'Existing profile detected for <strong>' + esc(s.full_name || '(no name)') + '</strong>'
+                + (s.target_roles && s.target_roles.length ? ' · ' + s.target_roles.length + ' target roles' : '')
+                + '. Re-running the wizard will overwrite it (a backup is saved automatically).',
+          });
+        }
+      }
+    } catch { /* non-fatal */ }
+
     wizGoTo(1);
+    wizAttachFocusTrap();
+    wizFocusFirst();
   }
   function closeOnboard() {
     document.getElementById('onboard-modal').classList.remove('open');
+    wizDetachFocusTrap();
+  }
+
+  // Inline banner helper
+  function wizShowBanner({ type = 'info', icon = 'ℹ', html, actionLabel, onAction, append = false }) {
+    const slot = document.getElementById('wiz-banner-slot');
+    const cls = type === 'warn' ? 'wiz-banner-warn' : 'wiz-banner-info';
+    const id = 'wiz-banner-' + Math.random().toString(36).slice(2, 8);
+    const action = actionLabel
+      ? '<button class="wiz-banner-action" id="' + id + '">' + esc(actionLabel) + '</button>'
+      : '';
+    const banner = '<div class="wiz-banner ' + cls + '">'
+      + '<span class="wiz-banner-icon">' + esc(icon) + '</span>'
+      + '<div>' + html + '</div>'
+      + action + '</div>';
+    if (append) slot.insertAdjacentHTML('beforeend', banner);
+    else slot.innerHTML = banner;
+    if (actionLabel && onAction) {
+      document.getElementById(id).onclick = onAction;
+    }
+  }
+  function wizClearBanners() {
+    document.getElementById('wiz-banner-slot').innerHTML = '';
+  }
+
+  // Focus trap — tab/shift+tab cycle within the modal; Escape closes
+  let _wizFocusables = [];
+  let _wizKeyHandler = null;
+  function wizAttachFocusTrap() {
+    _wizKeyHandler = (e) => {
+      const modal = document.getElementById('onboard-modal');
+      if (!modal.classList.contains('open')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); closeOnboard(); return;
+      }
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT' && !e.target.matches('textarea')) {
+        // Enter on an input advances unless it's the proof-point row inputs
+        // (where Enter would clobber the user's row).
+        if (e.target.closest('.wiz-proof')) return;
+        e.preventDefault(); wizNext(); return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusables = Array.from(modal.querySelectorAll(
+        'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter(el => !el.disabled && el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', _wizKeyHandler);
+  }
+  function wizDetachFocusTrap() {
+    if (_wizKeyHandler) document.removeEventListener('keydown', _wizKeyHandler);
+    _wizKeyHandler = null;
+  }
+  function wizFocusFirst() {
+    const modal = document.getElementById('onboard-modal');
+    const target = modal.querySelector('.wiz-step.active textarea, .wiz-step.active input:not([type=hidden]), .wiz-step.active button');
+    if (target) target.focus();
   }
 
   function handleDragOver(e) {
@@ -4817,7 +4945,30 @@ const HTML = /* html */ `<!DOCTYPE html>
   }
   async function readFileIntoTextarea(file) {
     if (file.type === 'application/pdf') {
-      showToast('PDF detected — paste text manually (Ctrl+A, Ctrl+C from your PDF viewer)', 'error');
+      // PDFs need a text layer — easiest path is to open the PDF in a new tab,
+      // user copies (Cmd/Ctrl+A → Cmd/Ctrl+C), then pastes into the textarea.
+      const isMac = /Mac|iPad|iPhone/.test(navigator.platform);
+      const cmd = isMac ? '⌘' : 'Ctrl';
+      const url = URL.createObjectURL(file);
+      wizShowBanner({
+        type: 'warn',
+        icon: '📄',
+        html: 'PDFs need a quick copy step. Open it, press <strong>' + cmd + '+A</strong> then <strong>' + cmd + '+C</strong>, come back here and paste below.',
+        actionLabel: 'Open PDF →',
+        onAction: () => window.open(url, '_blank', 'noopener'),
+      });
+      // Auto-detect when user pastes back: focus the textarea and watch for a paste event.
+      const ta = document.getElementById('onboard-text');
+      ta.focus();
+      const handlePaste = () => {
+        setTimeout(() => {
+          if (ta.value.trim().length >= 80) {
+            wizClearBanners();
+            wizShowBanner({ type: 'info', icon: '✓', html: 'Looks good — click Continue when ready.' });
+          }
+        }, 50);
+      };
+      ta.addEventListener('paste', handlePaste, { once: true });
       return;
     }
     const text = await file.text();
@@ -4906,6 +5057,23 @@ const HTML = /* html */ `<!DOCTYPE html>
       document.getElementById('wiz-location').value = p.location || '';
       document.getElementById('wiz-linkedin').value = p.linkedin || '';
       document.getElementById('wiz-headline').value = p.headline || '';
+      // Empty-state messaging: if we couldn't auto-detect anything, tell the
+      // user upfront so they don't think the wizard is broken.
+      if ((data.extractedCount || 0) === 0) {
+        wizShowBanner({
+          type: 'warn',
+          icon: '⚠',
+          html: "We couldn't auto-detect any fields from that resume. Fill them in manually below — you can paste each piece individually.",
+        });
+      } else if ((data.extractedCount || 0) < 3) {
+        wizShowBanner({
+          type: 'info',
+          icon: 'ℹ',
+          html: 'Only got ' + data.extractedCount + ' field' + (data.extractedCount === 1 ? '' : 's') + ' from your resume. Fill in anything missing below.',
+        });
+      } else {
+        wizClearBanners();
+      }
     } finally {
       spinner.classList.remove('show');
     }
@@ -4928,13 +5096,30 @@ const HTML = /* html */ `<!DOCTYPE html>
     const presets = kind === 'roles' ? ROLE_PRESETS : DEALBREAKER_PRESETS;
     const state = window.wizState[kind];
     const containerId = kind === 'roles' ? 'wiz-roles-chips' : 'wiz-dealbreakers-chips';
+    const container = document.getElementById(containerId);
     const cls = kind === 'dealbreakers' ? 'wiz-chip selected deal-breaker' : 'wiz-chip selected';
     const all = [...presets, ...state.custom];
-    const out = all.map(opt => {
+    // Render with data-value (safely HTML-escaped) and bind clicks via
+    // delegation — avoids the injection trap of inline onclick="wizToggleChip(...)".
+    container.innerHTML = all.map(opt => {
       const sel = state.selected.has(opt) ? cls : 'wiz-chip';
-      return '<span class="' + sel + '" onclick="wizToggleChip(\\'' + kind + '\\', ' + JSON.stringify(opt) + ')">' + esc(opt) + '</span>';
-    });
-    document.getElementById(containerId).innerHTML = out.join('');
+      return '<span class="' + sel + '" data-value="' + esc(opt) + '" tabindex="0" role="button" aria-pressed="' + (state.selected.has(opt) ? 'true' : 'false') + '">' + esc(opt) + '</span>';
+    }).join('');
+    if (!container.dataset.bound) {
+      container.addEventListener('click', (e) => {
+        const chip = e.target.closest('.wiz-chip');
+        if (!chip) return;
+        wizToggleChip(kind, chip.dataset.value);
+      });
+      container.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const chip = e.target.closest('.wiz-chip');
+        if (!chip) return;
+        e.preventDefault();
+        wizToggleChip(kind, chip.dataset.value);
+      });
+      container.dataset.bound = '1';
+    }
   }
 
   function wizToggleChip(kind, value) {
@@ -4972,14 +5157,30 @@ const HTML = /* html */ `<!DOCTYPE html>
   function wizRenderProof() {
     const list = document.getElementById('wiz-proof-list');
     const items = window.wizState.narrative.proof_points;
-    if (!items.length) { list.innerHTML = '<div class="wiz-empty">No proof points yet — add one if you have any.</div>'; return; }
+    if (!items.length) {
+      list.innerHTML = '<div class="wiz-empty">No proof points yet — add one if you have any.</div>';
+      return;
+    }
+    // Use data-attributes + delegated event handlers (same pattern as chips).
     list.innerHTML = items.map((p, i) =>
-      '<div class="wiz-proof">' +
-      '<input class="wiz-input" placeholder="Name (e.g. Jarvis platform)" value="' + esc(p.name || '') + '" oninput="wizUpdateProof(' + i + ',\\'name\\',this.value)">' +
-      '<input class="wiz-input" placeholder="URL (optional)" value="' + esc(p.url || '') + '" oninput="wizUpdateProof(' + i + ',\\'url\\',this.value)">' +
-      '<input class="wiz-input" placeholder="Hero metric (e.g. \\'$26M ROI\\')" value="' + esc(p.hero_metric || '') + '" oninput="wizUpdateProof(' + i + ',\\'hero_metric\\',this.value)">' +
-      '<button class="wiz-proof-rm" onclick="wizRemoveProof(' + i + ')" title="Remove">×</button>' +
+      '<div class="wiz-proof" data-idx="' + i + '">' +
+      '<input class="wiz-input" data-field="name"        placeholder="Name (e.g. Jarvis platform)" value="' + esc(p.name || '') + '">' +
+      '<input class="wiz-input" data-field="url"         placeholder="URL (optional)"             value="' + esc(p.url || '') + '">' +
+      '<input class="wiz-input" data-field="hero_metric" placeholder="Hero metric (e.g. $26M ROI)" value="' + esc(p.hero_metric || '') + '">' +
+      '<button class="wiz-proof-rm" data-action="remove" aria-label="Remove proof point">×</button>' +
       '</div>').join('');
+    if (!list.dataset.bound) {
+      list.addEventListener('input', (e) => {
+        const row = e.target.closest('.wiz-proof'); if (!row) return;
+        const field = e.target.dataset.field; if (!field) return;
+        wizUpdateProof(Number(row.dataset.idx), field, e.target.value);
+      });
+      list.addEventListener('click', (e) => {
+        const row = e.target.closest('.wiz-proof'); if (!row) return;
+        if (e.target.dataset.action === 'remove') wizRemoveProof(Number(row.dataset.idx));
+      });
+      list.dataset.bound = '1';
+    }
   }
 
   function wizAddProof() {
@@ -5233,141 +5434,13 @@ function sendJsonError(res, status, publicMessage, err) {
   res.end(JSON.stringify({ ok: false, error: publicMessage }));
 }
 
-// Path-traversal defense: resolve a report-relative path and verify it stays
-// inside REPORTS_DIR. Returns null on traversal attempt or invalid input.
-function resolveSafeReportPath(reportRelOrAbs) {
-  if (!reportRelOrAbs || typeof reportRelOrAbs !== 'string') return null;
-  // Strip URL fragments / query strings users might paste from markdown links
-  const clean = reportRelOrAbs.split(/[#?]/)[0];
-  // If the input already includes "reports/", strip it for a uniform basename
-  const basename = path.basename(clean);
-  if (!basename || basename === '.' || basename === '..') return null;
-  if (!/^[A-Za-z0-9._-]+$/.test(basename)) return null;
-  if (!basename.endsWith('.md')) return null;
-  const resolved = path.resolve(REPORTS_DIR, basename);
-  const reportsDirResolved = path.resolve(REPORTS_DIR);
-  if (!resolved.startsWith(reportsDirResolved + path.sep) && resolved !== reportsDirResolved) {
-    return null;
-  }
-  return resolved;
-}
+// Path-traversal defense: bound to REPORTS_DIR. Logic in lib/path-safety.mjs
+// so it can be unit-tested without booting the server.
+const resolveSafeReportPath = makeSafeResolver(REPORTS_DIR);
 
-// ── Onboard wizard: validation + YAML serialization ─────────────────────────
-// Hand-rolled YAML emitter so we don't take a runtime dep on js-yaml. Schema
-// is well-known (config/profile.example.yml) so a templated emitter is fine.
-
-function validateOnboardPayload(p) {
-  const errors = [];
-  if (!p || typeof p !== 'object') { errors.push('payload required'); return errors; }
-  const b = p.basics;
-  if (!b || typeof b !== 'object') { errors.push('basics required'); return errors; }
-  if (!b.full_name || typeof b.full_name !== 'string' || b.full_name.length < 2 || b.full_name.length > 100) errors.push('full_name invalid');
-  if (!b.email || typeof b.email !== 'string' || !/.+@.+\..+/.test(b.email) || b.email.length > 200) errors.push('email invalid');
-  for (const k of ['phone','location','linkedin','headline']) {
-    if (b[k] != null && (typeof b[k] !== 'string' || b[k].length > 300)) errors.push(`${k} too long`);
-  }
-  if (!Array.isArray(p.target_roles) || p.target_roles.length === 0) errors.push('pick at least one target role');
-  else if (p.target_roles.length > 50) errors.push('too many target_roles');
-  for (const r of (p.target_roles || [])) {
-    if (typeof r !== 'string' || r.length === 0 || r.length > 120) { errors.push('invalid role entry'); break; }
-  }
-  if (p.compensation && typeof p.compensation === 'object') {
-    for (const k of ['target_range','minimum','currency','location_flexibility']) {
-      if (p.compensation[k] != null && (typeof p.compensation[k] !== 'string' || p.compensation[k].length > 100)) errors.push(`compensation.${k} invalid`);
-    }
-  }
-  if (p.deal_breakers != null) {
-    if (!Array.isArray(p.deal_breakers)) errors.push('deal_breakers must be array');
-    else if (p.deal_breakers.length > 50) errors.push('too many deal_breakers');
-  }
-  if (p.narrative && typeof p.narrative === 'object') {
-    const n = p.narrative;
-    if (n.superpowers != null && !Array.isArray(n.superpowers)) errors.push('superpowers must be array');
-    else if (Array.isArray(n.superpowers) && n.superpowers.length > 10) errors.push('too many superpowers');
-    if (n.best_achievement != null && (typeof n.best_achievement !== 'string' || n.best_achievement.length > 4000)) errors.push('best_achievement too long');
-    if (n.proof_points != null && !Array.isArray(n.proof_points)) errors.push('proof_points must be array');
-    else if (Array.isArray(n.proof_points) && n.proof_points.length > 20) errors.push('too many proof_points');
-  }
-  return errors;
-}
-
-function yamlQuote(s) {
-  const str = s == null ? '' : String(s);
-  // Use double-quoted form with escapes — handles every value type our schema
-  // produces (free-text headlines, achievements, role titles, URLs).
-  return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
-}
-
-function serializeProfileYaml(p) {
-  const b = p.basics || {};
-  const c = p.compensation || {};
-  const n = p.narrative || {};
-  const linkedin = (b.linkedin || '').trim().replace(/^https?:\/\//i, '');
-  const locParts = (b.location || '').split(',').map(s => s.trim()).filter(Boolean);
-
-  const out = [];
-  out.push('# Career-Ops Profile Configuration');
-  out.push('# Generated by the onboarding wizard. Edit any field directly — the');
-  out.push('# system picks up your changes on the next run.');
-  out.push('');
-  out.push('candidate:');
-  out.push(`  full_name: ${yamlQuote(b.full_name)}`);
-  out.push(`  email: ${yamlQuote(b.email)}`);
-  out.push(`  phone: ${yamlQuote(b.phone || '')}`);
-  out.push(`  location: ${yamlQuote(b.location || '')}`);
-  out.push(`  linkedin: ${yamlQuote(linkedin)}`);
-  out.push('  portfolio_url: ""');
-  out.push('  github: ""');
-  out.push('  twitter: ""');
-  out.push('');
-  out.push('target_roles:');
-  out.push('  primary:');
-  for (const r of (p.target_roles || [])) out.push(`    - ${yamlQuote(r)}`);
-  out.push('  archetypes: []');
-  out.push('');
-  out.push('narrative:');
-  out.push(`  headline: ${yamlQuote(b.headline || '')}`);
-  out.push('  exit_story: ""');
-  if (Array.isArray(n.superpowers) && n.superpowers.length) {
-    out.push('  superpowers:');
-    for (const sp of n.superpowers) out.push(`    - ${yamlQuote(sp)}`);
-  } else {
-    out.push('  superpowers: []');
-  }
-  if (n.best_achievement) {
-    out.push(`  best_achievement: ${yamlQuote(n.best_achievement)}`);
-  }
-  if (Array.isArray(n.proof_points) && n.proof_points.some(pp => pp.name || pp.url)) {
-    out.push('  proof_points:');
-    for (const pp of n.proof_points) {
-      if (!pp.name && !pp.url) continue;
-      out.push(`    - name: ${yamlQuote(pp.name || '')}`);
-      out.push(`      url: ${yamlQuote(pp.url || '')}`);
-      out.push(`      hero_metric: ${yamlQuote(pp.hero_metric || '')}`);
-    }
-  } else {
-    out.push('  proof_points: []');
-  }
-  out.push('');
-  out.push('compensation:');
-  out.push(`  target_range: ${yamlQuote(c.target_range || '')}`);
-  out.push(`  currency: ${yamlQuote(c.currency || 'USD')}`);
-  out.push(`  minimum: ${yamlQuote(c.minimum || '')}`);
-  out.push(`  location_flexibility: ${yamlQuote(c.location_flexibility || '')}`);
-  out.push('');
-  if (Array.isArray(p.deal_breakers) && p.deal_breakers.length) {
-    out.push('deal_breakers:');
-    for (const d of p.deal_breakers) out.push(`  - ${yamlQuote(d)}`);
-    out.push('');
-  }
-  out.push('location:');
-  out.push(`  city: ${yamlQuote(locParts[0] || '')}`);
-  out.push(`  country: ${yamlQuote(locParts[locParts.length - 1] || '')}`);
-  out.push('  timezone: ""');
-  out.push('  visa_status: ""');
-  out.push('');
-  return out.join('\n');
-}
+// Onboard wizard helpers (validateOnboardPayload, serializeProfileYaml,
+// extractProfileFromResume) live in ./lib/onboard.mjs so they're testable
+// without booting the HTTP server.
 
 async function handleRequest(req, res) {
   applySecurityHeaders(res);
@@ -5777,6 +5850,52 @@ async function handleRequest(req, res) {
     return;
   }
 
+  // ── API: Profile summary (so wizard can detect existing data) ──
+  if (pathname === '/api/onboard/profile-summary') {
+    const profilePath = path.join(CONFIG_DIR, 'profile.yml');
+    let yml = '';
+    try { yml = await fs.readFile(profilePath, 'utf8'); } catch {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ exists: false }));
+      return;
+    }
+    const candidateBlock = yml.match(/^candidate:\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+    const scope = candidateBlock ? candidateBlock[1] : yml;
+    const get = (key) => {
+      const m = scope.match(new RegExp(`^\\s+${key}:\\s*"?([^"\\n]+?)"?\\s*$`, 'm'));
+      return m ? m[1].trim() : '';
+    };
+    const fullName = get('full_name');
+    const email = get('email');
+    // target_roles.primary[] — walk lines so we don't fight regex greediness.
+    const target_roles = [];
+    {
+      const lines = yml.split('\n');
+      let inTargetRoles = false, inPrimary = false;
+      for (const line of lines) {
+        if (/^target_roles:\s*$/.test(line)) { inTargetRoles = true; continue; }
+        if (inTargetRoles && /^\S/.test(line)) { inTargetRoles = false; inPrimary = false; }
+        if (!inTargetRoles) continue;
+        if (/^\s+primary:\s*$/.test(line)) { inPrimary = true; continue; }
+        // sibling key under target_roles (e.g. `archetypes:`) ends primary
+        if (inPrimary && /^\s+\w+:/.test(line)) inPrimary = false;
+        if (!inPrimary) continue;
+        const m = line.match(/^\s+-\s+"([^"]+)"/);
+        if (m) target_roles.push(m[1]);
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      exists: true,
+      full_name: fullName,
+      email,
+      target_roles,
+      // Heuristic: "substantive" = name set AND at least one role.
+      substantive: !!(fullName && target_roles.length),
+    }));
+    return;
+  }
+
   // ── API: Onboard (resume drop → cv.md + profile.yml — no AI needed) ──
   if (pathname === '/api/onboard' && req.method === 'POST') {
     try {
@@ -5788,53 +5907,9 @@ async function handleRequest(req, res) {
         return sendJsonError(res, 400, 'Resume text too long.');
       }
 
-      const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
-      const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-      const linkedinMatch = text.match(/linkedin\.com\/in\/[\w-]+/i);
+      const profile = extractProfileFromResume(text);
 
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      let fullName = '';
-      for (const line of lines.slice(0, 5)) {
-        const clean = line.replace(/^#+\s*/, '').replace(/\*+/g, '').trim();
-        if (clean.length > 2 && clean.length < 60 && /^[A-Z]/.test(clean) && !clean.includes('@') && !clean.includes('http')) {
-          fullName = clean; break;
-        }
-      }
-
-      let headline = '';
-      const headlineKw = /director|head|manager|engineer|architect|lead|chief|vp|president|consultant|strategist|operator|founder/i;
-      for (const line of lines.slice(0, 10)) {
-        const clean = line.replace(/^#+\s*/, '').replace(/\*+/g, '').trim();
-        if (clean !== fullName && headlineKw.test(clean) && clean.length < 120) {
-          headline = clean; break;
-        }
-      }
-
-      // Heuristic location: "City, ST" or "City, Country" within the first 8 lines.
-      let location = '';
-      for (const line of lines.slice(0, 8)) {
-        // Skip lines that are clearly contact lines mixed with email/phone/url —
-        // pull the location segment from a pipe-delimited contact line.
-        const segments = line.split(/[|·•]/).map(s => s.trim()).filter(Boolean);
-        for (const seg of segments) {
-          if (seg.includes('@') || /\d{3}/.test(seg) || /https?:\/\//i.test(seg) || /linkedin/i.test(seg)) continue;
-          // "City, ST" — title-case city, 2-letter state OR title-case country
-          const m = seg.match(/^([A-Z][A-Za-z .'-]{1,30}),\s*([A-Z]{2}|[A-Z][A-Za-z]{2,30})$/);
-          if (m) { location = seg; break; }
-        }
-        if (location) break;
-      }
-
-      const profile = {
-        full_name: fullName,
-        email: emailMatch ? emailMatch[0] : '',
-        phone: phoneMatch ? phoneMatch[0] : '',
-        linkedin: linkedinMatch ? linkedinMatch[0] : '',
-        location,
-        headline,
-      };
-
-      const cvHeader = fullName ? `# ${fullName}\n\n` : '# Resume\n\n';
+      const cvHeader = profile.full_name ? `# ${profile.full_name}\n\n` : '# Resume\n\n';
       await fs.writeFile(path.join(ROOT, 'cv.md'), cvHeader + text.trim() + '\n', 'utf8');
 
       // Lightly patch existing profile.yml — the wizard will fully overwrite via
@@ -5856,8 +5931,16 @@ async function handleRequest(req, res) {
         await fs.writeFile(profilePath, yml, 'utf8');
       }
 
+      // Did we get anything substantive? Tell the client so the wizard can
+      // show a friendly empty-state message rather than auto-advancing into
+      // a step full of blank fields.
+      const extractedCount =
+        (profile.full_name ? 1 : 0) + (profile.email ? 1 : 0) +
+        (profile.phone ? 1 : 0) + (profile.linkedin ? 1 : 0) +
+        (profile.location ? 1 : 0) + (profile.headline ? 1 : 0);
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, profile }));
+      res.end(JSON.stringify({ ok: true, profile, extractedCount }));
     } catch (err) {
       sendJsonError(res, 400, 'onboard failed', err);
     }
@@ -5874,12 +5957,24 @@ async function handleRequest(req, res) {
       const yml = serializeProfileYaml(payload);
       const profilePath = path.join(CONFIG_DIR, 'profile.yml');
       // Safety: never silently overwrite an existing profile. Snapshot to
-      // config/profile.yml.bak.{timestamp} first so accidents are recoverable.
+      // profile.yml.bak.{timestamp}, then rotate older backups (keep last 10).
       try {
         const existing = await fs.readFile(profilePath, 'utf8');
         if (existing && existing.length > 0) {
           const stamp = new Date().toISOString().replace(/[:.]/g, '-');
           await fs.writeFile(`${profilePath}.bak.${stamp}`, existing, 'utf8');
+          // GC: keep newest 10 backups, delete older.
+          try {
+            const dirEntries = await fs.readdir(CONFIG_DIR);
+            const baks = dirEntries
+              .filter(f => f.startsWith('profile.yml.bak.'))
+              .map(f => path.join(CONFIG_DIR, f));
+            if (baks.length > 10) {
+              const stats = await Promise.all(baks.map(async f => ({ f, m: (await fs.stat(f)).mtimeMs })));
+              stats.sort((a, b) => b.m - a.m); // newest first
+              for (const { f } of stats.slice(10)) await fs.unlink(f).catch(() => {});
+            }
+          } catch { /* GC is best-effort */ }
         }
       } catch { /* no existing file — first run */ }
       await fs.writeFile(profilePath, yml, 'utf8');
