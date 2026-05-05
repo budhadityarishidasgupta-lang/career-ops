@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
           controller.close();
           return;
         }
-        const userId = session.user.id;
+        const userId = String(session.user.id || '1');
 
         // 1. Simple Command Parsing
         const [cmd, ...args] = q.trim().split(/\s+/);
@@ -256,7 +256,7 @@ export async function GET(req: NextRequest) {
     },
   });
 }
-async function triggerGitHubAction(send: any, controller: any, userId: number, script: string, args: string) {
+async function triggerGitHubAction(send: any, controller: any, userId: string, script: string, args: string) {
   const pat = process.env.GITHUB_PAT;
   if (!pat) {
     send({ type: 'stderr', content: '⚠ GITHUB_PAT not configured.\nPlease set your GitHub Personal Access Token in Vercel environment variables to enable deep actions.\n' });
