@@ -171,6 +171,25 @@ export default function Dashboard() {
         .then(d => {
           setData((prevData: any) => {
             if (prevData) {
+              // Reliable background completion signals (GitHub Actions / cron)
+              const prevMeta = prevData.meta || {};
+              const nextMeta = d.meta || {};
+              if (
+                typeof prevMeta.jobsTotal === 'number' &&
+                typeof nextMeta.jobsTotal === 'number' &&
+                nextMeta.jobsTotal > prevMeta.jobsTotal
+              ) {
+                setToast({ show: true, message: '🔎 Background Action Complete: Scan finished — new jobs added!' });
+                setTimeout(() => setToast({ show: false, message: '' }), 5000);
+              } else if (
+                typeof prevMeta.jobsRanked === 'number' &&
+                typeof nextMeta.jobsRanked === 'number' &&
+                nextMeta.jobsRanked > prevMeta.jobsRanked
+              ) {
+                setToast({ show: true, message: '⚖️ Background Action Complete: Ranking finished — scores updated!' });
+                setTimeout(() => setToast({ show: false, message: '' }), 5000);
+              }
+
               if (prevData.pdfs && d.pdfs && d.pdfs.length > prevData.pdfs.length) {
                 setToast({ show: true, message: '🎉 Background Action Complete: Resume generated!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);

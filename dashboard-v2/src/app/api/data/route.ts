@@ -14,6 +14,23 @@ export async function GET() {
     }
     const userId = session.user.id;
 
+    // 0. Fetch lightweight job counters (used for background-action completion toasts)
+    const jobMetaRows = await sql`
+      SELECT
+        COUNT(*)::int AS jobs_total,
+        COUNT(*) FILTER (WHERE score IS NOT NULL AND score > 0)::int AS jobs_ranked,
+        MAX(created_at) AS last_job_created_at,
+        MAX(updated_at) AS last_job_updated_at
+      FROM jobs
+      WHERE user_id = ${userId}
+    `;
+    const jobMeta = jobMetaRows[0] || {
+      jobs_total: 0,
+      jobs_ranked: 0,
+      last_job_created_at: null,
+      last_job_updated_at: null,
+    };
+
     // 1. Fetch Applications
     const applications = await sql`
       SELECT 
@@ -88,6 +105,12 @@ export async function GET() {
       pdfs,
       stats: stats[0] || { total: 0, applied: 0, interviews: 0, offers: 0 },
       profile,
+      meta: {
+        jobsTotal: jobMeta.jobs_total ?? 0,
+        jobsRanked: jobMeta.jobs_ranked ?? 0,
+        lastJobCreatedAt: jobMeta.last_job_created_at ?? null,
+        lastJobUpdatedAt: jobMeta.last_job_updated_at ?? null,
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
