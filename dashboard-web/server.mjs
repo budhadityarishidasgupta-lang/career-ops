@@ -2665,14 +2665,17 @@ const HTML = /* html */ `<!DOCTYPE html>
     /* ── Layout ── */
     .layout {
       display: grid;
-      grid-template-columns: 1fr 340px;
+      grid-template-columns: minmax(0, 1fr) 340px;
       gap: 0;
       min-height: calc(100vh - 52px);
+      max-width: 1680px;
+      margin: 0 auto;
     }
     .main { padding: 24px; min-width: 0; }
     .sidebar {
       border-left: .5px solid var(--separator);
       display: flex; flex-direction: column;
+      min-width: 0;
     }
 
     /* ── Stats grid ── */
@@ -2682,6 +2685,38 @@ const HTML = /* html */ `<!DOCTYPE html>
       gap: 10px;
       margin-bottom: 24px;
     }
+    /* Zero-state hero — shown only when no apps exist yet, replaces the
+       9-card grid that would otherwise be a wall of zeros. */
+    .stats-zero {
+      display: none;
+      margin-bottom: 24px;
+      padding: 22px 26px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(40,184,255,.08), transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(48,209,88,.06), transparent 40%),
+        var(--surface);
+      border: .5px solid var(--separator2);
+      border-radius: var(--r-md);
+      display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    }
+    .stats-zero[hidden] { display: none !important; }
+    .stats-zero-icon {
+      flex: 0 0 auto;
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #0a84ff 0%, #30d158 100%);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 18px rgba(10,132,255,.30);
+    }
+    .stats-zero-body { flex: 1 1 220px; min-width: 0; }
+    .stats-zero-title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .stats-zero-sub { font-size: 13px; color: var(--text-sec); margin-top: 4px; line-height: 1.5; }
+    .stats-zero-sub code {
+      font-size: 12px; padding: 1px 6px; border-radius: 4px;
+      background: var(--surface3); color: var(--text);
+    }
+    .stats-zero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .stat-card {
       background: var(--surface);
       border-radius: var(--r-md);
@@ -3592,9 +3627,24 @@ const HTML = /* html */ `<!DOCTYPE html>
     .report-btn:hover { opacity: 1; }
 
     /* ── Responsive ── */
-    @media (max-width: 900px) {
+    /* Tablet: stack sidebar below main so the apps table gets full width.
+       Threshold matches Apple HIG split-view collapse points. */
+    @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { border-left: none; border-top: .5px solid var(--separator); }
+    }
+    /* Phone: tighten paddings and let the header wrap onto two lines. */
+    @media (max-width: 640px) {
+      .header { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 14px; gap: 8px; }
+      .header-spacer { display: none; }
+      .header-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
+      .last-updated { font-size: 11px; }
+      .main { padding: 14px; }
+      .stats { gap: 8px; }
+      .stat-card { padding: 11px 12px; }
+      .stat-value { font-size: 24px; }
+      /* WCAG 2.2 — bump tap targets on phones. */
+      .btn { padding: 9px 14px; font-size: 13px; }
     }
   </style>
 </head>
@@ -3687,6 +3737,22 @@ const HTML = /* html */ `<!DOCTYPE html>
         <div class="apply-banner-sub" id="apply-banner-sub">Evaluated roles scoring 4.0+ — open them all in one click</div>
       </div>
       <button class="btn" onclick="openApplyModal()">⚡ Apply Now</button>
+    </div>
+
+    <!-- Zero-state hero (shown when total apps = 0) -->
+    <div class="stats-zero" id="stats-zero" hidden>
+      <div class="stats-zero-icon">✦</div>
+      <div class="stats-zero-body">
+        <div class="stats-zero-title" id="stats-zero-title">Welcome to JobSeeker</div>
+        <div class="stats-zero-sub" id="stats-zero-sub">
+          Drop a job URL into <code>data/pipeline.md</code> or run <code>/career-ops scan</code> to start finding offers.
+          We'll score, rank, and queue them for one-click apply.
+        </div>
+      </div>
+      <div class="stats-zero-actions">
+        <button class="btn btn-ghost" onclick="openOnboard()" title="Update profile / drop resume (⌘ ,)">⊕ Profile</button>
+        <button class="btn btn-apply-batch" onclick="window.scrollTo({top: document.querySelector('.table-card').offsetTop - 80, behavior: 'smooth'})">Show pipeline ↓</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -4234,6 +4300,22 @@ const HTML = /* html */ `<!DOCTYPE html>
 
   /* ── Stats ── */
   function renderStats(stats) {
+    // Zero-state: replace the 9-card wall-of-zeros with a friendlier hero.
+    // We only swap when BOTH lifetime stats and pipeline are empty —
+    // otherwise the user has signal worth showing.
+    const isEmpty = (stats.total | 0) === 0 && (stats.pending | 0) === 0;
+    const grid = document.getElementById('stats-grid');
+    const zero = document.getElementById('stats-zero');
+    if (zero && grid) {
+      if (isEmpty) {
+        grid.style.display = 'none';
+        zero.hidden = false;
+      } else {
+        grid.style.display = '';
+        zero.hidden = true;
+      }
+    }
+
     document.getElementById('s-total').textContent     = stats.total;
     document.getElementById('s-applied').textContent   = stats.applied;
     document.getElementById('s-responded').textContent = stats.responded;
@@ -5617,7 +5699,7 @@ const HTML = /* html */ `<!DOCTYPE html>
         dot.className = 'pipeline-bar-dot idle';
         label.className = 'pipeline-bar-label idle';
         label.textContent = 'Pipeline';
-        statusText.textContent = s.lastRun ? 'Last: ' + formatRelativeTime(s.lastRun) : 'Idle — starts in ~1m';
+        statusText.textContent = s.lastRun ? 'Last: ' + formatRelativeTime(s.lastRun) : 'Standby · first scan in ~1m';
         nextEl.textContent = s.nextRun ? 'Next: ' + formatRelativeTime(s.nextRun) : '';
       }
     } catch {}
