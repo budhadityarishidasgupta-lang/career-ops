@@ -1,8 +1,36 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { auth } from '@/auth';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { Readable } from 'node:stream';
 
 export const dynamic = 'force-dynamic';
+
+function getR2Client() {
+  const accountId = process.env.R2_ACCOUNT_ID || '';
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID || '';
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || '';
+  if (!accountId || !accessKeyId || !secretAccessKey) return null;
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+}
+
+async function streamR2Object(key: string) {
+  const bucket = process.env.R2_BUCKET || '';
+  const client = getR2Client();
+  if (!bucket || !client) return null;
+
+  const out = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const body = out.Body as any;
+  if (!body) return null;
+
+  // Convert Node stream to Web ReadableStream for NextResponse.
+  const nodeStream = body instanceof Readable ? body : Readable.fromWeb(body);
+  return Readable.toWeb(nodeStream) as unknown as ReadableStream;
+}
 
 export async function GET(
   request: Request,
@@ -24,7 +52,15 @@ export async function GET(
     const jobId = id;
 
     const [job] = await sql`
-      SELECT company, title, resume_html, cover_letter_html, resume_pdf, cover_letter_pdf
+      SELECT
+        company,
+        title,
+        resume_html,
+        cover_letter_html,
+        resume_pdf,
+        cover_letter_pdf,
+        resume_pdf_key,
+        cover_letter_pdf_key
       FROM jobs 
       WHERE id = ${jobId} AND user_id = ${session.user.id}
     `;
@@ -48,17 +84,30 @@ export async function GET(
     ].filter(Boolean).join('_') || `career_ops_${jobId}`;
 
     if (format === 'pdf') {
+      const filename = `${nameCore}.pdf`;
+      const key = type === 'cl' ? job.cover_letter_pdf_key : job.resume_pdf_key;
+      if (key) {
+        const stream = await streamR2Object(String(key));
+        if (!stream) {
+          return new NextResponse('PDF not available (R2 misconfigured)', { status: 500 });
+        }
+        return new NextResponse(stream, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
+          },
+        });
+      }
+
+      // Backward compatibility: DB BYTEA (older runs)
       const pdf = type === 'cl' ? job.cover_letter_pdf : job.resume_pdf;
       if (!pdf) {
         return new NextResponse('PDF not found (run tailor --deep first)', { status: 404 });
       }
-      const filename = `${nameCore}.pdf`;
       return new NextResponse(pdf, {
         headers: {
           'Content-Type': 'application/pdf',
-          ...(download
-            ? { 'Content-Disposition': `attachment; filename="${filename}"` }
-            : {}),
+          ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
         },
       });
     }

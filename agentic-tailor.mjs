@@ -5,6 +5,7 @@ import { execSync } from 'child_process';
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 import sql from './db/client.mjs';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 let hf = null;
 let hfUnavailable = false;
@@ -76,6 +77,34 @@ async function getChromium() {
   } catch {
     return null;
   }
+}
+
+function getR2Client() {
+  const accountId = process.env.R2_ACCOUNT_ID || '';
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID || '';
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || '';
+  if (!accountId || !accessKeyId || !secretAccessKey) return null;
+
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+}
+
+async function uploadToR2({ key, body, contentType }) {
+  const bucket = process.env.R2_BUCKET || '';
+  const client = getR2Client();
+  if (!bucket || !client) return false;
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    })
+  );
+  return true;
 }
 
 
@@ -468,8 +497,8 @@ async function tailorPackage(jd, profile, companyName) {
         ALTER TABLE jobs
           ADD COLUMN IF NOT EXISTS resume_html TEXT,
           ADD COLUMN IF NOT EXISTS cover_letter_html TEXT,
-          ADD COLUMN IF NOT EXISTS resume_pdf BYTEA,
-          ADD COLUMN IF NOT EXISTS cover_letter_pdf BYTEA;
+          ADD COLUMN IF NOT EXISTS resume_pdf_key TEXT,
+          ADD COLUMN IF NOT EXISTS cover_letter_pdf_key TEXT;
       `;
       
       // We assume entry.id exists if it came from DB, else we try to find it by URL
@@ -494,32 +523,47 @@ async function tailorPackage(jd, profile, companyName) {
         execSync(`"${process.execPath}" "${generatePdfScript}" "${clPathHtml}" "${clPathPdf}"`);
         console.log(`✨ SUCCESS! Resume & Cover Letter saved for ${entry.company}`);
 
-        // Persist PDFs to DB for true "Download PDF" in dashboard.
+        // Upload PDFs to Cloudflare R2 (preferred) and persist keys to DB.
         try {
           const resumePdfBuf = fs.existsSync(resumePathPdf) ? fs.readFileSync(resumePathPdf) : null;
           const clPdfBuf = fs.existsSync(clPathPdf) ? fs.readFileSync(clPathPdf) : null;
-          if (resumePdfBuf || clPdfBuf) {
+          const baseKey = `users/${userId}/jobs/${entry.id || sanitizeFilename(entry.company)}/${Date.now()}`;
+          let resumeKey = null;
+          let clKey = null;
+
+          if (resumePdfBuf) {
+            resumeKey = `${baseKey}-resume.pdf`;
+            await uploadToR2({ key: resumeKey, body: resumePdfBuf, contentType: 'application/pdf' });
+          }
+          if (clPdfBuf) {
+            clKey = `${baseKey}-cover-letter.pdf`;
+            await uploadToR2({ key: clKey, body: clPdfBuf, contentType: 'application/pdf' });
+          }
+
+          if (resumeKey || clKey) {
             if (entry.id) {
               await sql`
                 UPDATE jobs
                 SET
-                  resume_pdf = COALESCE(${resumePdfBuf}, resume_pdf),
-                  cover_letter_pdf = COALESCE(${clPdfBuf}, cover_letter_pdf)
+                  resume_pdf_key = COALESCE(${resumeKey}, resume_pdf_key),
+                  cover_letter_pdf_key = COALESCE(${clKey}, cover_letter_pdf_key)
                 WHERE id = ${entry.id} AND user_id = ${userId}
               `;
             } else {
               await sql`
                 UPDATE jobs
                 SET
-                  resume_pdf = COALESCE(${resumePdfBuf}, resume_pdf),
-                  cover_letter_pdf = COALESCE(${clPdfBuf}, cover_letter_pdf)
+                  resume_pdf_key = COALESCE(${resumeKey}, resume_pdf_key),
+                  cover_letter_pdf_key = COALESCE(${clKey}, cover_letter_pdf_key)
                 WHERE url = ${entry.url} AND user_id = ${userId}
               `;
             }
-            console.log('💾 PDFs persisted to database.');
+            console.log('💾 PDFs uploaded to R2 and keys persisted to database.');
+          } else {
+            console.warn('⚠ PDF buffers missing; nothing uploaded.');
           }
         } catch (pdfDbErr) {
-          console.warn(`⚠ Could not save PDFs to database: ${pdfDbErr.message}`);
+          console.warn(`⚠ Could not upload PDFs to R2: ${pdfDbErr.message}`);
         }
       } catch (pdfErr) {
         console.warn(`⚠ PDF generation unavailable in this runtime (${pdfErr.message}).`);
