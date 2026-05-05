@@ -49,6 +49,37 @@ export default function Dashboard() {
   const [tagInputPortals, setTagInputPortals] = useState('');
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
+  const appendTerminalLine = (line: string) => {
+    setLogs((prev) => [...prev, { type: 'stdout', content: `\n${line}\n` }]);
+  };
+
+  const formatCompletionMessage = (meta: any) => {
+    const script: string = String(meta?.lastBackgroundActionScript || '');
+    const status: string = String(meta?.lastBackgroundStatus || '');
+    const label =
+      script === 'scratch-scan.mjs'
+        ? 'Scan'
+        : script === 'rank-pipeline.mjs'
+          ? 'Rank'
+          : script === 'agentic-tailor.mjs'
+            ? 'Tailor'
+            : script === 'auto-apply.mjs'
+              ? 'Apply'
+              : 'Background job';
+    const outcome =
+      status === 'success'
+        ? 'completed'
+        : status === 'cancelled'
+          ? 'cancelled'
+          : 'failed';
+
+    const hint =
+      label === 'Tailor' && outcome === 'completed'
+        ? ' PDF ready in Resume Manager → Generated Docs.'
+        : '';
+    return { toast: `✅ ${label} ${outcome}.${hint}`, terminal: `✅ ${label} ${outcome}.${hint}` };
+  };
+
   const steps = [
     { target: null, title: "Welcome to Alpha v2.0", content: "Your AI career command center is live. Let's configure your agent for maximum discovery.", icon: <Zap size={24}/> },
     { target: "nav-terminal", title: "The Command Engine", content: "The Terminal is where you control the agent. Type 'scan' to search 11+ job portals or 'tailor' to generate resumes.", icon: <TerminalIcon size={24}/> },
@@ -193,26 +224,10 @@ export default function Dashboard() {
               const nextEventId = Number(nextMeta.lastBackgroundEventId || 0);
               const lastSeen = Number(localStorage.getItem(lastSeenKey) || 0);
               if (nextEventId > 0 && nextEventId > lastSeen) {
-                const script: string = String(nextMeta.lastBackgroundActionScript || '');
-                const status: string = String(nextMeta.lastBackgroundStatus || '');
-                const label =
-                  script === 'scratch-scan.mjs'
-                    ? 'Scan'
-                    : script === 'rank-pipeline.mjs'
-                      ? 'Rank'
-                      : script === 'agentic-tailor.mjs'
-                        ? 'Tailor'
-                        : script === 'auto-apply.mjs'
-                          ? 'Apply'
-                          : 'Background job';
-                const outcome =
-                  status === 'success'
-                    ? 'completed'
-                    : status === 'cancelled'
-                      ? 'cancelled'
-                      : 'failed';
-                setToast({ show: true, message: `✅ ${label} ${outcome}.` });
+                const msg = formatCompletionMessage(nextMeta);
+                setToast({ show: true, message: msg.toast });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine(msg.terminal);
                 localStorage.setItem(lastSeenKey, String(nextEventId));
               }
             } catch {
@@ -224,30 +239,17 @@ export default function Dashboard() {
               const prevMeta = prevData.meta || {};
               const nextMeta = d.meta || {};
               // Completion toast (even when 0 jobs were added/ranked)
+              // Trigger on event id change OR completed_at change (more robust across reloads/localStorage).
               if (
-                nextMeta.lastBackgroundEventId &&
-                nextMeta.lastBackgroundEventId !== prevMeta.lastBackgroundEventId
+                (nextMeta.lastBackgroundEventId &&
+                  nextMeta.lastBackgroundEventId !== prevMeta.lastBackgroundEventId) ||
+                (nextMeta.lastBackgroundCompletedAt &&
+                  nextMeta.lastBackgroundCompletedAt !== prevMeta.lastBackgroundCompletedAt)
               ) {
-                const script: string = String(nextMeta.lastBackgroundActionScript || '');
-                const status: string = String(nextMeta.lastBackgroundStatus || '');
-                const label =
-                  script === 'scratch-scan.mjs'
-                    ? 'Scan'
-                    : script === 'rank-pipeline.mjs'
-                      ? 'Rank'
-                      : script === 'agentic-tailor.mjs'
-                        ? 'Tailor'
-                        : script === 'auto-apply.mjs'
-                          ? 'Apply'
-                          : 'Background job';
-                const outcome =
-                  status === 'success'
-                    ? 'completed'
-                    : status === 'cancelled'
-                      ? 'cancelled'
-                      : 'failed';
-                setToast({ show: true, message: `✅ ${label} ${outcome}.` });
+                const msg = formatCompletionMessage(nextMeta);
+                setToast({ show: true, message: msg.toast });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine(msg.terminal);
                 try {
                   localStorage.setItem(lastSeenKey, String(Number(nextMeta.lastBackgroundEventId || 0)));
                 } catch {
@@ -261,6 +263,7 @@ export default function Dashboard() {
               ) {
                 setToast({ show: true, message: '🔎 Background Action Complete: Scan finished — new jobs added!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine('✅ Scan completed. New jobs added.');
               } else if (
                 typeof prevMeta.jobsRanked === 'number' &&
                 typeof nextMeta.jobsRanked === 'number' &&
@@ -268,23 +271,28 @@ export default function Dashboard() {
               ) {
                 setToast({ show: true, message: '⚖️ Background Action Complete: Ranking finished — scores updated!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine('✅ Rank completed. Scores updated.');
               }
 
               if (prevData.pdfs && d.pdfs && d.pdfs.length > prevData.pdfs.length) {
                 setToast({ show: true, message: '🎉 Background Action Complete: Resume generated!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine('✅ Tailor completed. New document generated.');
               } else if (prevData.applications && d.applications && d.applications.length > prevData.applications.length) {
                 setToast({ show: true, message: '🚀 Background Action Complete: Job applied successfully!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                appendTerminalLine('✅ Apply completed. Application recorded.');
               } else if (prevData.pipeline && d.pipeline) {
                 const prevScores = prevData.pipeline.map((j: any) => j.score || 0).join(',');
                 const newScores = d.pipeline.map((j: any) => j.score || 0).join(',');
                 if (d.pipeline.length > prevData.pipeline.length) {
                   setToast({ show: true, message: '🎯 Background Action Complete: Pipeline updated with new jobs!' });
                   setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                  appendTerminalLine('✅ Scan completed. Pipeline updated.');
                 } else if (prevScores !== newScores) {
                   setToast({ show: true, message: '⚖️ Background Action Complete: Pipeline ranking finished!' });
                   setTimeout(() => setToast({ show: false, message: '' }), 5000);
+                  appendTerminalLine('✅ Rank completed. Pipeline scores updated.');
                 }
               }
             }

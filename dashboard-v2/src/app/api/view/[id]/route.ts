@@ -24,7 +24,7 @@ export async function GET(
     const jobId = id;
 
     const [job] = await sql`
-      SELECT resume_html, cover_letter_html, resume_pdf, cover_letter_pdf
+      SELECT company, title, resume_html, cover_letter_html, resume_pdf, cover_letter_pdf
       FROM jobs 
       WHERE id = ${jobId} AND user_id = ${session.user.id}
     `;
@@ -33,12 +33,26 @@ export async function GET(
       return new NextResponse('Job not found', { status: 404 });
     }
 
+    const safe = (s: string) =>
+      String(s || '')
+        .replace(/https?:\/\//g, '')
+        .replace(/[^a-z0-9]+/gi, '_')
+        .replace(/_{2,}/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 80);
+    const nameCore = [
+      safe(session.user.name || ''),
+      safe(job.company || ''),
+      safe(job.title || ''),
+      type === 'cl' ? 'Cover_Letter' : 'Resume',
+    ].filter(Boolean).join('_') || `career_ops_${jobId}`;
+
     if (format === 'pdf') {
       const pdf = type === 'cl' ? job.cover_letter_pdf : job.resume_pdf;
       if (!pdf) {
         return new NextResponse('PDF not found (run tailor --deep first)', { status: 404 });
       }
-      const filename = `career-ops-${type === 'cl' ? 'cover-letter' : 'resume'}-${jobId}.pdf`;
+      const filename = `${nameCore}.pdf`;
       return new NextResponse(pdf, {
         headers: {
           'Content-Type': 'application/pdf',
@@ -55,7 +69,7 @@ export async function GET(
       return new NextResponse('Content not found', { status: 404 });
     }
 
-    const filename = `career-ops-${type === 'cl' ? 'cover-letter' : 'resume'}-${jobId}.html`;
+    const filename = `${nameCore}.html`;
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
