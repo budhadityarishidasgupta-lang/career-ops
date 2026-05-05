@@ -111,18 +111,34 @@ export async function GET() {
     // 5. Fetch Generated Docs from DB (instead of local PDF files)
     let pdfs: any[] = [];
     try {
-      const docs = await sql`
-        SELECT id, company, title, updated_at
-        FROM jobs
-        WHERE user_id = ${userId} 
-          AND (resume_html IS NOT NULL OR cover_letter_html IS NOT NULL)
-        ORDER BY updated_at DESC
-      `;
-      pdfs = docs.map(d => ({
-        id: d.id,
-        name: `Tailored Assets: ${d.company} - ${d.title}`,
-        mtime: d.updated_at
-      }));
+      // Some schemas don't have `updated_at` on `jobs`. Try updated_at first, then fall back to created_at.
+      try {
+        const docs = await sql`
+          SELECT id, company, title, updated_at
+          FROM jobs
+          WHERE user_id = ${userId} 
+            AND (resume_html IS NOT NULL OR cover_letter_html IS NOT NULL)
+          ORDER BY updated_at DESC
+        `;
+        pdfs = docs.map(d => ({
+          id: d.id,
+          name: `Tailored Assets: ${d.company} - ${d.title}`,
+          mtime: d.updated_at
+        }));
+      } catch {
+        const docs = await sql`
+          SELECT id, company, title, created_at
+          FROM jobs
+          WHERE user_id = ${userId} 
+            AND (resume_html IS NOT NULL OR cover_letter_html IS NOT NULL)
+          ORDER BY created_at DESC
+        `;
+        pdfs = docs.map(d => ({
+          id: d.id,
+          name: `Tailored Assets: ${d.company} - ${d.title}`,
+          mtime: d.created_at
+        }));
+      }
     } catch (colErr) {
       // If the columns don't exist yet, it means the user hasn't run 'tailor' since the update.
       // We gracefully ignore this error and return an empty docs list.
