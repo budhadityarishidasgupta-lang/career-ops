@@ -177,6 +177,9 @@ export default function Dashboard() {
               } else if (prevData.applications && d.applications && d.applications.length > prevData.applications.length) {
                 setToast({ show: true, message: '🚀 Background Action Complete: Job applied successfully!' });
                 setTimeout(() => setToast({ show: false, message: '' }), 5000);
+              } else if (prevData.pipeline && d.pipeline && d.pipeline.length > prevData.pipeline.length) {
+                setToast({ show: true, message: '🎯 Background Action Complete: Pipeline updated with new jobs!' });
+                setTimeout(() => setToast({ show: false, message: '' }), 5000);
               }
             }
             return d;
