@@ -165,7 +165,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = () => {
-      fetch('/api/data')
+      fetch('/api/data?t=' + Date.now(), { cache: 'no-store' })
         .then(res => res.json())
         .then(d => {
           setData(d);
