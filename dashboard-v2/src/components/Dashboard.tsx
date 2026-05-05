@@ -35,7 +35,8 @@ export default function Dashboard() {
   const [profileFormData, setProfileFormData] = useState<any>({
     candidate: { full_name: '', location: '', email: '', linkedin: '', github: '' },
     narrative: { headline: '', exit_story: '', superpowers: [] },
-  education: [],
+    experience: [],
+    education: [],
     targeting_keywords: { positive: [], negative: [] },
     search: { portals: ['linkedin', 'naukri', 'indeed', 'instahyre', 'flexiple', 'greenhouse', 'lever', 'japan-dev'] }
   });
@@ -315,6 +316,7 @@ export default function Dashboard() {
           setProfileFormData({
             candidate: d.resume_context?.candidate || { full_name: '', location: '', email: '', linkedin: '', github: '' },
             narrative: d.resume_context?.narrative || { headline: '', exit_story: '', superpowers: [] },
+            experience: d.resume_context?.experience || [],
             education: d.resume_context?.education || [],
             targeting_keywords: d.targeting_keywords || { positive: [], negative: [] },
             search: d.resume_context?.search || { portals: ['linkedin', 'naukri', 'indeed', 'instahyre', 'flexiple', 'greenhouse', 'lever', 'japan-dev'] }
@@ -340,6 +342,7 @@ export default function Dashboard() {
           resume_context: {
             candidate: profileFormData.candidate,
             narrative: profileFormData.narrative,
+              experience: profileFormData.experience,
               education: profileFormData.education,
             search: profileFormData.search
           },
@@ -805,6 +808,107 @@ System Initialized — v2.0`}
                    <div className="grid grid-cols-2 gap-4">
                       <Input label="Site Location" value={profileFormData.candidate.location} onChange={(v) => setProfileFormData({...profileFormData, candidate: {...profileFormData.candidate, location: v}})} />
                       <Input label="Secure Email" value={profileFormData.candidate.email} onChange={(v) => setProfileFormData({...profileFormData, candidate: {...profileFormData.candidate, email: v}})} />
+                   </div>
+                 </ConfigSection>
+
+                 <ConfigSection title="Experience" icon={<Briefcase size={18} className="text-[#1c1917]" />}>
+                   <div className="space-y-4">
+                     {(profileFormData.experience || []).map((exp: any, idx: number) => (
+                       <div key={idx} className="p-5 bg-[#faf9f6]/50 border border-[#e7e5e4] rounded-2xl">
+                         <div className="flex items-start justify-between gap-4 mb-4">
+                           <div className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-widest">
+                             Role {idx + 1}
+                           </div>
+                           <button
+                             onClick={() =>
+                               setProfileFormData({
+                                 ...profileFormData,
+                                 experience: (profileFormData.experience || []).filter((_: any, i: number) => i !== idx),
+                               })
+                             }
+                             className="text-[10px] font-bold uppercase tracking-widest text-rose-700 hover:underline underline-offset-4"
+                           >
+                             Remove
+                           </button>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-4">
+                           <Input
+                             label="Company"
+                             value={exp.company || ''}
+                             onChange={(v) => {
+                               const next = [...(profileFormData.experience || [])];
+                               next[idx] = { ...(next[idx] || {}), company: v };
+                               setProfileFormData({ ...profileFormData, experience: next });
+                             }}
+                           />
+                           <Input
+                             label="Role"
+                             value={exp.role || ''}
+                             onChange={(v) => {
+                               const next = [...(profileFormData.experience || [])];
+                               next[idx] = { ...(next[idx] || {}), role: v };
+                               setProfileFormData({ ...profileFormData, experience: next });
+                             }}
+                           />
+                         </div>
+                         <div className="grid grid-cols-2 gap-4 mt-4">
+                           <Input
+                             label="Period (e.g., 2022–Present)"
+                             value={exp.period || ''}
+                             onChange={(v) => {
+                               const next = [...(profileFormData.experience || [])];
+                               next[idx] = { ...(next[idx] || {}), period: v };
+                               setProfileFormData({ ...profileFormData, experience: next });
+                             }}
+                           />
+                           <Input
+                             label="Location (optional)"
+                             value={exp.location || ''}
+                             onChange={(v) => {
+                               const next = [...(profileFormData.experience || [])];
+                               next[idx] = { ...(next[idx] || {}), location: v };
+                               setProfileFormData({ ...profileFormData, experience: next });
+                             }}
+                           />
+                         </div>
+
+                         <div className="mt-4">
+                           <label className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-widest mb-2 block">
+                             Bullets (one per line)
+                           </label>
+                           <textarea
+                             rows={5}
+                             value={(Array.isArray(exp.bullets) ? exp.bullets : []).join('\n')}
+                             onChange={(e) => {
+                               const next = [...(profileFormData.experience || [])];
+                               const bullets = e.target.value
+                                 .split('\n')
+                                 .map((s) => s.trim())
+                                 .filter(Boolean);
+                               next[idx] = { ...(next[idx] || {}), bullets };
+                               setProfileFormData({ ...profileFormData, experience: next });
+                             }}
+                             className="w-full bg-[#faf9f6]/50 border border-[#e7e5e4] rounded-2xl p-4 outline-none focus:border-[#1c1917] transition-all text-sm font-medium leading-relaxed"
+                           />
+                         </div>
+                       </div>
+                     ))}
+
+                     <button
+                       onClick={() =>
+                         setProfileFormData({
+                           ...profileFormData,
+                           experience: [
+                             ...(profileFormData.experience || []),
+                             { company: '', role: '', period: '', bullets: [] },
+                           ],
+                         })
+                       }
+                       className="w-full px-6 py-3 rounded-2xl border border-[#e7e5e4] bg-white hover:bg-[#f5f5f4] transition-colors text-sm font-bold text-[#1c1917]"
+                     >
+                       Add Experience
+                     </button>
                    </div>
                  </ConfigSection>
 
