@@ -155,6 +155,45 @@ function normalizeUrl(value) {
   return next;
 }
 
+function shouldForceGuided(target) {
+  try {
+    const u = new URL(String(target));
+    const host = u.hostname.toLowerCase();
+    // These sites are commonly blocked or require interactive login.
+    if (host.includes('linkedin.com')) return { guided: true, reason: 'LinkedIn requires interactive login; generating guided pack.' };
+    if (host.includes('duckduckgo.com')) return { guided: true, reason: 'Redirect wrapper detected; generating guided pack.' };
+    return { guided: false, reason: '' };
+  } catch {
+    return { guided: true, reason: 'Invalid URL; generating guided pack.' };
+  }
+}
+
+async function runGuidedPack(reason) {
+  console.warn(`⚠ ${reason}`);
+  // Load profile from DB if possible.
+  try {
+    const [profileRow] = await sql`SELECT resume_context FROM user_profiles WHERE user_id = ${userId} LIMIT 1`;
+    if (profileRow?.resume_context) profile = profileRow.resume_context;
+  } catch {}
+
+  const tailoredPdf = findTailoredCV(company);
+  const packPath = writeApplicationPack({
+    companyName: company || 'Unknown',
+    targetUrl,
+    profile,
+    resumePath: tailoredPdf,
+    note: "Open the target link, upload the resume, paste answers from this pack, and submit manually.",
+  });
+
+  console.log('─────────────────────────────────────────────────────');
+  console.log('✅ DRAFT PACK READY (manual submit):');
+  console.log(`   ${path.resolve(packPath)}`);
+  console.log('─────────────────────────────────────────────────────');
+
+  await recordApplication(targetUrl, 'DRAFT', tailoredPdf || 'pending');
+  process.exit(0);
+}
+
 async function recordApplication(url, status, resume) {
   try {
     let job = await sql`SELECT id FROM jobs WHERE url = ${url} AND user_id = ${userId} LIMIT 1`;
@@ -369,31 +408,12 @@ async function matchAndFillFields(fields, profile, aiMapping) {
   console.log(`Target: ${company || 'Unknown'} @ ${targetUrl}`);
 
   const chromium = await getChromium();
+  const forced = shouldForceGuided(targetUrl);
+  if (forced.guided) {
+    await runGuidedPack(forced.reason);
+  }
   if (!chromium) {
-    console.warn("⚠ Playwright runtime is unavailable in this environment. Switching to draft mode (no submission).");
-
-    // Load profile from DB if possible.
-    try {
-      const [profileRow] = await sql`SELECT resume_context FROM user_profiles WHERE user_id = ${userId} LIMIT 1`;
-      if (profileRow?.resume_context) profile = profileRow.resume_context;
-    } catch {}
-
-    const tailoredPdf = findTailoredCV(company);
-    const packPath = writeApplicationPack({
-      companyName: company || 'Unknown',
-      targetUrl,
-      profile,
-      resumePath: tailoredPdf,
-      note: "Open the target link, upload the resume, paste answers from this pack, and submit manually.",
-    });
-
-    console.log('─────────────────────────────────────────────────────');
-    console.log('✅ DRAFT PACK READY (manual submit):');
-    console.log(`   ${path.resolve(packPath)}`);
-    console.log('─────────────────────────────────────────────────────');
-
-    await recordApplication(targetUrl, 'DRAFT', tailoredPdf || 'pending');
-    process.exit(0);
+    await runGuidedPack('Playwright runtime is unavailable in this environment.');
   }
 
   const browser = await chromium.launch({ headless: true }); 
@@ -451,16 +471,21 @@ async function matchAndFillFields(fields, profile, aiMapping) {
     // We record as 'READY' but not 'APPLIED' yet
     await recordApplication(targetUrl, 'READY', tailoredPdf || 'pending');
 
-    console.log('⏳ Handing over control to you. Browser will stay open.');
-    
-    // Keep browser alive until user closes it or 10 minutes pass
-    await new Promise(resolve => {
-        page.on('close', resolve);
-        setTimeout(resolve, 600000); // 10 min fail-safe
-    });
+    // In CI / GitHub Actions we cannot hand control to a human.
+    if (process.env.GITHUB_ACTIONS || process.env.CI) {
+      console.log('✅ Guided prefill finished (CI mode).');
+    } else {
+      console.log('⏳ Handing over control to you. Browser will stay open.');
+      // Keep browser alive until user closes it or 10 minutes pass
+      await new Promise(resolve => {
+          page.on('close', resolve);
+          setTimeout(resolve, 600000); // 10 min fail-safe
+      });
+    }
     
   } catch (err) {
-    console.error("✗ Companion engine error:", err.message);
+    // Any automation failure should fall back to guided pack instead of failing the run.
+    await runGuidedPack(`Automation failed: ${err.message}`);
   } finally {
     try { await browser.close(); } catch {}
     process.exit(0);
