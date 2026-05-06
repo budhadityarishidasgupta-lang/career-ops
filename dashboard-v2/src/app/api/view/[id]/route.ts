@@ -100,21 +100,25 @@ export async function GET(
           stream = await streamR2Object(String(key));
         } catch (e: any) {
           const msg = String(e?.message || '');
-          if (msg.includes('NoSuchKey')) {
-            return new NextResponse('PDF not found in R2 (rerun tailor --deep)', { status: 404 });
-          }
-          // Resilience: if R2 auth/config is temporarily broken, fall back to DB BYTEA (older runs)
+          // Resilience: if R2 key missing or auth broken, fall back to DB BYTEA (older runs)
           // so the user can still download a PDF when it exists.
-          if (msg.includes('AccessDenied') || msg.includes('SignatureDoesNotMatch') || msg.includes('InvalidAccessKeyId')) {
+          if (msg.includes('NoSuchKey') || msg.includes('AccessDenied') || msg.includes('SignatureDoesNotMatch') || msg.includes('InvalidAccessKeyId')) {
             const pdfFallback = type === 'cl' ? job.cover_letter_pdf : job.resume_pdf;
             if (pdfFallback) {
               return new NextResponse(pdfFallback, {
                 headers: {
                   'Content-Type': 'application/pdf',
                   ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
-                  'X-CareerOps-PDF-Source': 'db-fallback',
+                  'X-CareerOps-PDF-Source': msg.includes('NoSuchKey') ? 'db-fallback-no-r2-key' : 'db-fallback',
+                  'X-CareerOps-R2-Key': String(key),
                 },
               });
+            }
+            if (msg.includes('NoSuchKey')) {
+              return new NextResponse(
+                `PDF not found in R2. The document may not have been uploaded successfully. Rerun 'tailor ${jobId} --deep'. Expected key: ${key}`,
+                { status: 404, headers: { 'X-CareerOps-R2-Key': String(key) } }
+              );
             }
           }
           return new NextResponse(`R2 error: ${msg}`, { status: 500 });
