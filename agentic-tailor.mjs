@@ -96,16 +96,24 @@ function getR2Client() {
 async function uploadToR2({ key, body, contentType }) {
   const bucket = process.env.R2_BUCKET || '';
   const client = getR2Client();
-  if (!bucket || !client) return false;
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-    })
-  );
-  return true;
+  if (!bucket || !client) {
+    console.warn('[R2] Skip upload: missing bucket or client credentials');
+    return false;
+  }
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      })
+    );
+    return true;
+  } catch (e: any) {
+    console.error(`[R2] Upload failed for ${key}: ${e?.name || e?.message}`);
+    return false;
+  }
 }
 
 
@@ -572,11 +580,13 @@ async function tailorPackage(jd, profile, companyName) {
 
           if (resumePdfBuf) {
             resumeKey = `${baseKey}-resume.pdf`;
-            await uploadToR2({ key: resumeKey, body: resumePdfBuf, contentType: 'application/pdf' });
+            const ok = await uploadToR2({ key: resumeKey, body: resumePdfBuf, contentType: 'application/pdf' });
+            console.log(ok ? `[R2] Resume uploaded: ${resumeKey}` : `[R2] Resume upload failed: ${resumeKey}`);
           }
           if (clPdfBuf) {
             clKey = `${baseKey}-cover-letter.pdf`;
-            await uploadToR2({ key: clKey, body: clPdfBuf, contentType: 'application/pdf' });
+            const ok = await uploadToR2({ key: clKey, body: clPdfBuf, contentType: 'application/pdf' });
+            console.log(ok ? `[R2] Cover letter uploaded: ${clKey}` : `[R2] Cover letter upload failed: ${clKey}`);
           }
 
           if (resumeKey || clKey) {
