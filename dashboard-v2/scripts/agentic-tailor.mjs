@@ -11,7 +11,7 @@ let hfUnavailable = false;
 let hfTokenInUse = '';
 const HF_MODEL = 'MiniMaxAI/MiniMax-M2.7';
 const TARGET_MAP = 'data/current_eval.json';
-const TEMPLATE = 'templates/ats-template.html';
+const TEMPLATE = 'templates/ats-template-professional.html';
 const require = createRequire(import.meta.url);
 
 const idOrUrl = process.argv[2];
@@ -81,9 +81,18 @@ async function getChromium() {
 
 // ── UTILITIES ──
 
-function renderExperience(exp, tailoredBullets) {
+function renderExperience(exp, tailoredBullets, maxPages = 2) {
   if (!Array.isArray(exp) || exp.length === 0) return '';
-  return exp.map((job, idx) => `
+  
+  // Limit bullets based on page budget (fewer bullets for shorter resumes)
+  const bulletsPerJob = maxPages === 1 ? 2 : maxPages === 2 ? 3 : 4;
+  
+  return exp.map((job, idx) => {
+    const bullets = (idx === 0 && tailoredBullets)
+      ? tailoredBullets.slice(0, bulletsPerJob)
+      : (job.bullets || []).slice(0, bulletsPerJob);
+    
+    return `
     <div class="job">
       <div class="job-header">
         <span>${job.role}</span>
@@ -91,12 +100,55 @@ function renderExperience(exp, tailoredBullets) {
       </div>
       <div class="job-meta">${job.company}</div>
       <ul>
-        ${(idx === 0 && tailoredBullets) 
-          ? tailoredBullets.map(b => `<li>${b}</li>`).join('') 
-          : job.bullets.map(b => `<li>${b}</li>`).join('')}
+        ${bullets.map(b => `<li>${b}</li>`).join('')}
       </ul>
     </div>
-  `).join('');
+  `;
+  }).join('');
+}
+
+function calculateYearsOfExperience(exp) {
+  if (!Array.isArray(exp) || exp.length === 0) return 0;
+  let totalYears = 0;
+  for (const job of exp) {
+    const period = job.period || '';
+    const match = period.match(/(\d{4})/g);
+    if (match && match.length >= 2) {
+      const start = parseInt(match[0], 10);
+      const end = period.toLowerCase().includes('present') ? new Date().getFullYear() : parseInt(match[match.length - 1], 10);
+      totalYears += Math.max(0, end - start);
+    }
+  }
+  return totalYears;
+}
+
+function calculateATSScore(profile, jdText, tailoring) {
+  const skills = profile?.narrative?.superpowers || [];
+  const jdLower = (jdText || '').toLowerCase();
+  let matches = 0;
+  let total = 0;
+  for (const skill of skills) {
+    total++;
+    if (jdLower.includes(skill.toLowerCase())) matches++;
+  }
+  // Bonus for tailored competencies
+  const tailoredSkills = tailoring?.core_competencies || [];
+  for (const skill of tailoredSkills) {
+    if (!skills.includes(skill)) {
+      total++;
+      if (jdLower.includes(skill.toLowerCase())) matches++;
+    }
+  }
+  return {
+    score: total === 0 ? 0 : Math.round((matches / total) * 100),
+    matched: matches,
+    total: total
+  };
+}
+
+function generateATSScoreBar(score) {
+  const color = score >= 85 ? '#22c55e' : score >= 70 ? '#f59e0b' : '#ef4444';
+  return `<div style="margin-top:8px"><div style="font-size:9pt;color:#666;margin-bottom:4px">ATS Compatibility: ${score}/100</div><div style="width:100%;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden"><div style="width:${score}%;height:100%;background:${color};transition:width 0.3s"></div></div></div>`;
 }
 
 function renderEducation(edu) {
@@ -119,23 +171,60 @@ function renderProjects(projects) {
 
 function renderCategorizedSkills(skills) {
   if (!Array.isArray(skills) || skills.length === 0) return '';
-  // BP Style categorization logic
+
+  // Generic professional categories that work for ANY industry
   const cats = {
-    "Languages & runtime": ["TypeScript", "JavaScript", "Python", "Go", "SQL", "Bash", "Node.js", "NestJS", "React"],
-    "Architecture & data": ["Microservices", "Event-driven", "PostgreSQL", "MySQL", "MongoDB", "Redis", "Data modeling"],
-    "Cloud & ops": ["AWS", "ECS", "Lambda", "S3", "IAM", "Docker", "Kubernetes", "Git", "CI/CD"],
-    "Quality & reliability": ["Unit testing", "Jest", "RCA", "Post-mortems", "Observability", "Tracing"]
+    "Core Competencies": [],
+    "Technical Skills": [],
+    "Tools & Platforms": [],
+    "Methodologies": []
   };
 
+  // Keywords to auto-categorize (works for software, marketing, sales, healthcare, finance, etc.)
+  const categoryKeywords = {
+    "Core Competencies": ["management", "leadership", "communication", "analysis", "strategy", "planning", "research", "design", "development", "consulting", "advisory", "operations"],
+    "Technical Skills": ["programming", "coding", "data", "analytics", "engineering", "architecture", "cloud", "database", "automation", "ml", "ai", "statistical", "modeling"],
+    "Tools & Platforms": ["software", "platform", "tool", "system", "framework", "suite", "app", "application", "crm", "erp", "aws", "azure", "gcp", "salesforce", "sap", "excel", "tableau"],
+    "Methodologies": ["agile", "scrum", "kanban", "waterfall", "lean", "six sigma", "process", "workflow", "framework", "standard", "compliance", "iso", "gdpr"]
+  };
+
+  // Sort skills into categories
+  const categorized = { ...cats };
+  const uncategorized = [];
+
+  for (const skill of skills) {
+    const skillLower = skill.toLowerCase();
+    let matched = false;
+
+    for (const [catName, keywords] of Object.entries(categoryKeywords)) {
+      if (keywords.some(k => skillLower.includes(k))) {
+        categorized[catName].push(skill);
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      uncategorized.push(skill);
+    }
+  }
+
+  // Add uncategorized to Core Competencies
+  if (uncategorized.length > 0) {
+    categorized["Core Competencies"].push(...uncategorized);
+  }
+
+  // Generate HTML - only show categories that have skills
   let html = '';
-  Object.entries(cats).forEach(([name, keywords]) => {
-     // Find which skills from profile belong here
-     const matched = skills.filter(s => keywords.some(k => s.toLowerCase().includes(k.toLowerCase())));
-     if (matched.length > 0) {
-        html += `<div class="skills-category"><span class="skills-label">${name}:</span> ${matched.join(', ')}</div>`;
-     }
-  });
-  return html;
+  for (const [name, skillList] of Object.entries(categorized)) {
+    if (skillList.length > 0) {
+      // Remove duplicates and limit to reasonable number
+      const unique = [...new Set(skillList)].slice(0, 8);
+      html += `<div class="skills-category"><span class="skills-label">${name}:</span> ${unique.join(', ')}</div>`;
+    }
+  }
+
+  return html || skills.slice(0, 12).join(', '); // Fallback: plain list if no categorization worked
 }
 
 // sync cv.md if profile.yml is newer
@@ -421,6 +510,15 @@ async function tailorPackage(jd, profile, companyName) {
     
     // Prepare common replacements
     const c = profile.candidate;
+    // Calculate years of experience and ATS score
+    const yearsExp = calculateYearsOfExperience(profile.experience);
+    const atsScore = calculateATSScore(profile, jdText, tailoring);
+
+    // Determine max pages based on experience (1 page for 0-5yrs, 2 pages for 6-11yrs, up to 4 for 12-20yrs)
+    const maxPages = yearsExp <= 5 ? 1 : yearsExp <= 11 ? 2 : yearsExp <= 20 ? 3 : 4;
+    console.log(`[RESUME] ${yearsExp} years experience → ${maxPages} page(s)`);
+    console.log(`[RESUME] ATS Score: ${atsScore.score}/100 (${atsScore.matched}/${atsScore.total} keywords matched)`);
+
     const commonReps = {
       NAME: c.full_name,
       EMAIL: c.email,
@@ -432,10 +530,18 @@ async function tailorPackage(jd, profile, companyName) {
       PORTFOLIO_DISPLAY: c.github || 'Github',
       DATE: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       COMPANY_NAME: entry.company,
-      LANG: 'en'
+      LANG: 'en',
+      ATS_SCORE: `${atsScore.score}/100`,
+      ATS_SCORE_BAR: generateATSScoreBar(atsScore.score),
+      YEARS_EXP: `${yearsExp}`,
+      MAX_PAGES: `${maxPages}`,
+      PROFESSIONAL_HEADLINE: profile.narrative?.headline || 'Professional',
+      ATS_BADGE: atsScore.score >= 85 ? '<span class="ats-badge ats-high">High Match</span>' : atsScore.score >= 70 ? '<span class="ats-badge ats-medium">Good Match</span>' : ''
     };
 
-    // 1. GENERATE RESUME
+    // 1. GENERATE RESUME - Dynamic length based on experience
+    const experienceToShow = maxPages >= 3 ? profile.experience : profile.experience?.slice(0, maxPages * 2) || [];
+
     const resumeReps = {
       ...commonReps,
       SECTION_SUMMARY: 'Professional Summary',
@@ -443,7 +549,7 @@ async function tailorPackage(jd, profile, companyName) {
       SECTION_COMPETENCIES: 'Core Competencies',
       COMPETENCIES: (Array.isArray(tailoring.core_competencies) ? tailoring.core_competencies : []).map(skill => `<span class="competency-tag">${skill}</span>`).join(''),
       SECTION_EXPERIENCE: 'Professional Experience',
-      EXPERIENCE: renderExperience(profile.experience, tailoring.experience),
+      EXPERIENCE: renderExperience(experienceToShow, tailoring.experience, maxPages),
       SECTION_PROJECTS: 'Selected Achievements',
       PROJECTS: renderProjects(profile.narrative.proof_points),
       SECTION_EDUCATION: 'Education',

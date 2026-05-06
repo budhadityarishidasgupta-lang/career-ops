@@ -164,23 +164,60 @@ function renderProjects(projects) {
 
 function renderCategorizedSkills(skills) {
   if (!Array.isArray(skills) || skills.length === 0) return '';
-  // BP Style categorization logic
+
+  // Generic professional categories that work for ANY industry
   const cats = {
-    "Languages & runtime": ["TypeScript", "JavaScript", "Python", "Go", "SQL", "Bash", "Node.js", "NestJS", "React"],
-    "Architecture & data": ["Microservices", "Event-driven", "PostgreSQL", "MySQL", "MongoDB", "Redis", "Data modeling"],
-    "Cloud & ops": ["AWS", "ECS", "Lambda", "S3", "IAM", "Docker", "Kubernetes", "Git", "CI/CD"],
-    "Quality & reliability": ["Unit testing", "Jest", "RCA", "Post-mortems", "Observability", "Tracing"]
+    "Core Competencies": [],
+    "Technical Skills": [],
+    "Tools & Platforms": [],
+    "Methodologies": []
   };
 
+  // Keywords to auto-categorize (works for software, marketing, sales, healthcare, finance, etc.)
+  const categoryKeywords = {
+    "Core Competencies": ["management", "leadership", "communication", "analysis", "strategy", "planning", "research", "design", "development", "consulting", "advisory", "operations"],
+    "Technical Skills": ["programming", "coding", "data", "analytics", "engineering", "architecture", "cloud", "database", "automation", "ml", "ai", "statistical", "modeling"],
+    "Tools & Platforms": ["software", "platform", "tool", "system", "framework", "suite", "app", "application", "crm", "erp", "aws", "azure", "gcp", "salesforce", "sap", "excel", "tableau"],
+    "Methodologies": ["agile", "scrum", "kanban", "waterfall", "lean", "six sigma", "process", "workflow", "framework", "standard", "compliance", "iso", "gdpr"]
+  };
+
+  // Sort skills into categories
+  const categorized = { ...cats };
+  const uncategorized = [];
+
+  for (const skill of skills) {
+    const skillLower = skill.toLowerCase();
+    let matched = false;
+
+    for (const [catName, keywords] of Object.entries(categoryKeywords)) {
+      if (keywords.some(k => skillLower.includes(k))) {
+        categorized[catName].push(skill);
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      uncategorized.push(skill);
+    }
+  }
+
+  // Add uncategorized to Core Competencies
+  if (uncategorized.length > 0) {
+    categorized["Core Competencies"].push(...uncategorized);
+  }
+
+  // Generate HTML - only show categories that have skills
   let html = '';
-  Object.entries(cats).forEach(([name, keywords]) => {
-     // Find which skills from profile belong here
-     const matched = skills.filter(s => keywords.some(k => s.toLowerCase().includes(k.toLowerCase())));
-     if (matched.length > 0) {
-        html += `<div class="skills-category"><span class="skills-label">${name}:</span> ${matched.join(', ')}</div>`;
-     }
-  });
-  return html;
+  for (const [name, skillList] of Object.entries(categorized)) {
+    if (skillList.length > 0) {
+      // Remove duplicates and limit to reasonable number
+      const unique = [...new Set(skillList)].slice(0, 8);
+      html += `<div class="skills-category"><span class="skills-label">${name}:</span> ${unique.join(', ')}</div>`;
+    }
+  }
+
+  return html || skills.slice(0, 12).join(', '); // Fallback: plain list if no categorization worked
 }
 
 // Calculate years of experience from experience array
@@ -588,7 +625,8 @@ async function tailorPackage(jd, profile, companyName) {
       ATS_SCORE: `${atsScore.score}/100`,
       ATS_SCORE_BAR: generateATSScoreBar(atsScore.score),
       YEARS_EXP: `${yearsExp}`,
-      MAX_PAGES: `${maxPages}`
+      MAX_PAGES: `${maxPages}`,
+      PROFESSIONAL_HEADLINE: profile.narrative?.headline || 'Professional'
     };
 
     // 1. GENERATE RESUME - Dynamic length based on experience
