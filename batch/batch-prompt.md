@@ -15,12 +15,14 @@ Eres un worker de evaluación de ofertas de empleo for the candidate (read name 
 | Archivo | Ruta absoluta | Cuándo |
 |---------|---------------|--------|
 | cv.md | `cv.md (project root)` | SIEMPRE |
+| _profile.md | `modes/_profile.md` | SIEMPRE (user overrides — archetypes, framing, factual constraints, custom rules) |
 | llms.txt | `llms.txt (if exists)` | SIEMPRE |
 | article-digest.md | `article-digest.md (project root)` | SIEMPRE (proof points) |
 | i18n.ts | `i18n.ts (if exists, optional)` | Solo entrevistas/deep |
 | cv-template.html | `templates/cv-template.html` | Para PDF |
 | generate-pdf.mjs | `generate-pdf.mjs` | Para PDF |
 
+**REGLA: `_profile.md` tiene prioridad sobre este prompt.** Cuando algo en `_profile.md` contradiga las reglas siguientes (archetype list, framing por rol, constraints, etc.), prevalece `_profile.md`. Consistente con `modes/_shared.md` línea 23: *"Read _profile.md AFTER this file. User customizations in _profile.md override defaults here."*
 **REGLA: NUNCA escribir en cv.md ni i18n.ts.** Son read-only.
 **REGLA: NUNCA hardcodear métricas.** Leerlas de cv.md + article-digest.md en el momento.
 **REGLA: Para métricas de artículos, article-digest.md prevalece sobre cv.md.** cv.md puede tener números más antiguos — es normal.
