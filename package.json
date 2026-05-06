@@ -16,6 +16,7 @@
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
     "scan:scrape": "node scan-scrape.mjs",
+    "batch-apply": "node batch-apply.mjs",
     "gemini:eval": "node gemini-eval.mjs",
     "web:dev": "concurrently \"npm run web:server:dev\" \"npm run web:client:dev\"",
     "web:server:dev": "cd web/server && npm run dev",
