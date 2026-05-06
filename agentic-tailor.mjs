@@ -110,7 +110,7 @@ async function uploadToR2({ key, body, contentType }) {
       })
     );
     return true;
-  } catch (e: any) {
+  } catch (e) {
     console.error(`[R2] Upload failed for ${key}: ${e?.name || e?.message}`);
     return false;
   }
