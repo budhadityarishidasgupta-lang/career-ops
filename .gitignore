@@ -49,6 +49,9 @@ secrets.json
 cv.md
 article-digest.md
 data/follow-ups.md
+# Personal product/strategy notes — keep local, not in public repo
+docs/product-strategy.md
+docs/personal-*.md
 # story-bank.md accumulates personal STAR+R stories — never commit
 # (the empty template lives at templates/story-bank.template.md and
 # is copied into interview-prep/story-bank.md on first launch)

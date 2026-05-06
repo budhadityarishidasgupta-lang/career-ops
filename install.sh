@@ -254,9 +254,24 @@ run_uninstall() {
     docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
     ok "Containers stopped"
   fi
-  if have pgrep && pgrep -f "dashboard-web/server.mjs" >/dev/null; then
-    pkill -f "dashboard-web/server.mjs" || true
+  # Kill any local dashboard process. pkill is the cleanest path on Linux/macOS
+  # but Git Bash on Windows ships ps without -f arg parsing AND lacks pkill,
+  # so fall back to ps + grep + kill which works in both worlds.
+  local killed=0
+  if have pkill && pkill -f "dashboard-web/server.mjs" 2>/dev/null; then
+    killed=1
+  else
+    local pids
+    pids=$(ps -ef 2>/dev/null | grep -E 'dashboard-web[/\\]server\.mjs' | grep -v grep | awk '{print $2}' | tr '\n' ' ')
+    if [[ -n "${pids// /}" ]]; then
+      # shellcheck disable=SC2086
+      kill $pids 2>/dev/null && killed=1 || true
+    fi
+  fi
+  if [[ $killed -eq 1 ]]; then
     ok "Local server stopped"
+  else
+    log "No local server was running"
   fi
   log "To remove the repo entirely: rm -rf '$SCRIPT_DIR'"
 }

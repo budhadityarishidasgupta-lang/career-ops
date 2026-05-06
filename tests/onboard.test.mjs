@@ -329,8 +329,8 @@ Senior Engineering Manager with 12 years of experience building distributed syst
     assert.equal(p.headline, '');
   });
   test('accepts a clean role-descriptor headline', () => {
-    const text = `Tony Walteur
-tony@x.com
+    const text = `Jane Doe
+jane@x.com
 
 Strategic Operator · AI Ecosystem Architect · Partnership Leader
 8+ years experience...`;
@@ -365,12 +365,12 @@ Strategic Operator · AI Ecosystem Architect · Partnership Leader
   });
   test('rejects exclamation-terminated lines as headlines', () => {
     // Sentence punctuation (! and ?) should also disqualify, not just period.
-    const text = `Tony Walteur\n\nDirector of AI Innovation!\nReal Headline`;
+    const text = `Jane Doe\n\nDirector of AI Innovation!\nReal Headline`;
     const p = extractProfileFromResume(text);
     assert.notEqual(p.headline, 'Director of AI Innovation!');
   });
   test('rejects question-terminated lines as headlines', () => {
-    const text = `Tony Walteur\n\nWhy hire a Director of AI?\nReal Headline`;
+    const text = `Jane Doe\n\nWhy hire a Director of AI?\nReal Headline`;
     const p = extractProfileFromResume(text);
     assert.notEqual(p.headline, 'Why hire a Director of AI?');
   });
@@ -379,7 +379,7 @@ Strategic Operator · AI Ecosystem Architect · Partnership Leader
     // the keyword match.
     const big = 'Director of AI Innovation across multiple regions and product lines and so on';
     assert.ok(big.length < 81 || true); // keep test self-documenting
-    const text = `Tony Walteur\n\n${big.padEnd(90, '.')} `;
+    const text = `Jane Doe\n\n${big.padEnd(90, '.')} `;
     const p = extractProfileFromResume(text);
     // The line is too long — should be empty
     assert.equal(p.headline, '');
@@ -414,7 +414,7 @@ Strategic Operator · AI Ecosystem Architect · Partnership Leader
 
 describe('kebabCase', () => {
   test('lowercases and hyphenates', () => {
-    assert.equal(kebabCase('Tony Walteur'), 'tony-walteur');
+    assert.equal(kebabCase('Jane Doe'), 'jane-doe');
   });
   test('strips punctuation', () => {
     assert.equal(kebabCase("Jane O'Neill, Jr."), 'jane-oneill-jr');
@@ -445,14 +445,14 @@ describe('parseProfileSummary', () => {
 
   test('extracts candidate fields', () => {
     const yml = `candidate:
-  full_name: "Tony Walteur"
-  email: "tony@x.com"
+  full_name: "Jane Doe"
+  email: "jane@x.com"
 target_roles:
   primary: []
 `;
     const s = parseProfileSummary(yml);
-    assert.equal(s.full_name, 'Tony Walteur');
-    assert.equal(s.email, 'tony@x.com');
+    assert.equal(s.full_name, 'Jane Doe');
+    assert.equal(s.email, 'jane@x.com');
   });
 
   test('extracts all target_roles.primary entries', () => {
@@ -484,7 +484,7 @@ target_roles:
 
   test('marks substantive=true when name + at least one role present', () => {
     const yml = `candidate:
-  full_name: "Tony"
+  full_name: "Jane"
   email: "t@x.com"
 target_roles:
   primary:
@@ -505,7 +505,7 @@ target_roles:
 
   test('marks substantive=false when target_roles empty', () => {
     const yml = `candidate:
-  full_name: "Tony"
+  full_name: "Jane"
 target_roles:
   primary: []
 `;
@@ -514,13 +514,13 @@ target_roles:
 
   test('handles profile with no target_roles section at all', () => {
     const yml = `candidate:
-  full_name: "Tony"
+  full_name: "Jane"
   email: "t@x.com"
 narrative:
   headline: "Test"
 `;
     const s = parseProfileSummary(yml);
-    assert.equal(s.full_name, 'Tony');
+    assert.equal(s.full_name, 'Jane');
     assert.deepEqual(s.target_roles, []);
     assert.equal(s.substantive, false);
   });

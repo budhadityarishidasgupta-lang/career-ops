@@ -185,8 +185,8 @@ function extractCompFromReport(reportText, company) {
     if (/^\|\s*JD/i.test(line)) score += 6;  // table row starting "| JD"
     // Offer-level signals
     if (/\b(this\s+role|this\s+position|this\s+job)\b/i.test(line)) score += 5;
-    // Tony's projection (often a useful summary number)
-    if (/\b(estimated\s+tony|tony.{0,20}tc|realistic\s+total|tony.{0,20}target)\b/i.test(line)) score += 2;
+    // Candidate-level projections (realistic total / target TC summaries)
+    if (/\b(estimated\s+(tc|comp|total)|realistic\s+total|target\s+(tc|comp|total))\b/i.test(line)) score += 2;
     // Down-weight reference / market-comp rows
     if (/\b(levels\.fyi|glassdoor|payscale|6figr|himalayas|paysa|levels\b|teamblind|blind\b)\b/i.test(line)) score -= 4;
     if (/\b(comparison|reference|market|equivalent|industry|average|median|context|benchmark)\b/i.test(line)) score -= 3;
@@ -5693,14 +5693,20 @@ const HTML = /* html */ `<!DOCTYPE html>
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Could not parse resume');
       window.wizState.extracted = data.profile;
-      // Pre-fill step 2
+      // Pre-fill step 2 — but only overwrite when the extractor returned a
+      // value. If a user already typed something into step 2 and is going
+      // Back→Continue (e.g. to fix a typo in their pasted resume), preserve
+      // their manual input instead of nuking it with an empty extraction.
       const p = data.profile;
-      document.getElementById('wiz-full-name').value = p.full_name || '';
-      document.getElementById('wiz-email').value = p.email || '';
-      document.getElementById('wiz-phone').value = p.phone || '';
-      document.getElementById('wiz-location').value = p.location || '';
-      document.getElementById('wiz-linkedin').value = p.linkedin || '';
-      document.getElementById('wiz-headline').value = p.headline || '';
+      const setIfExtracted = (id, val) => {
+        if (val && String(val).trim()) document.getElementById(id).value = val;
+      };
+      setIfExtracted('wiz-full-name', p.full_name);
+      setIfExtracted('wiz-email',     p.email);
+      setIfExtracted('wiz-phone',     p.phone);
+      setIfExtracted('wiz-location',  p.location);
+      setIfExtracted('wiz-linkedin',  p.linkedin);
+      setIfExtracted('wiz-headline',  p.headline);
       // Empty-state messaging: if we couldn't auto-detect anything, tell the
       // user upfront so they don't think the wizard is broken.
       if ((data.extractedCount || 0) === 0) {
@@ -6982,7 +6988,16 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (err) {
-      sendJsonError(res, 400, 'finalize failed', err);
+      // Pick a public message that hints at the cause without leaking paths.
+      // Validation errors are returned earlier — anything reaching here is an
+      // I/O / permission / disk-space problem, so respond 500.
+      const code = err && err.code ? err.code : '';
+      let msg = 'finalize failed';
+      if (code === 'ENOENT')      msg = 'config directory missing — restart the server in your project root';
+      else if (code === 'EACCES') msg = 'permission denied writing config/profile.yml';
+      else if (code === 'EROFS')  msg = 'config directory is read-only';
+      else if (code === 'ENOSPC') msg = 'no disk space to write profile';
+      sendJsonError(res, 500, msg, err);
     }
     return;
   }
