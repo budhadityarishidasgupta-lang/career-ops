@@ -99,6 +99,11 @@ export async function GET(
       const filename = `${nameCore}.pdf`;
       const key = type === 'cl' ? job.cover_letter_pdf_key : job.resume_pdf_key;
       if (key) {
+        const r2Endpoint =
+          process.env.R2_ENDPOINT?.trim() ||
+          `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+        const r2ForcePathStyle = process.env.R2_FORCE_PATH_STYLE === '1';
+        const r2Bucket = process.env.R2_BUCKET || '';
         let stream: ReadableStream | null = null;
         try {
           stream = await streamR2Object(String(key));
@@ -125,7 +130,39 @@ export async function GET(
               );
             }
           }
-          return new NextResponse(`R2 error: ${msg}`, { status: 500 });
+          if (msg.includes('SignatureDoesNotMatch')) {
+            return new NextResponse(
+              [
+                `R2 error: SignatureDoesNotMatch`,
+                ``,
+                `Most common cause: Vercel env vars are using the Cloudflare API token instead of the S3 Access Key ID + Secret Access Key pair.`,
+                `Fix: In Vercel Project → Settings → Environment Variables, set:`,
+                `- R2_ACCESS_KEY_ID = (Access Key ID from Cloudflare R2 "S3 clients")`,
+                `- R2_SECRET_ACCESS_KEY = (Secret Access Key from Cloudflare R2 "S3 clients")`,
+                `- R2_ACCOUNT_ID, R2_BUCKET`,
+                ``,
+                `Debug: endpoint=${r2Endpoint}, forcePathStyle=${r2ForcePathStyle}, bucket=${r2Bucket}, key=${String(key)}`,
+              ].join('\n'),
+              {
+                status: 500,
+                headers: {
+                  'X-CareerOps-R2-Endpoint': r2Endpoint,
+                  'X-CareerOps-R2-Force-Path-Style': String(r2ForcePathStyle),
+                  'X-CareerOps-R2-Bucket': r2Bucket,
+                  'X-CareerOps-R2-Key': String(key),
+                },
+              }
+            );
+          }
+          return new NextResponse(`R2 error: ${msg}`, {
+            status: 500,
+            headers: {
+              'X-CareerOps-R2-Endpoint': r2Endpoint,
+              'X-CareerOps-R2-Force-Path-Style': String(r2ForcePathStyle),
+              'X-CareerOps-R2-Bucket': r2Bucket,
+              'X-CareerOps-R2-Key': String(key),
+            },
+          });
         }
         if (!stream) return new NextResponse('PDF not available (empty object)', { status: 404 });
         return new NextResponse(stream, {
