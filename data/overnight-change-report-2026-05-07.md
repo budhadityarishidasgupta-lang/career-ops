@@ -17,7 +17,7 @@
 | Phase 4 — LinkedIn rewrites | ✅ Complete | All 7 entries + About section — data/linkedin-experience-rewrites-2026-05-07.md |
 | Phase 5 — Career narrative thread | ✅ Complete | data/career-narrative-thread-2026-05-07.md (23,133 bytes) |
 | Phase 6 — System upgrades (6C–6N) | ✅ Complete | 11/11 hacks done (6B deferred per spec — Gemini covers it) |
-| Phase 1 — Citation retrieval | ⏳ Pending | |
+| Phase 1 — Citation retrieval | ✅ Complete | Variety FOUND; Webby FOUND; Pew partial; editorial dates verified |
 | Phase 2+3 — Transcript mining + impact doc | ⏳ Pending | Transcripts found at ~/Downloads/VIDEOS/transcripts/ |
 | Phase 7 — GitHub audit + build-in-public | ⏳ Pending | |
 | Phase 8 — Change report finalization | ⏳ Pending | |
@@ -74,13 +74,11 @@ Written to `data/career-narrative-thread-2026-05-07.md` (163 lines, 23,133 bytes
 - 6M CLAUDE.md + AGENTS.md updated: ✅ session notes + Voice Calibration section added
 - 6N Grok-Claude loop documented: ✅ data/grok-claude-loop-setup.md created
 
-### Phase 1 — Citation Retrieval
-[Status and results to be filled after subagent returns]
-
-- ⏳ Pew 2014 — HuffPost Live:
-- ⏳ Variety June 2015 — AJ+ Facebook rank:
-- ⏳ Webby Awards — HuffPost Live + AJ+:
-- ⏳ Editorial lead-time verification:
+### Phase 1 — Citation Retrieval ✅
+- ✅ Pew 2014 — HuffPost Live: PARTIAL — overview URL confirmed (journalism.org/2014/03/26/state-of-the-news-media-2014-overview/), PDF found. Specific 2M/13M viewer stats require opening PDF directly.
+- ✅ Variety July 30, 2015 — AJ+ Facebook: FOUND — "How Al Jazeera's AJ+ Became One of the Biggest Video Publishers on Facebook" by Janko Roettgers. URL: variety.com/2015/digital/news/how-al-jazeeras-aj-became-one-of-the-biggest-video-publishers-on-facebook-1201553333/ — AJ+ was #2 among news publishers on Facebook (#9 overall, June 2015 NewsWhip data). Note: phrase "second-largest" not verbatim; accurate framing is "second among news publishers."
+- ✅ Webby Awards — HuffPost Live: FOUND — 3 consecutive wins (2013, 2014, 2015) for Best News and Information Channel. Direct database entry confirmed. AJ+ Webby wins during Mitchell's 2016–2018 tenure: NOT FOUND (only 2022 wins found).
+- ✅ Editorial lead-time verification: VERIFIED — I Am Jazz TLC premiere July 15, 2015; Pentagon trans ban lifted June 30, 2016 (Sec. Carter); PrEP FDA approval July 2012 (mainstream wave fall 2013). PrEP framing note: recommend "when most mainstream outlets were ignoring PrEP" rather than "6 months before mainstream."
 
 ### Phase 2 — Transcript Mining
 [Status and results to be filled after subagent returns]
