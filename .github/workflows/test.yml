@@ -29,6 +29,8 @@ jobs:
         run: |
           node --check dashboard-web/lib/onboard.mjs
           node --check dashboard-web/lib/path-safety.mjs
+          node --check dashboard-web/lib/http-utils.mjs
+          node --check dashboard-web/lib/gmail-status.mjs
 
   legacy:
     name: Legacy test-all (if present)

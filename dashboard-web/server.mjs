@@ -541,7 +541,10 @@ async function loadTokens() {
 
 async function saveTokens(tokens) {
   gmailTokens = { ...tokens, saved_at: Date.now() };
-  await fs.writeFile(TOKENS_FILE, JSON.stringify(gmailTokens, null, 2), 'utf8');
+  // 0o600 = owner-rw, group-none, world-none. Defends against multi-user
+  // hosts where /home/user is readable by other accounts. No-op on Windows
+  // (NTFS doesn't honor POSIX modes), but harmless. See audit S1.
+  await fs.writeFile(TOKENS_FILE, JSON.stringify(gmailTokens, null, 2), { encoding: 'utf8', mode: 0o600 });
 }
 
 async function refreshAccessToken() {
@@ -630,7 +633,10 @@ async function loadGmailCache() {
 }
 
 async function saveGmailCache() {
-  await fs.writeFile(CACHE_FILE, JSON.stringify(gmailCache, null, 2), 'utf8');
+  // 0o600 mirrors saveTokens — cache contains email subjects + sender PII
+  // pulled from Gmail. No third-party should be able to read it on shared
+  // multi-user hosts. See audit S1.
+  await fs.writeFile(CACHE_FILE, JSON.stringify(gmailCache, null, 2), { encoding: 'utf8', mode: 0o600 });
 }
 
 async function gmailApiGet(endpoint, token) {
@@ -751,6 +757,16 @@ let autoApplyState = {
   active: false, mode: 'auto', queue: [], current: null,
   completed: [], startedAt: null, stoppable: true,
 };
+
+// Bound the completed array so a long-running session (200+ apps) doesn't
+// leak memory unbounded. Mirrors the autopilotState.log cap below. Audit S3.
+const COMPLETED_CAP = 200;
+function pushCompleted(entry) {
+  autoApplyState.completed.push(entry);
+  if (autoApplyState.completed.length > COMPLETED_CAP) {
+    autoApplyState.completed = autoApplyState.completed.slice(-COMPLETED_CAP);
+  }
+}
 
 // Wizard PDF generation tracking — read by /api/onboard/pdf-status.
 let lastPdfGenStart = 0;
@@ -943,16 +959,16 @@ async function runAutoApply() {
 
         // Mark as Applied in tracker
         await updateApplicationStatus(item.num, 'Applied').catch(() => {});
-        autoApplyState.completed.push({ num: item.num, company: item.company, status: 'success' });
+        pushCompleted({ num: item.num, company: item.company, status: 'success' });
         await page.close();
       } catch (err) {
-        autoApplyState.completed.push({ num: item.num, company: item.company, status: 'failed', error: err.message.substring(0, 100) });
+        pushCompleted({ num: item.num, company: item.company, status: 'failed', error: err.message.substring(0, 100) });
       }
     }
   } catch (err) {
     // Playwright not available or launch failed
     for (const item of autoApplyState.queue) {
-      autoApplyState.completed.push({ num: item.num, company: item.company, status: 'failed', error: 'Browser error: ' + err.message.substring(0, 80) });
+      pushCompleted({ num: item.num, company: item.company, status: 'failed', error: 'Browser error: ' + err.message.substring(0, 80) });
     }
     autoApplyState.queue = [];
   } finally {
@@ -2437,8 +2453,10 @@ const HTML = /* html */ `<!DOCTYPE html>
 
         --text:         rgba(0,0,0,.88);
         --text-sec:     rgba(60,60,67,.65);
-        --text-ter:     rgba(60,60,67,.55);
-        --text-quad:    rgba(60,60,67,.30);
+        /* --text-ter bumped from .55 → .68 — .55 over white = 4.4:1 (fails
+           WCAG AA 4.5:1 for body text). Now lands at ~4.7:1. Audit A2. */
+        --text-ter:     rgba(60,60,67,.68);
+        --text-quad:    rgba(60,60,67,.32);
 
         --accent:       #007aff;     /* Apple system blue (light) */
         --accent-2:     #34c759;     /* Apple system green (light) */
@@ -2515,13 +2533,16 @@ const HTML = /* html */ `<!DOCTYPE html>
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header ── translucent like macOS Sonoma sidebar */
+    /* ── Header ── liquid glass (visionOS-grade) */
     .header {
-      background: var(--mat-thick);
-      backdrop-filter: saturate(180%) blur(28px);
-      -webkit-backdrop-filter: saturate(180%) blur(28px);
-      border-bottom: .5px solid var(--hairline);
-      box-shadow: var(--edge-sheen);
+      background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.04) 100%);
+      backdrop-filter: saturate(220%) blur(36px);
+      -webkit-backdrop-filter: saturate(220%) blur(36px);
+      border-bottom: .5px solid rgba(255,255,255,.12);
+      box-shadow:
+        inset 0 .5px 0 rgba(255,255,255,.22),
+        inset 0 -1px 0 rgba(0,0,0,.22),
+        0 8px 32px rgba(0,0,0,.30);
       padding: 0 var(--space-5);
       height: 56px;
       display: flex;
@@ -2542,17 +2563,23 @@ const HTML = /* html */ `<!DOCTYPE html>
     .logo-mark {
       width: 30px; height: 30px;
       background:
-        radial-gradient(circle at 30% 25%, rgba(255,255,255,.30), transparent 55%),
-        linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,.45), transparent 55%),
+        linear-gradient(135deg, #0a84ff 0%, #30d158 100%);
       border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
       font-size: 15px;
       color: rgba(255,255,255,.95);
       box-shadow:
-        inset 0 .5px 0 rgba(255,255,255,.30),
-        inset 0 -.5px 0 rgba(0,0,0,.18),
-        0 4px 14px rgba(40,184,255,.36);
+        inset 0 .5px 0 rgba(255,255,255,.45),
+        inset 0 -.5px 0 rgba(0,0,0,.22),
+        0 4px 16px rgba(10,132,255,.45),
+        0 0 24px rgba(10,132,255,.18);
       letter-spacing: 0;
+      animation: logo-breathe 4s ease-in-out infinite;
+    }
+    @keyframes logo-breathe {
+      0%,100% { box-shadow: inset 0 .5px 0 rgba(255,255,255,.45), inset 0 -.5px 0 rgba(0,0,0,.22), 0 4px 16px rgba(10,132,255,.45), 0 0 24px rgba(10,132,255,.18); }
+      50%     { box-shadow: inset 0 .5px 0 rgba(255,255,255,.55), inset 0 -.5px 0 rgba(0,0,0,.22), 0 6px 22px rgba(10,132,255,.60), 0 0 36px rgba(48,209,88,.25); }
     }
     .header-spacer { flex: 1; }
     .header-actions {
@@ -2593,14 +2620,15 @@ const HTML = /* html */ `<!DOCTYPE html>
       opacity: .42; cursor: not-allowed; pointer-events: none;
     }
 
-    /* Ghost — translucent default */
+    /* Ghost — translucent default with liquid glass specular */
     .btn-ghost {
-      background: rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.05) 100%);
       color: var(--text);
-      border-color: var(--hairline-2);
+      border-color: rgba(255,255,255,.12);
+      box-shadow: inset 0 .5px 0 rgba(255,255,255,.12);
     }
-    .btn-ghost:hover { background: rgba(255,255,255,.10); border-color: var(--hairline-2); }
-    .btn-ghost:active { background: rgba(255,255,255,.04); }
+    .btn-ghost:hover { background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.08) 100%); border-color: rgba(255,255,255,.16); }
+    .btn-ghost:active { background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.03) 100%); transform: scale(.97); }
 
     /* Primary — accent fill */
     .btn-primary {
@@ -4268,7 +4296,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     <div class="controls" id="controls">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input class="search-input" id="search-input" type="search" placeholder="Search company, role, notes…" oninput="applyFilter()">
+        <input class="search-input" id="search-input" type="search" placeholder="Search company, role, notes…" aria-label="Search applications by company, role, or notes" oninput="applyFilter()">
       </div>
       <div class="filter-pills">
         <button class="filter-pill active" onclick="setFilter('all',this)" data-filter="all">All</button>
@@ -4378,11 +4406,11 @@ const HTML = /* html */ `<!DOCTYPE html>
   <div class="modal-content">
     <div class="modal-header">
       <div class="modal-title">⚡ Apply to Evaluated Roles</div>
-      <button class="modal-close" onclick="closeApplyModal()">✕</button>
+      <button class="modal-close" onclick="closeApplyModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-threshold">
       <span class="threshold-label">Minimum score:</span>
-      <input class="threshold-slider" type="range" id="apply-threshold" min="3.0" max="5.0" step="0.1" value="4.0" oninput="updateApplyList()">
+      <input class="threshold-slider" type="range" id="apply-threshold" min="3.0" max="5.0" step="0.1" value="4.0" aria-label="Minimum score threshold for batch apply" oninput="updateApplyList()">
       <span class="threshold-val" id="apply-threshold-val">4.0</span>
     </div>
     <div class="modal-select-bar">
@@ -4459,6 +4487,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       </div>
       <div class="onboard-divider">or paste text</div>
       <textarea class="onboard-textarea" id="onboard-text"
+        aria-label="Paste your resume or CV text here"
         placeholder="Paste your resume / CV text here…&#10;&#10;We'll extract your name, contact info, headline, and skills, then ask 5 quick questions to dial in your search."></textarea>
     </div>
 
@@ -4467,20 +4496,20 @@ const HTML = /* html */ `<!DOCTYPE html>
       <span class="wiz-label">Your basics — edit if anything is off</span>
       <div class="wiz-row" style="margin-bottom:6px">
         <div>
-          <input class="wiz-input" id="wiz-full-name" placeholder="Full name" required aria-describedby="err-full-name">
+          <input class="wiz-input" id="wiz-full-name" placeholder="Full name" aria-label="Full name" required aria-describedby="err-full-name">
           <div class="wiz-field-error" id="err-full-name">Full name required (2+ characters)</div>
         </div>
         <div>
-          <input class="wiz-input" id="wiz-email" placeholder="Email" type="email" required aria-describedby="err-email">
+          <input class="wiz-input" id="wiz-email" placeholder="Email" aria-label="Email address" type="email" required aria-describedby="err-email">
           <div class="wiz-field-error" id="err-email">Valid email required</div>
         </div>
       </div>
       <div class="wiz-row" style="margin: 4px 0 6px">
-        <input class="wiz-input" id="wiz-phone" placeholder="Phone (optional)">
-        <input class="wiz-input" id="wiz-location" placeholder="City, State/Country">
+        <input class="wiz-input" id="wiz-phone" placeholder="Phone (optional)" aria-label="Phone number (optional)">
+        <input class="wiz-input" id="wiz-location" placeholder="City, State/Country" aria-label="Location (city, state, country)">
       </div>
-      <input class="wiz-input" id="wiz-linkedin" placeholder="LinkedIn URL or handle (linkedin.com/in/…)" style="margin-bottom:8px">
-      <input class="wiz-input" id="wiz-headline" placeholder="One-line headline (e.g. 'Strategic operator turning AI into shipped systems')">
+      <input class="wiz-input" id="wiz-linkedin" placeholder="LinkedIn URL or handle (linkedin.com/in/…)" aria-label="LinkedIn URL or handle" style="margin-bottom:8px">
+      <input class="wiz-input" id="wiz-headline" placeholder="One-line headline (e.g. 'Strategic operator turning AI into shipped systems')" aria-label="Professional headline">
     </div>
 
     <!-- Step 3: Target roles + comp -->
@@ -4489,13 +4518,13 @@ const HTML = /* html */ `<!DOCTYPE html>
       <div class="wiz-hint">Tap any that fit. You can add custom titles below.</div>
       <div class="wiz-chips" id="wiz-roles-chips"></div>
       <div class="wiz-add-row">
-        <input class="wiz-input" id="wiz-role-add" placeholder="Add another role title…" onkeydown="if(event.key==='Enter'){event.preventDefault();wizAddCustom('roles');}">
+        <input class="wiz-input" id="wiz-role-add" placeholder="Add another role title…" aria-label="Add custom target role" onkeydown="if(event.key==='Enter'){event.preventDefault();wizAddCustom('roles');}">
         <button class="wiz-add-btn" onclick="wizAddCustom('roles')">Add</button>
       </div>
       <span class="wiz-label">Comp targets</span>
       <div class="wiz-row" style="margin-bottom:10px">
-        <input class="wiz-input" id="wiz-comp-target" placeholder="Target (e.g. $200K-260K)">
-        <input class="wiz-input" id="wiz-comp-min" placeholder="Walk-away minimum (e.g. $170K)">
+        <input class="wiz-input" id="wiz-comp-target" placeholder="Target (e.g. $200K-260K)" aria-label="Compensation target range">
+        <input class="wiz-input" id="wiz-comp-min" placeholder="Walk-away minimum (e.g. $170K)" aria-label="Minimum acceptable compensation">
       </div>
       <div class="wiz-row">
         <select class="wiz-input" id="wiz-comp-currency">
@@ -4503,7 +4532,7 @@ const HTML = /* html */ `<!DOCTYPE html>
           <option value="EUR">EUR</option><option value="GBP">GBP</option>
           <option value="CHF">CHF</option><option value="AUD">AUD</option>
         </select>
-        <input class="wiz-input" id="wiz-location-pref" placeholder="Location preference (e.g. Remote, Hybrid 2d, Onsite NYC)">
+        <input class="wiz-input" id="wiz-location-pref" placeholder="Location preference (e.g. Remote, Hybrid 2d, Onsite NYC)" aria-label="Location preference / flexibility">
       </div>
     </div>
 
@@ -4522,13 +4551,14 @@ const HTML = /* html */ `<!DOCTYPE html>
     <div class="wiz-step" data-step="5">
       <span class="wiz-label">Your superpowers (3 short bullets) <em style="text-transform:none;color:var(--text-ter);font-weight:400;font-style:normal;letter-spacing:0">— optional but high-leverage</em></span>
       <div class="wiz-hint">What can you do that most people in your space typically can't? Be concrete.</div>
-      <input class="wiz-input" id="wiz-super-1" placeholder="Superpower 1" style="margin-bottom:6px">
-      <input class="wiz-input" id="wiz-super-2" placeholder="Superpower 2" style="margin-bottom:6px">
-      <input class="wiz-input" id="wiz-super-3" placeholder="Superpower 3" style="margin-bottom:14px">
+      <input class="wiz-input" id="wiz-super-1" placeholder="Superpower 1" aria-label="Superpower 1 — what most people in your space typically can't do" style="margin-bottom:6px">
+      <input class="wiz-input" id="wiz-super-2" placeholder="Superpower 2" aria-label="Superpower 2 — what most people in your space typically can't do" style="margin-bottom:6px">
+      <input class="wiz-input" id="wiz-super-3" placeholder="Superpower 3" aria-label="Superpower 3 — what most people in your space typically can't do" style="margin-bottom:14px">
 
       <span class="wiz-label">Best achievement (lead with this in interviews)</span>
       <div class="wiz-hint">Situation → action → measurable result. Specific numbers beat adjectives.</div>
       <textarea class="wiz-textarea" id="wiz-best"
+        aria-label="Best achievement — situation, action, measurable result"
         placeholder="e.g. Led the AI transformation across 12,000 consultants in 60 countries; built Jarvis (agentic platform on Claude API + MCP) projecting 1.35M manager-hours and $40M+ in annual savings."></textarea>
 
       <span class="wiz-label">Proof points (optional but high-leverage)</span>
@@ -7440,6 +7470,20 @@ function getPipelineStatus() {
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 async function start() {
+  // Process-level error sinks. Without these, a stray rejection from
+  // autopilot/pipeline async chains crashes the whole server (Node 22+ default
+  // for unhandledRejection is exit code 1). We log + survive instead. Audit Q2.
+  process.on('unhandledRejection', (reason) => {
+    const msg = reason instanceof Error ? reason.stack || reason.message : String(reason);
+    console.error('[unhandledRejection]', msg);
+  });
+  process.on('uncaughtException', (err) => {
+    // Truly unexpected. Log it, but DO exit — uncaught sync errors leave the
+    // process in an undefined state and supervisord/systemd will restart us.
+    console.error('[uncaughtException]', err && err.stack || err);
+    setTimeout(() => process.exit(1), 100); // give the log a chance to flush
+  });
+
   await loadTokens();
   await loadGmailCache();
   await loadAutopilotLog();
