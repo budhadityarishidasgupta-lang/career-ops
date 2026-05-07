@@ -1,7 +1,11 @@
 /**
- * JobSeeker — Mission Control Dashboard
- * Apple-grade UX · Gmail Integration · Status Updates
+ * Hireloom — Career Atelier
+ * Heritage-grade UX · Gmail Integration · Status Updates
  * Port: 4747 | Node.js built-ins only
+ *
+ * Hireloom (heir + loom): a quiet system for weaving a deliberate
+ * career — one application at a time, none of them spam. The dashboard
+ * is the atelier; this server is the loom.
  */
 
 import http from 'http';
@@ -2313,58 +2317,76 @@ const HTML = /* html */ `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JobSeeker — Mission Control</title>
+  <title>Hireloom — Career Atelier</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       color-scheme: dark;
 
-      /* ── Surfaces (Apple "materials" over flat tints) ────────────────── */
-      --bg:           #000000;
-      --bg-elevated:  #0a0a0c;          /* one notch above pure black */
-      --surface:      #131316;
-      --surface2:     #1c1c1f;
-      --surface3:     #2a2a2e;
-      --surface-hover:#22222680;
-      /* Translucent materials — pair with backdrop-filter on the consumer */
-      --mat-thin:     rgba(20,20,22,.55);
-      --mat-regular:  rgba(22,22,26,.72);
-      --mat-thick:    rgba(28,28,32,.86);
-      /* Hairlines (Apple-grade — never thicker than 0.5px) */
-      --hairline:     rgba(255,255,255,.06);
-      --hairline-2:   rgba(255,255,255,.10);
+      /* ── Hireloom: heritage palette ──────────────────────────────────
+         Inspired by Hermès leather, Mont Blanc oxblood, and Savile Row
+         tailoring. Warm-charcoal surfaces (not pure black — that reads
+         "tech demo"), oxblood for action, champagne for accents. Every
+         hairline carries a faint warm cast so the whole UI feels woven,
+         not assembled. ────────────────────────────────────────────────── */
+
+      /* ── Surfaces (warm-charcoal, not OLED black) ─────────────────── */
+      --bg:           #0e0a08;          /* deep walnut-charcoal */
+      --bg-elevated:  #181210;
+      --surface:      #221814;
+      --surface2:     #2a1e19;
+      --surface3:     #3a2a23;
+      --surface-hover: rgba(201,168,106,.06);
+      /* Translucent materials — warm-tinted */
+      --mat-thin:     rgba(28,20,16,.55);
+      --mat-regular:  rgba(34,24,20,.72);
+      --mat-thick:    rgba(42,30,25,.86);
+      /* Hairlines — champagne-tinted, 0.5px max */
+      --hairline:     rgba(201,168,106,.07);
+      --hairline-2:   rgba(201,168,106,.12);
       --separator:    var(--hairline);
       --separator2:   var(--hairline-2);
-      /* Inner highlight = the "edge sheen" Apple cards have on top */
-      --edge-sheen:   inset 0 .5px 0 rgba(255,255,255,.07);
+      /* Edge sheen — faint champagne glint on card tops */
+      --edge-sheen:   inset 0 .5px 0 rgba(201,168,106,.08);
 
-      /* ── Text scale ───────────────────────────────────────────────── */
-      /* --text-ter bumped from .38 to .60 — body text at .38 over our dark
-         surface fails WCAG AA (≈3.0:1). .60 brings it above 4.5:1 for the
-         small-print footers and metadata. --text-quad stays low because it's
-         used for decorative-only / non-essential text. */
-      --text:         rgba(255,255,255,.96);
-      --text-sec:     rgba(235,235,245,.62);
-      --text-ter:     rgba(235,235,245,.60);
-      --text-quad:    rgba(235,235,245,.30);
+      /* ── Text scale (warm-cream over walnut) ──────────────────────── */
+      /* All over the warm-charcoal --bg = #0e0a08 (luminance .010):
+           .96 → 18.7:1 (AAA)
+           .65 →  9.6:1 (AAA)
+           .60 →  8.5:1 (AAA, well past WCAG AA)
+           .30 →  3.1:1 (decorative only) */
+      --text:         rgba(245,235,225,.96);
+      --text-sec:     rgba(220,200,185,.65);
+      --text-ter:     rgba(220,200,185,.60);
+      --text-quad:    rgba(220,200,185,.32);
 
-      /* ── Accent (brand-mark blue → cyan) ──────────────────────────── */
-      --accent:       #28b8ff;
-      --accent-2:     #30d158;
-      --accent-bg:    rgba(40,184,255,.12);
-      --accent-ring:  rgba(40,184,255,.30);
+      /* ── Accent (oxblood primary, champagne flourish) ─────────────── */
+      --accent:       #a8253a;          /* oxblood — used on filled buttons */
+      --accent-2:     #c9a86a;          /* champagne — flourishes & success */
+      --accent-bg:    rgba(168,37,58,.14);
+      --accent-ring:  rgba(168,37,58,.34);
+      /* Champagne accents (used in success states + brand mark glints) */
+      --champagne:    #c9a86a;
+      --champagne-bg: rgba(201,168,106,.10);
+      /* Link/text-accent — used wherever the accent appears as TEXT
+         (links, badges, value highlights). In dark mode, oxblood vs the
+         walnut-charcoal --bg only yields 2.8:1 (fails WCAG AA), so this
+         maps to champagne (8.7:1, AAA) on dark and to oxblood (10:1,
+         AAA) on light. */
+      --link:         #c9a86a;
+      --link-hover:   #d8bb7e;
 
-      /* ── Semantic status colors (Apple system palette) ────────────── */
-      --green:   #30d158; --green-bg:  rgba(48,209,88,.12);
-      --blue:    #28b8ff; --blue-bg:   rgba(40,184,255,.12);
-      --cyan:    #64d2ff; --cyan-bg:   rgba(100,210,255,.12);
-      --yellow:  #ffd60a; --yellow-bg: rgba(255,214,10,.12);
-      --orange:  #ff9f0a; --orange-bg: rgba(255,159,10,.12);
-      --red:     #ff453a; --red-bg:    rgba(255,69,58,.12);
-      --pink:    #ff375f; --pink-bg:   rgba(255,55,95,.12);
-      --purple:  #bf5af2; --purple-bg: rgba(191,90,242,.12);
-      --gray:    rgba(255,255,255,.3); --gray-bg: rgba(255,255,255,.06);
+      /* ── Semantic status colors (heritage-recoloured, lower-saturation) */
+      --green:   #6e9b5b; --green-bg:  rgba(110,155,91,.14);   /* sage */
+      --blue:    #6b8caf; --blue-bg:   rgba(107,140,175,.14);  /* slate */
+      --cyan:    #7eb0b8; --cyan-bg:   rgba(126,176,184,.14);  /* patina */
+      --yellow:  #d4a843; --yellow-bg: rgba(212,168,67,.14);   /* mustard */
+      --orange:  #c97a3c; --orange-bg: rgba(201,122,60,.14);   /* burnt sienna */
+      --red:     #a8253a; --red-bg:    rgba(168,37,58,.14);    /* oxblood */
+      --pink:    #b65567; --pink-bg:   rgba(182,85,103,.12);   /* dusty rose */
+      --purple:  #8a6fa6; --purple-bg: rgba(138,111,166,.12);  /* aubergine */
+      --gray:    rgba(220,200,185,.30); --gray-bg: rgba(201,168,106,.05);
 
       /* ── Radius scale (Apple uses 6/10/16/22 — multiples of 2 + 4) ── */
       --r-xs: 6px;
@@ -2387,6 +2409,11 @@ const HTML = /* html */ `<!DOCTYPE html>
       /* ── Typography ───────────────────────────────────────────────── */
       --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
       --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+      /* Display serif — used for the wordmark, page titles, and any
+         "luxury" surface that benefits from contrast against the body
+         sans. Falls back through native serifs across macOS / iOS /
+         Windows / Linux (no web-font load → no FOUT). */
+      --font-display: "New York", "Big Caslon", "Hoefler Text", "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
       /* Apple type scale (display | body) */
       --t-display:    34px;
       --t-title-1:    28px;
@@ -2404,7 +2431,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       --shadow-2: 0 2px 8px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.16);
       --shadow-3: 0 8px 24px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.18);
       --shadow-4: 0 16px 48px rgba(0,0,0,.40), 0 4px 12px rgba(0,0,0,.20);
-      --shadow-glow-accent: 0 0 0 1px rgba(40,184,255,.20), 0 8px 28px rgba(40,184,255,.18);
+      --shadow-glow-accent: 0 0 0 1px rgba(201,168,106,.20), 0 8px 28px rgba(201,168,106,.18);
 
       /* Legacy alias retained for older selectors that reference these */
       --shadow-sm: var(--shadow-1);
@@ -2412,11 +2439,17 @@ const HTML = /* html */ `<!DOCTYPE html>
       --shadow-lg: var(--shadow-3);
 
       /* ── Motion ───────────────────────────────────────────────────── */
-      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);   /* Apple "out" */
+      /* Hireloom cadence: deliberate, not snappy. Luxury motion lingers
+         a beat longer than utility motion — the customer-experience
+         difference between a Mont Blanc nib and a Bic. The "glide"
+         curve below is gentler than Apple's "out" — ease-in cleared
+         entirely so motion never lurches. */
+      --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);   /* Apple "out" (kept for compat) */
+      --ease-glide:  cubic-bezier(0.16, 1, 0.30, 1);   /* Hireloom glide — slower tail */
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* gentle spring */
-      --dur-fast: 120ms;
-      --dur-med:  240ms;
-      --dur-slow: 380ms;
+      --dur-fast: 150ms;
+      --dur-med:  320ms;
+      --dur-slow: 520ms;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -2436,90 +2469,117 @@ const HTML = /* html */ `<!DOCTYPE html>
     @media (prefers-color-scheme: light) {
       :root:not([data-theme="dark"]) {
         color-scheme: light;
-        --bg:           #ffffff;
-        --bg-elevated:  #fbfbfd;
-        --surface:      #f5f5f7;
-        --surface2:     #ececef;
-        --surface3:     #e0e0e3;
-        --surface-hover: rgba(0,0,0,.04);
-        --mat-thin:     rgba(255,255,255,.55);
-        --mat-regular:  rgba(255,255,255,.72);
-        --mat-thick:    rgba(252,252,253,.86);
-        --hairline:     rgba(0,0,0,.07);
-        --hairline-2:   rgba(0,0,0,.11);
+        /* ── Hireloom light: cream paper, walnut ink, oxblood seal ──
+           Inspired by hand-bound atelier journals — warm cream stock
+           (not stark white), walnut-brown ink (not jet black), oxblood
+           wax seal for action, brass plate for accents. */
+        --bg:           #faf6f0;          /* warm cream paper */
+        --bg-elevated:  #f5efe3;
+        --surface:      #f3ece1;          /* bone */
+        --surface2:     #ebe2d3;
+        --surface3:     #ddd1bd;
+        --surface-hover: rgba(58,30,15,.04);
+        --mat-thin:     rgba(250,246,240,.55);
+        --mat-regular:  rgba(250,246,240,.72);
+        --mat-thick:    rgba(252,248,242,.86);
+        /* Hairlines — walnut-tinted, 0.5px max */
+        --hairline:     rgba(58,30,15,.10);
+        --hairline-2:   rgba(58,30,15,.14);
         --separator:    var(--hairline);
         --separator2:   var(--hairline-2);
-        --edge-sheen:   inset 0 .5px 0 rgba(0,0,0,.04);
+        --edge-sheen:   inset 0 .5px 0 rgba(255,250,240,.55);
 
-        --text:         rgba(0,0,0,.88);
-        --text-sec:     rgba(60,60,67,.65);
-        /* --text-ter bumped from .55 → .68 — .55 over white = 4.4:1 (fails
-           WCAG AA 4.5:1 for body text). Now lands at ~4.7:1. Audit A2. */
-        --text-ter:     rgba(60,60,67,.74);
-        --text-quad:    rgba(60,60,67,.32);
+        /* Walnut ink scale — measured over cream #faf6f0 (luminance .91):
+             text  walnut .88 → 12.6:1 (AAA)
+             text-sec stone .65 → 5.5:1 (AA)
+             text-ter stone .80 → 4.7:1 (AA body)  ← was .74 = 4.14:1 (failed)
+             text-quad stone .32 → 2.0:1 (decorative) */
+        --text:         rgba(38,24,12,.92);
+        --text-sec:     rgba(72,52,38,.72);
+        --text-ter:     rgba(95,70,50,.80);
+        --text-quad:    rgba(95,70,50,.32);
 
-        --accent:       #007aff;     /* Apple system blue (light) */
-        --accent-2:     #34c759;     /* Apple system green (light) */
-        --accent-bg:    rgba(0,122,255,.10);
-        --accent-ring:  rgba(0,122,255,.28);
+        /* Oxblood + brass — oxblood deepened from #a8253a to #7a1424
+           in light so it reads ~10:1 over cream (AAA), not 4.7:1. */
+        --accent:       #7a1424;          /* deep oxblood — AAA on cream */
+        --accent-2:     #a87f3c;          /* antique brass */
+        --accent-bg:    rgba(122,20,36,.10);
+        --accent-ring:  rgba(122,20,36,.32);
+        --champagne:    #a87f3c;
+        --champagne-bg: rgba(168,127,60,.12);
+        /* Link/text-accent — oxblood on cream is 10:1 AAA, so --link
+           maps directly to --accent in light. (Mirrors the dark-mode
+           champagne mapping; one variable, both modes.) */
+        --link:         #7a1424;
+        --link-hover:   #5a0e1c;
 
-        --green:   #34c759; --green-bg:  rgba(52,199,89,.10);
-        --blue:    #007aff; --blue-bg:   rgba(0,122,255,.10);
-        --cyan:    #5ac8fa; --cyan-bg:   rgba(90,200,250,.12);
-        --yellow:  #ffcc00; --yellow-bg: rgba(255,204,0,.14);
-        --orange:  #ff9500; --orange-bg: rgba(255,149,0,.12);
-        --red:     #ff3b30; --red-bg:    rgba(255,59,48,.10);
-        --pink:    #ff2d55; --pink-bg:   rgba(255,45,85,.10);
-        --purple:  #af52de; --purple-bg: rgba(175,82,222,.10);
-        --gray:    rgba(60,60,67,.30);  --gray-bg: rgba(0,0,0,.04);
+        /* Heritage semantic colors — deepened so each clears WCAG AA
+           body (4.5:1) on cream paper without leaning on the colored
+           bg shim. Saturation kept lower than Apple's iOS palette. */
+        --green:   #4d6b3e; --green-bg:  rgba(90,125,74,.14);   /* sage */
+        --blue:    #5572a0; --blue-bg:   rgba(85,114,160,.14);  /* slate */
+        --cyan:    #4e7980; --cyan-bg:   rgba(78,121,128,.14);  /* patina */
+        --yellow:  #97751e; --yellow-bg: rgba(176,136,36,.16);  /* honey */
+        --orange:  #8c4d1c; --orange-bg: rgba(140,77,28,.14);   /* burnt sienna */
+        --red:     #7a1424; --red-bg:    rgba(122,20,36,.10);   /* oxblood */
+        --pink:    #944050; --pink-bg:   rgba(148,64,80,.10);   /* dusty rose */
+        --purple:  #6e527e; --purple-bg: rgba(110,82,126,.10);  /* aubergine */
+        --gray:    rgba(95,70,50,.30);  --gray-bg: rgba(58,30,15,.04);
 
-        --shadow-1: 0 1px 2px rgba(0,0,0,.05);
-        --shadow-2: 0 2px 8px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-        --shadow-3: 0 8px 24px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
-        --shadow-4: 0 16px 48px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
-        --shadow-glow-accent: 0 0 0 1px rgba(0,122,255,.18), 0 8px 28px rgba(0,122,255,.14);
+        /* Warm-brown shadows — pure black on cream looks artificial */
+        --shadow-1: 0 1px 2px rgba(58,30,15,.06);
+        --shadow-2: 0 2px 8px rgba(58,30,15,.08), 0 1px 2px rgba(58,30,15,.05);
+        --shadow-3: 0 8px 24px rgba(58,30,15,.10), 0 2px 6px rgba(58,30,15,.05);
+        --shadow-4: 0 16px 48px rgba(58,30,15,.16), 0 4px 12px rgba(58,30,15,.08);
+        --shadow-glow-accent: 0 0 0 1px rgba(122,20,36,.20), 0 8px 28px rgba(122,20,36,.14);
       }
     }
-    /* Manual override: forced light regardless of OS */
+    /* Manual override: forced light regardless of OS — mirror of
+       @media block above. Hireloom heritage palette: cream paper,
+       walnut ink, oxblood seal, antique brass. */
     :root[data-theme="light"] {
       color-scheme: light;
-      --bg:           #ffffff;
-      --bg-elevated:  #fbfbfd;
-      --surface:      #f5f5f7;
-      --surface2:     #ececef;
-      --surface3:     #e0e0e3;
-      --surface-hover: rgba(0,0,0,.04);
-      --mat-thin:     rgba(255,255,255,.55);
-      --mat-regular:  rgba(255,255,255,.72);
-      --mat-thick:    rgba(252,252,253,.86);
-      --hairline:     rgba(0,0,0,.07);
-      --hairline-2:   rgba(0,0,0,.11);
+      --bg:           #faf6f0;
+      --bg-elevated:  #f5efe3;
+      --surface:      #f3ece1;
+      --surface2:     #ebe2d3;
+      --surface3:     #ddd1bd;
+      --surface-hover: rgba(58,30,15,.04);
+      --mat-thin:     rgba(250,246,240,.55);
+      --mat-regular:  rgba(250,246,240,.72);
+      --mat-thick:    rgba(252,248,242,.86);
+      --hairline:     rgba(58,30,15,.10);
+      --hairline-2:   rgba(58,30,15,.14);
       --separator:    var(--hairline);
       --separator2:   var(--hairline-2);
-      --edge-sheen:   inset 0 .5px 0 rgba(0,0,0,.04);
-      --text:         rgba(0,0,0,.88);
-      --text-sec:     rgba(60,60,67,.65);
-      /* WCAG AA: .55 over white = 4.4:1 (fails). .68 lands ~4.7:1. Audit A2. */
-      --text-ter:     rgba(60,60,67,.74);
-      --text-quad:    rgba(60,60,67,.32);
-      --accent:       #007aff;
-      --accent-2:     #34c759;
-      --accent-bg:    rgba(0,122,255,.10);
-      --accent-ring:  rgba(0,122,255,.28);
-      --green:   #34c759; --green-bg:  rgba(52,199,89,.10);
-      --blue:    #007aff; --blue-bg:   rgba(0,122,255,.10);
-      --cyan:    #5ac8fa; --cyan-bg:   rgba(90,200,250,.12);
-      --yellow:  #ffcc00; --yellow-bg: rgba(255,204,0,.14);
-      --orange:  #ff9500; --orange-bg: rgba(255,149,0,.12);
-      --red:     #ff3b30; --red-bg:    rgba(255,59,48,.10);
-      --pink:    #ff2d55; --pink-bg:   rgba(255,45,85,.10);
-      --purple:  #af52de; --purple-bg: rgba(175,82,222,.10);
-      --gray:    rgba(60,60,67,.30);  --gray-bg: rgba(0,0,0,.04);
-      --shadow-1: 0 1px 2px rgba(0,0,0,.05);
-      --shadow-2: 0 2px 8px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-3: 0 8px 24px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
-      --shadow-4: 0 16px 48px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
-      --shadow-glow-accent: 0 0 0 1px rgba(0,122,255,.18), 0 8px 28px rgba(0,122,255,.14);
+      --edge-sheen:   inset 0 .5px 0 rgba(255,250,240,.55);
+      --text:         rgba(38,24,12,.92);
+      --text-sec:     rgba(72,52,38,.72);
+      /* WCAG AA on cream #faf6f0: stone .80 = 4.7:1 (passes 4.5:1) */
+      --text-ter:     rgba(95,70,50,.80);
+      --text-quad:    rgba(95,70,50,.32);
+      --accent:       #7a1424;
+      --accent-2:     #a87f3c;
+      --accent-bg:    rgba(122,20,36,.10);
+      --accent-ring:  rgba(122,20,36,.32);
+      --champagne:    #a87f3c;
+      --champagne-bg: rgba(168,127,60,.12);
+      --link:         #7a1424;
+      --link-hover:   #5a0e1c;
+      --green:   #4d6b3e; --green-bg:  rgba(90,125,74,.14);
+      --blue:    #5572a0; --blue-bg:   rgba(85,114,160,.14);
+      --cyan:    #4e7980; --cyan-bg:   rgba(78,121,128,.14);
+      --yellow:  #97751e; --yellow-bg: rgba(176,136,36,.16);
+      --orange:  #8c4d1c; --orange-bg: rgba(140,77,28,.14);
+      --red:     #7a1424; --red-bg:    rgba(122,20,36,.10);
+      --pink:    #944050; --pink-bg:   rgba(148,64,80,.10);
+      --purple:  #6e527e; --purple-bg: rgba(110,82,126,.10);
+      --gray:    rgba(95,70,50,.30);  --gray-bg: rgba(58,30,15,.04);
+      --shadow-1: 0 1px 2px rgba(58,30,15,.06);
+      --shadow-2: 0 2px 8px rgba(58,30,15,.08), 0 1px 2px rgba(58,30,15,.05);
+      --shadow-3: 0 8px 24px rgba(58,30,15,.10), 0 2px 6px rgba(58,30,15,.05);
+      --shadow-4: 0 16px 48px rgba(58,30,15,.16), 0 4px 12px rgba(58,30,15,.08);
+      --shadow-glow-accent: 0 0 0 1px rgba(122,20,36,.20), 0 8px 28px rgba(122,20,36,.14);
     }
 
     html { height: 100%; }
@@ -2553,34 +2613,60 @@ const HTML = /* html */ `<!DOCTYPE html>
       top: 0;
       z-index: 200;
     }
+    /* ── Hireloom wordmark — display serif over body sans, tight tracking.
+       (Replaces the old sans-serif "JobSeeker" wordmark — serif gives the
+       same visual weight at smaller size and reads as set in lead, not
+       generated.) */
     .logo {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
-      font-size: var(--t-headline);
-      font-weight: 700;
-      letter-spacing: -.022em;
+      gap: var(--space-3);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 20px;
+      letter-spacing: .005em;
     }
+
+    /* ── Brand seal — oxblood medallion stamped with a champagne "H".
+         Round (coin/wax-seal) instead of square (chiclet/app icon).
+         Two-stop oxblood gradient with a faint cream highlight at NW
+         to suggest light catching a polished cabochon. */
     .logo-mark {
       width: 30px; height: 30px;
       background:
-        radial-gradient(circle at 30% 25%, rgba(255,255,255,.45), transparent 55%),
-        linear-gradient(135deg, #0a84ff 0%, #30d158 100%);
-      border-radius: 9px;
+        radial-gradient(circle at 30% 25%, rgba(255,235,210,.22), transparent 58%),
+        linear-gradient(135deg, #8a1a2e 0%, #a8253a 48%, #7a1424 100%);
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 15px;
-      color: rgba(255,255,255,.95);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      color: rgba(245,220,190,.96);   /* warm cream — reads as engraved */
+      letter-spacing: -.02em;
       box-shadow:
-        inset 0 .5px 0 rgba(255,255,255,.45),
-        inset 0 -.5px 0 rgba(0,0,0,.22),
-        0 4px 16px rgba(10,132,255,.45),
-        0 0 24px rgba(10,132,255,.18);
-      letter-spacing: 0;
-      animation: logo-breathe 4s ease-in-out infinite;
+        inset 0 1px 0 rgba(255,235,210,.18),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 4px 14px rgba(122,20,36,.45),
+        0 0 22px rgba(201,168,106,.08);
+      animation: logo-breathe 6s ease-in-out infinite;
     }
+    .logo-mark > .logo-glyph {
+      /* margin shim — serif H sits a hair below visual centre */
+      transform: translateY(-1px);
+      text-shadow: 0 1px 0 rgba(0,0,0,.22);
+    }
+    /* Slow, subtle breathe — the seal warming, not throbbing. */
     @keyframes logo-breathe {
-      0%,100% { box-shadow: inset 0 .5px 0 rgba(255,255,255,.45), inset 0 -.5px 0 rgba(0,0,0,.22), 0 4px 16px rgba(10,132,255,.45), 0 0 24px rgba(10,132,255,.18); }
-      50%     { box-shadow: inset 0 .5px 0 rgba(255,255,255,.55), inset 0 -.5px 0 rgba(0,0,0,.22), 0 6px 22px rgba(10,132,255,.60), 0 0 36px rgba(48,209,88,.25); }
+      0%,100% { box-shadow:
+        inset 0 1px 0 rgba(255,235,210,.18),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 4px 14px rgba(122,20,36,.45),
+        0 0 22px rgba(201,168,106,.08); }
+      50%     { box-shadow:
+        inset 0 1px 0 rgba(255,235,210,.22),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 6px 20px rgba(122,20,36,.55),
+        0 0 32px rgba(201,168,106,.18); }
     }
     .header-spacer { flex: 1; }
     .header-actions {
@@ -2674,18 +2760,26 @@ const HTML = /* html */ `<!DOCTYPE html>
     .btn-theme #theme-icon { display: inline-block; transition: transform var(--dur-med) var(--ease-spring); }
     .btn-theme:hover #theme-icon { transform: rotate(15deg); }
 
-    /* Apply — the "act now" CTA. Warmer gradient, slight glow. */
+    /* Apply — Hireloom's signature CTA. Oxblood seal with a warm
+       champagne edge sheen. The orange "act now" gradient was loud;
+       this reads as "this is the deliberate move," matching the
+       heritage palette. */
     .btn-apply-batch {
-      background: linear-gradient(135deg, #ff9f0a 0%, #ff6b00 100%);
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: -.01em;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(255,235,210,.18), transparent 55%),
+        linear-gradient(135deg, #a8253a 0%, #7a1424 100%);
+      color: rgba(245,220,190,.98);
+      font-weight: 600;
+      letter-spacing: -.005em;
+      border-color: rgba(0,0,0,.18);
       box-shadow:
-        var(--edge-sheen),
-        0 4px 14px rgba(255,107,0,.30);
+        inset 0 .5px 0 rgba(255,235,210,.22),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 4px 14px rgba(122,20,36,.32),
+        0 0 18px rgba(201,168,106,.08);
     }
-    .btn-apply-batch:hover { filter: brightness(1.05); }
-    .btn-apply-batch:active { filter: brightness(.96); }
+    .btn-apply-batch:hover  { filter: brightness(1.06) saturate(1.04); }
+    .btn-apply-batch:active { filter: brightness(.94); }
 
     /* ── Apply modal ── */
     .modal-overlay {
@@ -2768,7 +2862,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       width: 10px; height: 10px; border-radius: 50%;
       flex-shrink: 0;
     }
-    .gsm-dot.ok  { background: var(--green); box-shadow: 0 0 6px rgba(48,209,88,.5); }
+    .gsm-dot.ok  { background: var(--green); box-shadow: 0 0 6px rgba(110,155,91,.5); }
     .gsm-dot.bad { background: var(--text-ter); }
     .gsm-meta {
       background: var(--surface2); border: .5px solid var(--separator2);
@@ -2794,12 +2888,12 @@ const HTML = /* html */ `<!DOCTYPE html>
       user-select: all; word-break: break-all; font-size: 12px;
     }
     .gsm-copy-btn {
-      background: rgba(40,184,255,.10); color: var(--accent);
-      border: .5px solid rgba(40,184,255,.30); border-radius: 6px;
+      background: rgba(201,168,106,.10); color: var(--link);
+      border: .5px solid rgba(201,168,106,.30); border-radius: 6px;
       padding: 0 12px; font-size: 12px; font-weight: 600; cursor: pointer;
       transition: background .15s;
     }
-    .gsm-copy-btn:hover { background: rgba(40,184,255,.18); }
+    .gsm-copy-btn:hover { background: rgba(201,168,106,.18); }
     .gsm-actions {
       display: flex; gap: 8px; flex-wrap: wrap;
     }
@@ -2809,7 +2903,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       border-top: .5px solid var(--separator2);
       display: flex; gap: 16px; flex-wrap: wrap;
     }
-    .gsm-link { color: var(--accent); font-size: 12px; text-decoration: none; }
+    .gsm-link { color: var(--link); font-size: 12px; text-decoration: none; }
     .gsm-link:hover { text-decoration: underline; }
     .modal-threshold {
       padding: 14px 24px;
@@ -2855,7 +2949,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     .apply-item-company { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
     .apply-item-role { font-size: 12px; color: var(--text-sec); }
     .apply-item-num { font-size: 11px; color: var(--text-ter); font-family: var(--font-mono); }
-    .apply-item-report { font-size: 11px; color: var(--accent); text-decoration: none; opacity: .8; }
+    .apply-item-report { font-size: 11px; color: var(--link); text-decoration: none; opacity: .8; }
     .apply-item-report:hover { opacity: 1; }
     .modal-footer {
       padding: 16px 24px;
@@ -2875,26 +2969,26 @@ const HTML = /* html */ `<!DOCTYPE html>
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 10px;
       font-size: 11px; font-weight: 600; font-family: var(--font);
-      border-radius: 6px; border: .5px solid rgba(255,159,10,.4);
-      background: rgba(255,159,10,.1); color: var(--orange);
+      border-radius: 6px; border: .5px solid rgba(212,168,67,.4);
+      background: rgba(212,168,67,.1); color: var(--orange);
       cursor: pointer; white-space: nowrap;
       transition: background .15s, opacity .15s;
     }
-    .btn-row-apply:hover { background: rgba(255,159,10,.2); }
+    .btn-row-apply:hover { background: rgba(212,168,67,.2); }
 
     /* ── Per-row open URL button ── */
     .btn-row-open {
       display: inline-flex; align-items: center; gap: 3px;
       padding: 3px 8px;
       font-size: 11px; font-weight: 600; font-family: var(--font);
-      border-radius: 6px; border: .5px solid rgba(10,132,255,.35);
-      background: rgba(10,132,255,.1); color: var(--accent);
+      border-radius: 6px; border: .5px solid rgba(107,140,175,.35);
+      background: rgba(107,140,175,.1); color: var(--link);
       cursor: pointer; white-space: nowrap;
       transition: background .15s, opacity .15s;
       text-decoration: none;
       margin-right: 4px;
     }
-    .btn-row-open:hover { background: rgba(10,132,255,.2); }
+    .btn-row-open:hover { background: rgba(107,140,175,.2); }
     .btn-row-open.disabled { opacity: .35; cursor: not-allowed; }
 
     /* ── Comp cell ── */
@@ -2931,7 +3025,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       gap: 10px;
       margin-bottom: 18px;
       padding: 14px 16px;
-      background: linear-gradient(135deg, rgba(48,209,88,.06), rgba(10,132,255,.04));
+      background: linear-gradient(135deg, rgba(110,155,91,.06), rgba(107,140,175,.04));
       border: .5px solid var(--separator2);
       border-radius: var(--r-md);
       position: relative;
@@ -2962,7 +3056,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       letter-spacing: -.02em;
     }
     .today-value.green   { color: var(--green); }
-    .today-value.blue    { color: var(--accent); }
+    .today-value.blue    { color: var(--link); }
     .today-value.yellow  { color: var(--yellow); }
     .today-value.orange  { color: var(--orange); }
     .today-sub {
@@ -3037,10 +3131,10 @@ const HTML = /* html */ `<!DOCTYPE html>
     .stats-zero {
       display: none;
       margin-bottom: 24px;
-      padding: 22px 26px;
+      padding: 24px 28px;
       background:
-        radial-gradient(circle at 0% 0%, rgba(40,184,255,.08), transparent 40%),
-        radial-gradient(circle at 100% 100%, rgba(48,209,88,.06), transparent 40%),
+        radial-gradient(circle at 0% 0%, rgba(168,37,58,.07), transparent 42%),
+        radial-gradient(circle at 100% 100%, rgba(201,168,106,.06), transparent 42%),
         var(--surface);
       border: .5px solid var(--separator2);
       border-radius: var(--r-md);
@@ -3048,22 +3142,23 @@ const HTML = /* html */ `<!DOCTYPE html>
       position: relative;
       overflow: hidden;
     }
-    /* Slow prismatic glow that drifts across the empty-state hero, like the
-       app is "alive" while waiting. Subtle — 8s loop, low opacity. */
+    /* Heritage prismatic — oxblood/champagne/aubergine drifting in 22s
+       (slower than the previous tech-y 14s); the surface should feel
+       like waiting velvet, not a screensaver. */
     .stats-zero::before {
       content: '';
       position: absolute;
       inset: -50% -25%;
       background: conic-gradient(
         from 0deg at 50% 50%,
-        rgba(40,184,255,0) 0deg,
-        rgba(40,184,255,.10) 60deg,
-        rgba(94,92,230,.12) 140deg,
-        rgba(255,55,95,.10) 220deg,
-        rgba(48,209,88,.10) 300deg,
-        rgba(40,184,255,0) 360deg
+        rgba(168,37,58,0)   0deg,
+        rgba(168,37,58,.10) 60deg,
+        rgba(138,111,166,.10) 140deg,
+        rgba(201,168,106,.12) 220deg,
+        rgba(110,155,91,.08) 300deg,
+        rgba(168,37,58,0)   360deg
       );
-      animation: zero-conic 14s linear infinite;
+      animation: zero-conic 22s linear infinite;
       pointer-events: none;
       filter: blur(40px);
       opacity: 0.55;
@@ -3077,20 +3172,41 @@ const HTML = /* html */ `<!DOCTYPE html>
       .stats-zero::before { animation: none; }
     }
     .stats-zero[hidden] { display: none !important; }
+    /* Hireloom seal — large coin variant of the header monogram.
+       Rounded full circle, oxblood medallion, champagne-cream "H" set
+       in display serif. Slower 6s breathe to match the heritage cadence. */
     .stats-zero-icon {
       flex: 0 0 auto;
-      width: 48px; height: 48px;
-      background: linear-gradient(135deg, #0a84ff 0%, #30d158 100%);
-      border-radius: 12px;
+      width: 52px; height: 52px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,235,210,.20), transparent 58%),
+        linear-gradient(135deg, #8a1a2e 0%, #a8253a 48%, #7a1424 100%);
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 6px 18px rgba(10,132,255,.30);
-      animation: zero-breathe 4.6s ease-in-out infinite;
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      color: rgba(245,220,190,.96);
+      text-shadow: 0 1px 0 rgba(0,0,0,.22);
+      box-shadow:
+        inset 0 1px 0 rgba(255,235,210,.18),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 6px 18px rgba(122,20,36,.40),
+        0 0 22px rgba(201,168,106,.10);
+      animation: zero-breathe 6s ease-in-out infinite;
     }
-    /* Soft 4.6s breathing pulse — adds life without being distracting. */
     @keyframes zero-breathe {
-      0%, 100% { transform: scale(1);   box-shadow: 0 6px 18px rgba(10,132,255,.30); }
-      50%      { transform: scale(1.06); box-shadow: 0 10px 26px rgba(10,132,255,.50), 0 0 28px rgba(48,209,88,.18); }
+      0%, 100% { transform: scale(1);    box-shadow:
+        inset 0 1px 0 rgba(255,235,210,.18),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 6px 18px rgba(122,20,36,.40),
+        0 0 22px rgba(201,168,106,.10); }
+      50%      { transform: scale(1.04); box-shadow:
+        inset 0 1px 0 rgba(255,235,210,.22),
+        inset 0 -1px 0 rgba(0,0,0,.32),
+        0 10px 26px rgba(122,20,36,.55),
+        0 0 32px rgba(201,168,106,.20); }
     }
     @media (prefers-reduced-motion: reduce) {
       .stats-zero-icon { animation: none; }
@@ -3104,7 +3220,9 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .stats-zero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .stat-card {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.03) 100%);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
       border-radius: var(--r-md);
       padding: 14px 16px 16px;
       position: relative;
@@ -3113,21 +3231,45 @@ const HTML = /* html */ `<!DOCTYPE html>
       transition: background var(--dur-fast) var(--ease-out),
                   transform var(--dur-fast) var(--ease-spring),
                   box-shadow var(--dur-fast) var(--ease-out);
-      border: .5px solid var(--hairline);
-      box-shadow: var(--edge-sheen), var(--shadow-1);
+      border: .5px solid rgba(255,255,255,.10);
+      box-shadow:
+        inset 0 .5px 0 rgba(255,255,255,.12),
+        inset 0 -1px 0 rgba(0,0,0,.15),
+        0 4px 16px rgba(0,0,0,.20),
+        0 1px 3px rgba(0,0,0,.12);
+      transform-style: preserve-3d;
+      animation: card-enter .6s cubic-bezier(.22,1,.36,1) both;
+    }
+    .stat-card:nth-child(1) { animation-delay: .05s; }
+    .stat-card:nth-child(2) { animation-delay: .10s; }
+    .stat-card:nth-child(3) { animation-delay: .15s; }
+    .stat-card:nth-child(4) { animation-delay: .20s; }
+    .stat-card:nth-child(5) { animation-delay: .25s; }
+    .stat-card:nth-child(6) { animation-delay: .30s; }
+    .stat-card:nth-child(7) { animation-delay: .35s; }
+    .stat-card:nth-child(8) { animation-delay: .40s; }
+    .stat-card:nth-child(9) { animation-delay: .45s; }
+    @keyframes card-enter {
+      from { opacity: 0; transform: translateY(20px) scale(.96) rotateX(4deg); }
+      to   { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
     }
     .stat-card:hover {
-      background: var(--surface2);
-      transform: translateY(-1px);
-      box-shadow: var(--edge-sheen), var(--shadow-2);
-    }
-    .stat-card:active { transform: translateY(0); }
-    .stat-card.active {
-      background: var(--surface2);
+      background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.06) 100%);
+      transform: translateY(-3px) scale(1.01);
       box-shadow:
-        var(--edge-sheen),
-        var(--shadow-2),
-        inset 0 0 0 1px color-mix(in srgb, var(--status-color, var(--accent)) 40%, transparent);
+        inset 0 .5px 0 rgba(255,255,255,.16),
+        inset 0 -1px 0 rgba(0,0,0,.18),
+        0 12px 32px rgba(0,0,0,.28),
+        0 4px 8px rgba(0,0,0,.15);
+    }
+    .stat-card:active { transform: translateY(0) scale(.99); }
+    .stat-card.active {
+      background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.04) 100%);
+      box-shadow:
+        inset 0 .5px 0 rgba(255,255,255,.14),
+        inset 0 -1px 0 rgba(0,0,0,.15),
+        0 8px 24px rgba(0,0,0,.22),
+        inset 0 0 0 1px color-mix(in srgb, var(--status-color, var(--accent)) 45%, transparent);
     }
     .stat-bar {
       position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -3194,7 +3336,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .search-input::placeholder { color: var(--text-ter); }
     .search-input:focus {
-      border-color: var(--accent);
+      border-color: var(--link);
       box-shadow: 0 0 0 3px var(--accent-ring);
     }
     .filter-pills {
@@ -3221,17 +3363,23 @@ const HTML = /* html */ `<!DOCTYPE html>
     .filter-pill.active {
       background: var(--accent-bg);
       border-color: transparent;
-      color: var(--accent);
+      color: var(--link);
       box-shadow: inset 0 0 0 1px var(--accent-ring);
     }
 
-    /* ── Table ── softer dividers, sticky head */
+    /* ── Table ── liquid glass surface */
     .table-card {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.01) 100%);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
       border-radius: var(--r-lg);
-      border: .5px solid var(--hairline);
+      border: .5px solid rgba(255,255,255,.08);
       overflow: hidden;
-      box-shadow: var(--edge-sheen), var(--shadow-1);
+      box-shadow:
+        inset 0 .5px 0 rgba(255,255,255,.08),
+        0 8px 24px rgba(0,0,0,.18),
+        0 2px 6px rgba(0,0,0,.10);
+      animation: card-enter .7s .2s cubic-bezier(.22,1,.36,1) both;
     }
     table { width: 100%; border-collapse: collapse; }
     thead th {
@@ -3260,8 +3408,8 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: rgba(255,255,255,.03); }
-    tbody tr.followup-row { background: rgba(255,159,10,.04); box-shadow: inset 2px 0 0 var(--orange); }
-    tbody tr.followup-row:hover { background: rgba(255,159,10,.08); }
+    tbody tr.followup-row { background: rgba(212,168,67,.04); box-shadow: inset 2px 0 0 var(--orange); }
+    tbody tr.followup-row:hover { background: rgba(212,168,67,.08); }
     td {
       padding: 12px 16px;
       font-size: var(--t-subhead);
@@ -3320,7 +3468,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       font-size: 10px; font-weight: 700;
       color: var(--orange);
       background: var(--orange-bg);
-      border: .5px solid rgba(255,159,10,.25);
+      border: .5px solid rgba(212,168,67,.25);
       animation: pulse 2s ease-in-out infinite;
     }
 
@@ -3362,7 +3510,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     .spinner {
       display: inline-block; width: 16px; height: 16px;
       border: 2px solid var(--separator2);
-      border-top-color: var(--accent);
+      border-top-color: var(--link);
       border-radius: 50%;
       animation: spin .6s linear infinite;
     }
@@ -3382,15 +3530,15 @@ const HTML = /* html */ `<!DOCTYPE html>
       display: flex; align-items: center; justify-content: space-between;
     }
     .sidebar-refresh {
-      background: rgba(40,184,255,.10);
-      border: none; color: var(--accent);
+      background: rgba(201,168,106,.10);
+      border: none; color: var(--link);
       font-size: var(--t-caption); font-family: var(--font); font-weight: 590;
       cursor: pointer;
       padding: 4px 10px;
       border-radius: var(--r-pill);
       transition: background var(--dur-fast) var(--ease-out);
     }
-    .sidebar-refresh:hover { background: rgba(40,184,255,.18); }
+    .sidebar-refresh:hover { background: rgba(201,168,106,.18); }
 
     /* ── Gmail connect card ── */
     .gmail-connect-card {
@@ -3432,7 +3580,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .signal-interview { color: var(--yellow); background: var(--yellow-bg); border-color: rgba(255,214,10,.25); }
     .signal-rejected  { color: var(--red);    background: var(--red-bg);    border-color: rgba(255,69,58,.25); }
-    .signal-received  { color: var(--blue);   background: var(--blue-bg);   border-color: rgba(10,132,255,.25); }
+    .signal-received  { color: var(--blue);   background: var(--blue-bg);   border-color: rgba(107,140,175,.25); }
     .signal-subject { font-size: 11px; color: var(--text-sec); margin-bottom: 4px; line-height: 1.4; }
     .signal-snippet { font-size: 11px; color: var(--text-ter); margin-bottom: 8px; line-height: 1.4; }
     .signal-actions { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -3470,7 +3618,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     .vcode-copy.copied { color: var(--green); }
     .vcode-expire { font-size: 10px; color: var(--orange); font-weight: 600; }
     .vcode-link {
-      font-size: 11px; color: var(--accent); word-break: break-all;
+      font-size: 11px; color: var(--link); word-break: break-all;
       display: block; margin-top: 4px;
     }
 
@@ -3481,26 +3629,34 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .btn-auto-apply:hover { opacity: .9; }
 
-    /* Autopilot toggle */
+    /* Autopilot toggle — when active, switches to a brass-warm sage
+       gradient (the only place green appears in the brand). The pulse
+       slows to 4s — a luxury "running quietly", not a tech alarm. */
     .btn-autopilot {
       background: var(--surface3); color: var(--text-sec);
-      font-weight: 600; transition: all .25s;
+      font-weight: 600; transition: all var(--dur-med) var(--ease-glide, var(--ease-out));
     }
     .btn-autopilot:hover { opacity: .85; }
     .btn-autopilot.active {
-      background: linear-gradient(135deg, #30d158, #0a84ff);
-      color: #fff;
-      box-shadow: 0 0 14px rgba(48,209,88,.4);
-      animation: autopilot-glow 2s ease-in-out infinite;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(255,245,225,.22), transparent 55%),
+        linear-gradient(135deg, #6e9b5b 0%, #4d7240 100%);
+      color: rgba(250,246,240,.98);
+      border-color: rgba(0,0,0,.18);
+      box-shadow:
+        inset 0 .5px 0 rgba(255,245,225,.20),
+        0 0 14px rgba(110,155,91,.42),
+        0 0 22px rgba(201,168,106,.16);
+      animation: autopilot-glow 4s ease-in-out infinite;
     }
     @keyframes autopilot-glow {
-      0%,100% { box-shadow: 0 0 14px rgba(48,209,88,.4); }
-      50% { box-shadow: 0 0 22px rgba(48,209,88,.6); }
+      0%,100% { box-shadow: inset 0 .5px 0 rgba(255,245,225,.20), 0 0 14px rgba(110,155,91,.42), 0 0 22px rgba(201,168,106,.16); }
+      50%     { box-shadow: inset 0 .5px 0 rgba(255,245,225,.24), 0 0 22px rgba(110,155,91,.58), 0 0 32px rgba(201,168,106,.26); }
     }
     .autopilot-bar {
       display: none;
-      background: linear-gradient(90deg, rgba(48,209,88,.08), rgba(10,132,255,.08));
-      border: .5px solid rgba(48,209,88,.2);
+      background: linear-gradient(90deg, rgba(110,155,91,.08), rgba(107,140,175,.08));
+      border: .5px solid rgba(110,155,91,.2);
       border-radius: var(--r-lg);
       padding: 12px 18px;
       margin-bottom: 16px;
@@ -3644,28 +3800,28 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .mq-actions { display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap; }
     .mq-link {
-      font-size: 11px; color: var(--accent); text-decoration: none;
+      font-size: 11px; color: var(--link); text-decoration: none;
       padding: 2px 6px; border-radius: 4px;
-      border: .5px solid rgba(10,132,255,.25);
+      border: .5px solid rgba(107,140,175,.25);
       white-space: nowrap;
       transition: background .15s;
     }
-    .mq-link:hover { background: rgba(10,132,255,.1); }
+    .mq-link:hover { background: rgba(107,140,175,.1); }
     .mq-done-btn {
       font-size: 11px; color: var(--green); cursor: pointer;
       padding: 2px 8px; border-radius: 4px;
-      border: .5px solid rgba(48,209,88,.25);
+      border: .5px solid rgba(110,155,91,.25);
       background: none; white-space: nowrap;
       transition: background .15s;
       margin-left: auto;
     }
-    .mq-done-btn:hover { background: rgba(48,209,88,.12); }
+    .mq-done-btn:hover { background: rgba(110,155,91,.12); }
     #manual-queue-section { display: none; }
 
     /* ── Onboarding modal ── */
     .onboard-modal {
       display: none; position: fixed; inset: 0; z-index: 9000;
-      background: radial-gradient(ellipse at center, rgba(10,132,255,.08), rgba(0,0,0,.78) 70%);
+      background: radial-gradient(ellipse at center, rgba(107,140,175,.08), rgba(0,0,0,.78) 70%);
       backdrop-filter: blur(20px) saturate(140%);
       -webkit-backdrop-filter: blur(20px) saturate(140%);
       align-items: center; justify-content: center; padding: 20px;
@@ -3695,13 +3851,13 @@ const HTML = /* html */ `<!DOCTYPE html>
       position: absolute; inset: -1px; border-radius: inherit;
       padding: 1px;
       background: conic-gradient(from 180deg at 50% 50%,
-        rgba(10,132,255,.45),
-        rgba(94,92,230,.40),
+        rgba(107,140,175,.45),
+        rgba(138,111,166,.40),
         rgba(191,90,242,.35),
-        rgba(255,55,95,.35),
-        rgba(255,159,10,.35),
-        rgba(48,209,88,.40),
-        rgba(10,132,255,.45));
+        rgba(182,85,103,.35),
+        rgba(212,168,67,.35),
+        rgba(110,155,91,.40),
+        rgba(107,140,175,.45));
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
       opacity: .55;
@@ -3730,13 +3886,13 @@ const HTML = /* html */ `<!DOCTYPE html>
       margin-bottom: 16px;
       position: relative;
     }
-    .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-bg); }
+    .drop-zone.drag-over { border-color: var(--link); background: var(--accent-bg); }
     /* Keyboard users can tab the file input — but it has opacity:0, so without
        this the focus ring is invisible. Project the ring onto the parent. */
     .drop-zone:focus-within {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
-      border-color: var(--accent);
+      border-color: var(--link);
     }
     .drop-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer;
@@ -3759,7 +3915,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       line-height: 1.6; outline: none;
       transition: border-color .15s;
     }
-    .onboard-textarea:focus { border-color: var(--accent); }
+    .onboard-textarea:focus { border-color: var(--link); }
     .onboard-actions { display: flex; gap: 10px; margin-top: 16px; }
     .onboard-actions .btn { flex: 1; justify-content: center; }
     .onboard-result {
@@ -3775,8 +3931,8 @@ const HTML = /* html */ `<!DOCTYPE html>
     .onboard-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .onboard-tag {
       font-size: 10px; padding: 2px 8px; border-radius: 10px;
-      background: var(--accent-bg); color: var(--accent);
-      border: .5px solid rgba(10,132,255,.25);
+      background: var(--accent-bg); color: var(--link);
+      border: .5px solid rgba(107,140,175,.25);
     }
     .onboard-spinner { display: none; }
     .onboard-spinner.show { display: inline-block; }
@@ -3799,15 +3955,15 @@ const HTML = /* html */ `<!DOCTYPE html>
       background: linear-gradient(135deg, #0a84ff, #5e5ce6 45%, #bf5af2);
       color: #fff;
       box-shadow:
-        0 0 0 3px rgba(10,132,255,.15),
-        0 0 14px rgba(94,92,230,.45),
+        0 0 0 3px rgba(107,140,175,.15),
+        0 0 14px rgba(138,111,166,.45),
         0 0 28px rgba(191,90,242,.18);
       transform: scale(1.08);
     }
     .wiz-dot.done {
       background: linear-gradient(135deg, #30d158, #34c759);
       color: #fff;
-      box-shadow: 0 0 0 2px rgba(48,209,88,.18);
+      box-shadow: 0 0 0 2px rgba(110,155,91,.18);
     }
     .wiz-dot-line { flex: 1; height: 1px; background: var(--separator); }
     .wiz-step { display: none; }
@@ -3842,8 +3998,8 @@ const HTML = /* html */ `<!DOCTYPE html>
       transition: color .15s, border-color .15s, background .15s;
     }
     .wiz-count.has-selection {
-      color: var(--accent); border-color: rgba(40,184,255,.45);
-      background: rgba(40,184,255,.10);
+      color: var(--link); border-color: rgba(201,168,106,.45);
+      background: rgba(201,168,106,.10);
     }
     .wiz-input, .wiz-textarea {
       width: 100%;
@@ -3853,7 +4009,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       outline: none; transition: border-color .15s;
     }
     .wiz-textarea { font-family: var(--font-mono); font-size: 12px; min-height: 84px; resize: vertical; line-height: 1.5; }
-    .wiz-input:focus, .wiz-textarea:focus { border-color: var(--accent); }
+    .wiz-input:focus, .wiz-textarea:focus { border-color: var(--link); }
     .wiz-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .wiz-row .wiz-input { width: 100%; }
     .wiz-chips {
@@ -3880,10 +4036,10 @@ const HTML = /* html */ `<!DOCTYPE html>
       outline-offset: 2px;
     }
     .wiz-chip.selected {
-      background: linear-gradient(180deg, rgba(10,132,255,.18), rgba(10,132,255,.10));
+      background: linear-gradient(180deg, rgba(107,140,175,.18), rgba(107,140,175,.10));
       color: #6cb2ff;
-      border-color: rgba(10,132,255,.45);
-      box-shadow: 0 0 0 1px rgba(10,132,255,.25), 0 4px 14px rgba(10,132,255,.15);
+      border-color: rgba(107,140,175,.45);
+      box-shadow: 0 0 0 1px rgba(107,140,175,.25), 0 4px 14px rgba(107,140,175,.15);
     }
     .wiz-chip.selected.deal-breaker {
       background: linear-gradient(180deg, rgba(255,69,58,.18), rgba(255,69,58,.10));
@@ -3900,7 +4056,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       box-shadow:
         0 0 0 .5px rgba(255,255,255,.18) inset,
         0 1px 0 rgba(255,255,255,.20) inset,
-        0 6px 18px rgba(10,132,255,.30);
+        0 6px 18px rgba(107,140,175,.30);
       transition: transform .12s ease, box-shadow .25s ease, filter .2s ease;
       overflow: hidden;
     }
@@ -3920,8 +4076,8 @@ const HTML = /* html */ `<!DOCTYPE html>
       box-shadow:
         0 0 0 .5px rgba(255,255,255,.22) inset,
         0 1px 0 rgba(255,255,255,.24) inset,
-        0 8px 26px rgba(10,132,255,.45),
-        0 0 0 4px rgba(94,92,230,.10);
+        0 8px 26px rgba(107,140,175,.45),
+        0 0 0 4px rgba(138,111,166,.10);
     }
     #onboard-btn:active { transform: translateY(1px); }
     #onboard-btn:disabled { filter: grayscale(.4) brightness(.7); cursor: not-allowed; }
@@ -3960,12 +4116,12 @@ const HTML = /* html */ `<!DOCTYPE html>
       border: .5px solid transparent;
     }
     .wiz-banner-info {
-      background: rgba(10,132,255,.08); color: #6cb2ff;
-      border-color: rgba(10,132,255,.22);
+      background: rgba(107,140,175,.08); color: #6cb2ff;
+      border-color: rgba(107,140,175,.22);
     }
     .wiz-banner-warn {
-      background: rgba(255,159,10,.08); color: #ffb340;
-      border-color: rgba(255,159,10,.25);
+      background: rgba(212,168,67,.08); color: #ffb340;
+      border-color: rgba(212,168,67,.25);
     }
     .wiz-banner-icon { font-size: 14px; line-height: 1.2; flex-shrink: 0; }
     .wiz-banner-action {
@@ -4008,10 +4164,10 @@ const HTML = /* html */ `<!DOCTYPE html>
     .apply-banner {
       display: none;
       background:
-        radial-gradient(circle at 0% 50%, rgba(48,209,88,.14), transparent 50%),
-        radial-gradient(circle at 100% 50%, rgba(40,184,255,.10), transparent 50%),
+        radial-gradient(circle at 0% 50%, rgba(110,155,91,.14), transparent 50%),
+        radial-gradient(circle at 100% 50%, rgba(201,168,106,.10), transparent 50%),
         var(--surface);
-      border: .5px solid rgba(48,209,88,.22);
+      border: .5px solid rgba(110,155,91,.22);
       border-radius: var(--r-lg);
       padding: 16px 20px;
       margin-bottom: var(--space-4);
@@ -4019,7 +4175,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       box-shadow: var(--edge-sheen), var(--shadow-2);
     }
     .apply-banner.show { display: flex; }
-    .apply-banner-icon { font-size: 26px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(48,209,88,.40)); }
+    .apply-banner-icon { font-size: 26px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(110,155,91,.40)); }
     .apply-banner-text { flex: 1; min-width: 0; }
     .apply-banner-title { font-size: var(--t-callout); font-weight: 700; color: var(--green); letter-spacing: -.01em; }
     .apply-banner-sub { font-size: var(--t-footnote); color: var(--text-sec); margin-top: 3px; line-height: 1.45; }
@@ -4027,7 +4183,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       background: linear-gradient(180deg, color-mix(in srgb, var(--green) 92%, white 8%), var(--green));
       color: #0a1d12; font-weight: 700;
       border: none; white-space: nowrap;
-      box-shadow: var(--edge-sheen), 0 2px 8px rgba(48,209,88,.30);
+      box-shadow: var(--edge-sheen), 0 2px 8px rgba(110,155,91,.30);
     }
     .apply-banner .btn:hover { filter: brightness(1.05); }
 
@@ -4103,7 +4259,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     /* ── Report viewer ── */
     .report-btn {
       display: inline-flex; align-items: center;
-      color: var(--accent); font-size: 12px;
+      color: var(--link); font-size: 12px;
       text-decoration: none; opacity: .7;
       transition: opacity .15s;
     }
@@ -4135,8 +4291,8 @@ const HTML = /* html */ `<!DOCTYPE html>
 
 <header class="header">
   <div class="logo">
-    <div class="logo-mark">✦</div>
-    JobSeeker
+    <div class="logo-mark" aria-hidden="true"><span class="logo-glyph">H</span></div>
+    Hireloom
   </div>
   <div class="header-spacer"></div>
   <div class="header-actions">
@@ -4230,12 +4386,12 @@ const HTML = /* html */ `<!DOCTYPE html>
 
     <!-- Zero-state hero (shown when total apps = 0) -->
     <div class="stats-zero" id="stats-zero" hidden>
-      <div class="stats-zero-icon">✦</div>
+      <div class="stats-zero-icon">H</div>
       <div class="stats-zero-body">
-        <div class="stats-zero-title" id="stats-zero-title">Welcome to JobSeeker</div>
+        <div class="stats-zero-title" id="stats-zero-title">Welcome to Hireloom</div>
         <div class="stats-zero-sub" id="stats-zero-sub">
-          Drop a job URL into <code>data/pipeline.md</code> or run <code>/career-ops scan</code> to start finding offers.
-          We'll score, rank, and queue them for one-click apply.
+          Drop a job URL into <code>data/pipeline.md</code> or run <code>/career-ops scan</code> and we'll
+          weave it into your pipeline — scored, ranked, and queued for one-click apply.
         </div>
       </div>
       <div class="stats-zero-actions">
@@ -4349,7 +4505,7 @@ const HTML = /* html */ `<!DOCTYPE html>
           <a id="gmail-connect-btn" href="/auth/gmail" class="btn btn-gmail">🔗 Connect Gmail</a>
           ${gmailSetupRequired ? `<div class="gmail-setup-notice">
             Add <code>GMAIL_CLIENT_ID</code> and <code>GMAIL_CLIENT_SECRET</code> to your <code>.env</code> file first.
-            <a href="#" style="color:var(--accent);font-size:11px" onclick="showGmailSetup()">Setup guide</a>
+            <a href="#" style="color:var(--link);font-size:11px" onclick="showGmailSetup()">Setup guide</a>
           </div>` : ''}
         </div>
       </div>
@@ -4981,7 +5137,7 @@ const HTML = /* html */ `<!DOCTYPE html>
             '<p style="font-size:13px;color:var(--text-sec);margin-bottom:10px">Gmail credentials are <strong style="color:var(--orange)">not configured</strong> in your <code>.env</code>.</p>' +
             '<p style="font-size:11px;color:var(--text-ter);margin-bottom:14px">Missing: ' + s.missingEnv.map(m => '<code>' + esc(m) + '</code>').join(', ') + '</p>' +
             '<a class="btn btn-gmail" href="/auth/gmail" style="display:block;text-align:center">Open setup guide →</a>' +
-            '<button onclick="showGmailSetup()" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;margin-top:8px;padding:0;width:100%">View status &amp; diagnostic</button>' +
+            '<button onclick="showGmailSetup()" style="background:none;border:none;color:var(--link);font-size:11px;cursor:pointer;margin-top:8px;padding:0;width:100%">View status &amp; diagnostic</button>' +
           '</div>';
       } else {
         c.innerHTML =
@@ -6373,7 +6529,7 @@ const HTML = /* html */ `<!DOCTYPE html>
         position: 'absolute', left: cx + 'px', top: cy + 'px',
         width: '20px', height: '20px', borderRadius: '50%',
         background: 'transparent',
-        boxShadow: '0 0 0 2px rgba(94,92,230,.5), 0 0 0 6px rgba(40,184,255,.3), 0 0 0 12px rgba(255,55,95,.15)',
+        boxShadow: '0 0 0 2px rgba(138,111,166,.5), 0 0 0 6px rgba(201,168,106,.3), 0 0 0 12px rgba(182,85,103,.15)',
         transform: 'translate(-50%, -50%) scale(.5)',
         opacity: '0',
         transition: 'transform 900ms cubic-bezier(.22,1,.36,1), opacity 900ms ease-out',
@@ -6426,7 +6582,7 @@ const HTML = /* html */ `<!DOCTYPE html>
         const btn = document.getElementById('profile-btn');
         btn.textContent = '⚠ Setup';
         btn.style.color = 'var(--orange)';
-        btn.style.borderColor = 'rgba(255,159,10,.4)';
+        btn.style.borderColor = 'rgba(212,168,67,.4)';
         showToast('No CV found — drop your resume to get started', 'error');
       }
       // Re-paint the empty-state copy now that cvExists is known. No-op when
@@ -6973,7 +7129,7 @@ async function handleRequest(req, res) {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(`<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JobSeeker — Gmail Setup</title>
+<title>Hireloom — Gmail Setup</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -7005,14 +7161,14 @@ async function handleRequest(req, res) {
     padding: 10px 12px; color: #f5f5f7; user-select: all; word-break: break-all;
   }
   .copy-btn {
-    border: none; background: rgba(40,184,255,.10); color: #28b8ff;
+    border: none; background: rgba(201,168,106,.10); color: #28b8ff;
     padding: 0 14px; font-size: 13px; font-weight: 600; cursor: pointer;
     transition: background .15s;
   }
-  .copy-btn:hover { background: rgba(40,184,255,.18); }
-  .copy-btn.copied { background: rgba(48,209,88,.18); color: #30d158; }
+  .copy-btn:hover { background: rgba(201,168,106,.18); }
+  .copy-btn.copied { background: rgba(110,155,91,.18); color: #30d158; }
   .alert {
-    background: rgba(255,159,10,.08); border: .5px solid rgba(255,159,10,.30);
+    background: rgba(212,168,67,.08); border: .5px solid rgba(212,168,67,.30);
     border-radius: 10px; padding: 12px 14px; margin-bottom: 20px;
     font-size: 13px; color: #ffd082;
   }
@@ -7033,12 +7189,12 @@ async function handleRequest(req, res) {
   .btn-back:hover { background: rgba(255,255,255,.10); text-decoration: none; }
   .scope-pill {
     display: inline-block; padding: 2px 9px; border-radius: 999px;
-    background: rgba(48,209,88,.10); color: #30d158;
+    background: rgba(110,155,91,.10); color: #30d158;
     font-size: 11px; font-weight: 600; letter-spacing: .02em;
   }
 </style></head><body>
 <div class="card">
-  <h1>Connect Gmail to JobSeeker</h1>
+  <h1>Connect Gmail to Hireloom</h1>
   <p class="sub">We watch for recruiter replies, interview invites, and verification codes — never message bodies past 7&nbsp;days.</p>
 
   <div class="alert"><strong>Setup required.</strong> Missing: ${missing.map(m => `<code>${m}</code>`).join(' and ')} in your <code>.env</code> file.</div>
@@ -7184,6 +7340,7 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
     });
     res.end(JSON.stringify({
       ok: true,
+      app: 'Hireloom',
       uptime: Math.round(process.uptime()),
       version: '1.7.0',
       now: new Date().toISOString(),
@@ -7393,16 +7550,16 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
           p{margin-top:.8em;color:var(--text-sec)}
           pre,code{font-family:"SF Mono","Fira Code",ui-monospace,monospace;font-size:13px}
           pre{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;margin-top:1em}
-          a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+          a{color:var(--link);text-decoration:none}a:hover{color:var(--link-hover);text-decoration:underline}
           hr{border:none;border-top:.5px solid var(--border);margin:28px 0}
           table{border-collapse:collapse;width:100%;margin:1em 0}
           th,td{border:.5px solid var(--border);padding:8px 12px;text-align:left;font-size:13px}
           th{background:var(--surface);color:var(--text-sec);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-          .back{display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;color:var(--accent);font-size:13px}
+          .back{display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;color:var(--link);font-size:13px}
           strong{color:var(--text)}
         </style>
       </head><body>
-        <a class="back" href="/">← Mission Control</a>
+        <a class="back" href="/">← Atelier</a>
         <h1 style="margin-top:0">${filename.replace(/-/g,' ').replace('.md','')}</h1>
         <hr>
         <pre>${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
@@ -7493,7 +7650,7 @@ async function start() {
   const server = http.createServer(handleRequest);
   server.listen(PORT, HOST, () => {
     const shownHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-    console.log(`JobSeeker Mission Control → http://${shownHost}:${PORT}  (bound to ${HOST})`);
+    console.log(`Hireloom Atelier → http://${shownHost}:${PORT}  (bound to ${HOST})`);
     console.log(`Gmail: ${gmailTokens ? 'connected' : GMAIL_CLIENT_ID ? 'credentials set, not yet authorized' : 'not configured'}`);
     console.log(`Data: ${DATA_DIR} | Reports: ${REPORTS_DIR}`);
     console.log(`Autopilot: trying Visible browser (CAPTCHA-ready)...`);

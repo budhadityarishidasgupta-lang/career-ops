@@ -1,15 +1,18 @@
-# Career-Ops
+# Hireloom
+
+> *heir + loom · um ateliê de carreira silencioso*
 
 [English](README.md) | [Español](README.es.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md)
 
 <p align="center">
-  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Career-Ops — Multi-Agent Job Search System" width="800"></a>
+  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Hireloom — Sistema Multi-Agente de Busca de Emprego" width="800"></a>
 </p>
 
 <p align="center">
-  <em>Passei meses me candidatando do jeito difícil. Então eu criei o sistema que eu queria ter.</em><br>
-  Empresas usam IA para filtrar candidatos. <strong>Eu dei aos candidatos IA para <em>escolher</em> empresas.</strong><br>
-  <em>Agora é open source.</em>
+  <em>Empresas usam IA para filtrar candidatos. Hireloom dá aos candidatos IA para <strong>escolher</strong> empresas.</em><br>
+  UX de herança, paleta oxblood, monograma serif gravado em chumbo — e o motor de avaliação senior implacável por baixo.
+  O ateliê tece; você decide.<br>
+  <em>Construído sobre o motor open source <a href="https://github.com/santifer/career-ops">career-ops</a>.</em>
 </p>
 
 <p align="center">

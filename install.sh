@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JobSeeker / Career-Ops installer
+# Hireloom installer (built on the career-ops engine)
 #
 # Usage:
 #   bash install.sh                 # interactive (asks docker vs local)
@@ -9,7 +9,7 @@
 #   bash install.sh --uninstall     # tear down (asks confirmation)
 #   bash install.sh --doctor        # diagnose environment
 #
-# After install, opens the dashboard at http://localhost:4747 and lands you
+# After install, opens the atelier at http://localhost:4747 and lands you
 # on the 6-step onboarding wizard: drop your resume → AI confirms basics →
 # pick target roles + comp → flag deal-breakers → add narrative → ship.
 #
@@ -44,8 +44,9 @@ banner() {
   printf "${C_BLUE}${C_BOLD}\n"
   cat <<'EOF'
    ╔═══════════════════════════════════════════╗
-   ║        JobSeeker · Career-Ops             ║
-   ║   Senior-level AI job-search assistant    ║
+   ║              H I R E L O O M              ║
+   ║          a quiet career atelier           ║
+   ║      heir + loom · senior-level AI        ║
    ╚═══════════════════════════════════════════╝
 EOF
   printf "${C_RESET}\n"

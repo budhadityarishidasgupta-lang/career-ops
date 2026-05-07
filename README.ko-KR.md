@@ -1,15 +1,18 @@
-# Career-Ops
+# Hireloom
+
+> *heir + loom · 고요한 커리어 아틀리에*
 
 [English](README.md) | [Español](README.es.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md)
 
 <p align="center">
-  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Career-Ops -- 멀티 에이전트 취업 시스템" width="800"></a>
+  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Hireloom -- 멀티 에이전트 취업 시스템" width="800"></a>
 </p>
 
 <p align="center">
-  <em>수개월간의 비효율적인 수동 지원 끝에, 직접 구직 파이프라인 시스템을 설계했습니다.</em><br>
-  기업은 AI로 지원자를 걸러냅니다. <strong>저는 지원자에게 AI를 줘서 <em>기업을 고르게</em> 했습니다.</strong><br>
-  <em>이제 오픈소스입니다.</em>
+  <em>기업은 AI로 지원자를 걸러냅니다. Hireloom 은 지원자에게 AI 를 쥐여주어 <strong>기업을 고르게</strong> 합니다.</em><br>
+  유산급 UX, 옥스블러드 팔레트, 활자조판된 세리프 워드마크 — 그 아래에는 가차 없는 시니어 평가 엔진.
+  아틀리에가 짜고, 결정은 당신이 합니다.<br>
+  <em>오픈소스 <a href="https://github.com/santifer/career-ops">career-ops</a> 엔진 위에 구축.</em>
 </p>
 
 <p align="center">

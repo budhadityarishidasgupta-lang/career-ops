@@ -1,15 +1,18 @@
-# Career-Ops
+# Hireloom
+
+> *heir + loom · 一座靜謐的職涯工坊*
 
 [English](README.md) | [Español](README.es.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md)
 
 <p align="center">
-  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Career-Ops — 多代理求職系統" width="800"></a>
+  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Hireloom — 多代理求職系統" width="800"></a>
 </p>
 
 <p align="center">
-  <em>我花了好幾個月用最費力的方式找工作。所以我打造了一個當初就希望能擁有的系統。</em><br>
-  企業用 AI 篩選候選人。<strong>我把 AI 交給候選人，讓他們來<em>挑選</em>企業。</strong><br>
-  <em>現在，它開源了。</em>
+  <em>企業用 AI 篩選候選人。Hireloom 把 AI 交給候選人，讓他們去<strong>挑選</strong>企業。</em><br>
+  傳家級體驗、酒紅與香檳金調色、襯線品牌字 —— 內核仍是那台冷峻的高階崗位評估引擎。
+  工坊負責編織，決定權在你。<br>
+  <em>建構於開源引擎 <a href="https://github.com/santifer/career-ops">career-ops</a> 之上。</em>
 </p>
 
 <p align="center">

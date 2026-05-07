@@ -1,7 +1,7 @@
 {
   "name": "career-ops",
   "version": "1.7.0",
-  "description": "JobSeeker — AI-powered senior-level job search pipeline. Drop your resume, the AI handles the boring parts.",
+  "description": "Hireloom — heritage-grade career atelier. AI-powered senior-level job search pipeline that scores, weaves, and queues offers — quietly, deliberately, never spammy.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -40,6 +40,8 @@
     "claude-code",
     "anthropic",
     "career",
+    "career-atelier",
+    "hireloom",
     "resume",
     "cv",
     "applicant-tracking",

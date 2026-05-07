@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    JobSeeker / Career-Ops Windows installer.
+    Hireloom Windows installer (built on the career-ops engine).
 
 .DESCRIPTION
     Mirror of install.sh for native PowerShell on Windows.
@@ -40,8 +40,9 @@ $Url = "http://${DashHost}:${Port}"
 function Write-Banner {
     Write-Host ''
     Write-Host '   ╔═══════════════════════════════════════════╗' -ForegroundColor Cyan
-    Write-Host '   ║        JobSeeker · Career-Ops             ║' -ForegroundColor Cyan
-    Write-Host '   ║   Senior-level AI job-search assistant    ║' -ForegroundColor Cyan
+    Write-Host '   ║              H I R E L O O M              ║' -ForegroundColor Cyan
+    Write-Host '   ║          a quiet career atelier           ║' -ForegroundColor Cyan
+    Write-Host '   ║      heir + loom · senior-level AI        ║' -ForegroundColor Cyan
     Write-Host '   ╚═══════════════════════════════════════════╝' -ForegroundColor Cyan
     Write-Host ''
 }

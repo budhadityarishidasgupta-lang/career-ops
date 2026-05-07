@@ -1,8 +1,16 @@
-# Career-Ops -- AI Job Search Pipeline
+# Hireloom -- Career Atelier (built on the career-ops engine)
+
+> *heir + loom · a quiet career atelier*
+
+The user-facing brand is **Hireloom**. The npm package and CLI bin are still
+`career-ops` — that's the engine name. Treat the dashboard wordmark, page
+titles, and human-facing surfaces as Hireloom; treat invocations like
+`/career-ops scan`, `node career-ops`, and the GitHub repo URL as the engine.
+This dual-naming is intentional, like a make-and-model relationship.
 
 ## Origin
 
-This system was built and used by [santifer](https://santifer.io) to evaluate 740+ job offers, generate 100+ tailored CVs, and land a Head of Applied AI role. The archetypes, scoring logic, negotiation scripts, and proof point structure all reflect his specific career search in AI/automation roles.
+The engine was built and used by [santifer](https://santifer.io) to evaluate 740+ job offers, generate 100+ tailored CVs, and land a Head of Applied AI role. The archetypes, scoring logic, negotiation scripts, and proof point structure all reflect his specific career search in AI/automation roles.
 
 The portfolio that goes with this system is also open source: [cv-santiago](https://github.com/santifer/cv-santiago).
 

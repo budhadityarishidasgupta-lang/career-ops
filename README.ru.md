@@ -1,10 +1,13 @@
-# Career-Ops
+# Hireloom
+
+> *heir + loom · тихое карьерное ателье*
 
 [English](README.md) | [Español](README.es.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md)
 
-> *Я месяцами откликался на вакансии вручную. И создал систему, которую хотел бы иметь с самого начала.*
-> Компании используют ИИ для фильтрации кандидатов. **Я дал кандидатам ИИ, чтобы *выбирать* компании.**
-> *Теперь это open source.*
+> *Компании используют ИИ для фильтрации кандидатов. Hireloom даёт кандидатам ИИ, чтобы **выбирать** компании.*
+> Палитра oxblood, серифный вордмарк, сдержанная анимация — и беспощадный senior-уровневый движок оценки внутри.
+> Ателье ткёт, решаешь ты.
+> *Построено на open-source движке [career-ops](https://github.com/santifer/career-ops).*
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-000?style=flat&logo=anthropic&logoColor=white)](https://claude.ai)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org)

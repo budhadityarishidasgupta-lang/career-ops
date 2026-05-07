@@ -1,15 +1,18 @@
-# Career-Ops
+# Hireloom
+
+> *heir + loom · 静謐なキャリアの工房*
 
 [English](README.md) | [Español](README.es.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md)
 
 <p align="center">
-  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Career-Ops — マルチエージェント求職システム" width="800"></a>
+  <a href="https://x.com/santifer"><img src="docs/hero-banner.jpg" alt="Hireloom — マルチエージェント求職システム" width="800"></a>
 </p>
 
 <p align="center">
-  <em>何ヶ月も泥臭く求職活動をしてきた。だから、当時欲しかったシステムを自分で作った。</em><br>
-  企業はAIで候補者をフィルタリングしている。<strong>ならば候補者にもAIを渡し、企業を<em>選ばせる</em>側にした。</strong><br>
-  <em>そして今、それをオープンソースにした。</em>
+  <em>企業はAIで候補者を選別する。Hireloom は候補者にAIを渡し、企業を<strong>選ばせる</strong>側に立たせる。</em><br>
+  老舗仕立てのUX、オックスブラッドのパレット、活版的なセリフのワードマーク —— その内側で動くのは
+  シニア向けの容赦ない評価エンジン。工房は織り、決めるのはあなた。<br>
+  <em>オープンソースの <a href="https://github.com/santifer/career-ops">career-ops</a> エンジンの上に構築。</em>
 </p>
 
 <p align="center">
