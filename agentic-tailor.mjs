@@ -147,13 +147,17 @@ function renderExperience(exp, tailoredBullets, maxPages = 2) {
       ? tailoredBullets.slice(0, maxBulletsPerJob)
       : (job.bullets || []).slice(0, maxBulletsPerJob);
 
+    const role = job.role || '';
+    const company = job.company || '';
+    const dates = job.period || '';
+    const titleLeft = [role, company].filter(Boolean).join(' — ');
+
     return `
     <div class="job">
       <div class="job-header">
-        <span>${job.role}</span>
-        <span>${job.period}</span>
+        <div><span class="job-title">${titleLeft}</span></div>
+        <div class="job-dates">${dates}</div>
       </div>
-      <div class="job-meta">${job.company}${job.location ? ` | ${job.location}` : ''}</div>
       <ul>
         ${bullets.map(b => `<li>${b}</li>`).join('')}
       </ul>
@@ -164,9 +168,7 @@ function renderExperience(exp, tailoredBullets, maxPages = 2) {
 function renderEducation(edu) {
   if (!Array.isArray(edu) || edu.length === 0) return '';
   return edu.map(e => `
-    <div class="edu-item">
-      <div class="edu-header">${e.degree} (${e.period}), ${e.school}</div>
-    </div>
+    <div>${e.degree}${e.school ? `, ${e.school}` : ''}${e.period ? ` (${e.period})` : ''}</div>
   `).join('');
 }
 
@@ -230,11 +232,11 @@ function renderCategorizedSkills(skills) {
     if (skillList.length > 0) {
       // Remove duplicates and limit to reasonable number
       const unique = [...new Set(skillList)].slice(0, 8);
-      html += `<div class="skills-category"><span class="skills-label">${name}:</span> ${unique.join(', ')}</div>`;
+      html += `<div class="skill-line"><span class="skill-label">${name}:</span> ${unique.join(', ')}</div>`;
     }
   }
 
-  return html || skills.slice(0, 12).join(', '); // Fallback: plain list if no categorization worked
+  return html || `<div class="skill-line"><span class="skill-label">Skills:</span> ${skills.slice(0, 12).join(', ')}</div>`;
 }
 
 // Calculate years of experience from experience array
@@ -673,28 +675,17 @@ async function tailorPackage(jd, profile, companyName) {
 
     const yearsInline = yearsExp > 0 ? ` • ${yearsExp}+ years` : '';
 
+    const skillsLines = renderCategorizedSkills(profile.narrative?.superpowers || []);
+    const hasSkills = Boolean(skillsLines && String(skillsLines).trim().length > 0);
+
     const resumeReps = {
       ...commonReps,
-      SECTION_SUMMARY: 'Professional Summary',
-      SUMMARY_TEXT: tailoring.summary || 'Results-driven professional with proven expertise in delivering high-quality outcomes.',
-      SECTION_COMPETENCIES: 'Core Competencies',
-      COMPETENCIES: (Array.isArray(tailoring.core_competencies) ? tailoring.core_competencies : []).map(skill => `<span class="competency-tag">${skill}</span>`).join('') || '<span class="competency-tag">Professional Skills</span>',
-      SECTION_EXPERIENCE: 'Professional Experience',
       EXPERIENCE: hasExperience ? renderExperience(experienceToShow, tailoring.experience, maxPages) : '',
       EXPERIENCE_DISPLAY: hasExperience ? 'block' : 'none',
-      SECTION_PROJECTS: 'Selected Achievements',
-      PROJECTS: hasProjects ? renderProjects(profile.narrative.proof_points) : '',
-      PROJECTS_DISPLAY: hasProjects ? 'block' : 'none',
-      SECTION_EDUCATION: 'Education',
       EDUCATION: hasEducation ? renderEducation(profile.education) : '',
       EDUCATION_DISPLAY: hasEducation ? 'block' : 'none',
-      SECTION_SKILLS: 'Technical Skills',
-      SKILLS: renderCategorizedSkills(profile.narrative?.superpowers || []),
-      SECTION_CERTIFICATIONS: '',
-      CERTIFICATIONS: '',
-      PAGE_WIDTH: '800px',
-      // No ATS marketing in candidate-facing resume
-      FOOTER_RIGHT: '',
+      SKILLS_LINES: skillsLines,
+      SKILLS_DISPLAY: hasSkills ? 'block' : 'none',
       YEARS_EXP_INLINE: yearsInline,
       PORTFOLIO_LINK: portfolioLink
     };

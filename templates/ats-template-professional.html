@@ -13,10 +13,10 @@
         }
 
         body {
-            font-family: 'Segoe UI', Calibri, Arial, sans-serif;
-            font-size: 10.5pt;
-            line-height: 1.4;
-            color: #2c3e50;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            line-height: 1.25;
+            color: #111;
             background: #fff;
         }
 
@@ -25,144 +25,95 @@
             margin: 0 auto;
         }
 
-        /* Header Section */
+        /* Header (matches provided PDF style) */
         header {
-            border-bottom: 2px solid #1c1917;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .name-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            text-align: center;
             margin-bottom: 10px;
         }
 
         h1 {
-            font-size: 22pt;
-            font-weight: 700;
-            color: #1c1917;
+            font-size: 18pt;
+            font-weight: 800;
             letter-spacing: 0.5px;
-        }
-
-        .title-badge {
-            font-size: 11pt;
-            color: #555;
-            font-weight: 500;
-            margin-top: 3px;
-        }
-
-        .contact-line {
-            font-size: 9.5pt;
-            color: #444;
             margin-bottom: 4px;
         }
 
-        .contact-line a {
-            color: #2563eb;
+        .headline {
+            font-size: 10.5pt;
+            margin-bottom: 6px;
+        }
+
+        .contact {
+            font-size: 9pt;
+            color: #222;
+            margin-bottom: 2px;
+        }
+
+        .contact a {
+            color: #111;
             text-decoration: none;
         }
 
-        /* ATS Score Badge */
-        .ats-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 8pt;
-            font-weight: 600;
-            margin-left: 10px;
+        .top-rule {
+            margin-top: 10px;
+            border-top: 2px solid #111;
         }
 
-        .ats-high {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .ats-medium {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .ats-low {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* Section Styling */
+        /* Sections */
         section {
-            margin-bottom: 18px;
+            margin-top: 10px;
         }
 
         h2 {
-            font-size: 11pt;
-            font-weight: 700;
-            color: #1c1917;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 4px;
-            margin-bottom: 10px;
-        }
-
-        /* Professional Summary */
-        .summary-text {
-            font-size: 10.5pt;
-            text-align: left;
-            line-height: 1.5;
-            color: #374151;
-        }
-
-        /* Core Competencies */
-        .competencies-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 5px;
-        }
-
-        .competency-tag {
-            background: #f3f4f6;
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-size: 9pt;
-            color: #374151;
-            font-weight: 500;
-        }
-
-        /* Skills Categories */
-        .skills-section {
             font-size: 9.5pt;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
 
-        .skills-category {
-            margin-bottom: 5px;
+        .rule {
+            border-top: 1px solid #111;
+            margin-bottom: 6px;
         }
 
-        .skills-label {
-            font-weight: 600;
-            color: #1c1917;
+        /* Skills lines: "Category: items" */
+        .skills-lines {
+            font-size: 9pt;
+        }
+
+        .skill-line {
+            margin-bottom: 3px;
+        }
+
+        .skill-label {
+            font-weight: 800;
         }
 
         /* Experience */
         .job {
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             page-break-inside: avoid;
         }
 
         .job-header {
             display: flex;
             justify-content: space-between;
-            font-weight: 600;
-            font-size: 10.5pt;
-            color: #1c1917;
+            align-items: baseline;
+            font-size: 9.5pt;
+            margin-bottom: 2px;
         }
 
-        .job-meta {
-            font-size: 9.5pt;
-            color: #6b7280;
-            font-style: italic;
-            margin-bottom: 4px;
+        .job-title {
+            font-weight: 800;
+        }
+
+        .job-company {
+            font-weight: 600;
+        }
+
+        .job-dates {
+            font-weight: 700;
         }
 
         .job ul {
@@ -172,138 +123,52 @@
         }
 
         .job li {
-            font-size: 10pt;
             margin-bottom: 2px;
-            color: #374151;
-            line-height: 1.35;
         }
 
         /* Education */
-        .edu-item {
-            margin-bottom: 6px;
+        .edu {
+            font-size: 9.5pt;
         }
 
-        .edu-header {
-            font-weight: 600;
-            font-size: 10pt;
-        }
-
-        .edu-location {
-            font-size: 9pt;
-            color: #6b7280;
-        }
-
-        /* Projects/Achievements */
-        .project {
-            margin-bottom: 5px;
-            font-size: 10pt;
-        }
-
-        .project-name {
-            font-weight: 600;
-        }
-
-        /* Print Optimization */
         @media print {
-            body {
-                padding: 0;
-                font-size: 10pt;
-            }
-
-            .job {
-                page-break-inside: avoid;
-            }
-
-            section {
-                page-break-inside: auto;
-            }
-        }
-
-        /* Footer with ATS Score */
-        .resume-footer {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 8pt;
-            color: #9ca3af;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .ats-score-footer {
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .portfolio-link {
-            display: inline;
+            a { color: #111; text-decoration: none; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="name-section">
-                <div>
-                    <h1>{{NAME}}</h1>
-                    <div class="title-badge">{{PROFESSIONAL_HEADLINE}}{{YEARS_EXP_INLINE}}</div>
-                </div>
+            <h1>{{NAME}}</h1>
+            <div class="headline">{{PROFESSIONAL_HEADLINE}}</div>
+            <div class="contact">{{LOCATION}} · {{EMAIL}} · {{PHONE}}</div>
+            <div class="contact">
+                <a href="{{LINKEDIN_URL}}">{{LINKEDIN_DISPLAY}}</a>{{PORTFOLIO_LINK}}
             </div>
-
-            <div class="contact-line">
-                {{LOCATION}} | {{EMAIL}} | {{PHONE}}
-            </div>
-            <div class="contact-line">
-                <a href="{{LINKEDIN_URL}}">{{LINKEDIN_DISPLAY}}</a>
-                <span class="portfolio-link">{{PORTFOLIO_LINK}}</span>
-            </div>
+            <div class="top-rule"></div>
         </header>
 
-        <section>
-            <h2>{{SECTION_SUMMARY}}</h2>
-            <div class="summary-text">{{SUMMARY_TEXT}}</div>
-        </section>
-
-        <section>
-            <h2>{{SECTION_COMPETENCIES}}</h2>
-            <div class="competencies-grid">
-                {{COMPETENCIES}}
-            </div>
-        </section>
-
-        <section>
-            <h2>{{SECTION_SKILLS}}</h2>
-            <div class="skills-section">
-                {{SKILLS}}
+        <section style="display: {{SKILLS_DISPLAY}};">
+            <h2>Technical Skills</h2>
+            <div class="rule"></div>
+            <div class="skills-lines">
+                {{SKILLS_LINES}}
             </div>
         </section>
 
         <section style="display: {{EXPERIENCE_DISPLAY}};">
-            <h2>{{SECTION_EXPERIENCE}}</h2>
-            <div id="experience-content">
-                {{EXPERIENCE}}
-            </div>
-        </section>
-
-        <section id="projects-section" style="display: {{PROJECTS_DISPLAY}};">
-            <h2>{{SECTION_PROJECTS}}</h2>
-            <div id="projects-content">
-                {{PROJECTS}}
-            </div>
+            <h2>Professional Experience</h2>
+            <div class="rule"></div>
+            {{EXPERIENCE}}
         </section>
 
         <section style="display: {{EDUCATION_DISPLAY}};">
-            <h2>{{SECTION_EDUCATION}}</h2>
-            <div id="education-content">
+            <h2>Education</h2>
+            <div class="rule"></div>
+            <div class="edu">
                 {{EDUCATION}}
             </div>
         </section>
-
-        <div class="resume-footer">
-            <span>Generated on {{DATE}} for {{COMPANY_NAME}} role</span>
-            <span class="ats-score-footer">{{FOOTER_RIGHT}}</span>
-        </div>
     </div>
 </body>
 </html>
