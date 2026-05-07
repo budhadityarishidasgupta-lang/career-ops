@@ -173,6 +173,48 @@ describe('validateOnboardPayload', () => {
     const p = valid(); p.narrative.proof_points = 'oops';
     assert.ok(validateOnboardPayload(p).includes('proof_points must be array'));
   });
+
+  // ApplyPilot-inspired optional sections
+  test('accepts a minimal work_authorization block', () => {
+    const p = valid();
+    p.work_authorization = { legally_authorized_to_work: 'Yes', require_sponsorship: 'No' };
+    assert.deepEqual(validateOnboardPayload(p), []);
+  });
+  test('rejects work_authorization fields longer than 200 chars', () => {
+    const p = valid();
+    p.work_authorization = { legally_authorized_to_work: 'X'.repeat(201) };
+    assert.ok(validateOnboardPayload(p).some(e => /work_authorization/.test(e)));
+  });
+  test('accepts an eeo_voluntary block with all four keys', () => {
+    const p = valid();
+    p.eeo_voluntary = {
+      gender: 'Decline to self-identify',
+      race_ethnicity: 'Decline to self-identify',
+      veteran_status: 'I am not a protected veteran',
+      disability_status: 'I do not wish to answer',
+    };
+    assert.deepEqual(validateOnboardPayload(p), []);
+  });
+  test('accepts resume_facts arrays + scalar school', () => {
+    const p = valid();
+    p.resume_facts = {
+      preserved_companies: ['ACME', 'Globex'],
+      preserved_projects: ['Project X'],
+      preserved_school: 'MIT',
+      real_metrics: ['78% time saved'],
+    };
+    assert.deepEqual(validateOnboardPayload(p), []);
+  });
+  test('rejects resume_facts.preserved_companies when it is a non-array', () => {
+    const p = valid();
+    p.resume_facts = { preserved_companies: 'ACME' };
+    assert.ok(validateOnboardPayload(p).some(e => /preserved_companies/.test(e)));
+  });
+  test('rejects resume_facts entries longer than 300 chars', () => {
+    const p = valid();
+    p.resume_facts = { preserved_companies: ['X'.repeat(301)] };
+    assert.ok(validateOnboardPayload(p).some(e => /resume_facts/.test(e)));
+  });
 });
 
 // ── serializeProfileYaml ────────────────────────────────────────────────────
@@ -301,6 +343,71 @@ describe('serializeProfileYaml', () => {
       target_roles: ['Director "AI Strategy"'],
     });
     assert.match(yml, /- "Director \\"AI Strategy\\""/);
+  });
+
+  // ApplyPilot-inspired sections — emit defaults when absent so downstream
+  // consumers (form fillers, EEO renderers) can read them without if-undefined
+  // guards.
+  test('emits a work_authorization block with empty strings by default', () => {
+    const yml = serializeProfileYaml({
+      basics: { full_name: 'X', email: 'x@y.com' },
+      target_roles: ['Y'],
+    });
+    assert.match(yml, /work_authorization:/);
+    assert.match(yml, /legally_authorized_to_work: ""/);
+    assert.match(yml, /require_sponsorship: ""/);
+  });
+  test('persists supplied work_authorization values verbatim', () => {
+    const yml = serializeProfileYaml({
+      basics: { full_name: 'X', email: 'x@y.com' },
+      target_roles: ['Y'],
+      work_authorization: { legally_authorized_to_work: 'Yes', require_sponsorship: 'No' },
+    });
+    assert.match(yml, /legally_authorized_to_work: "Yes"/);
+    assert.match(yml, /require_sponsorship: "No"/);
+  });
+  test('emits eeo_voluntary defaults so EEO renderers always have values', () => {
+    const yml = serializeProfileYaml({
+      basics: { full_name: 'X', email: 'x@y.com' },
+      target_roles: ['Y'],
+    });
+    assert.match(yml, /eeo_voluntary:/);
+    assert.match(yml, /gender: "Decline to self-identify"/);
+    assert.match(yml, /race_ethnicity: "Decline to self-identify"/);
+    assert.match(yml, /veteran_status: "I am not a protected veteran"/);
+    assert.match(yml, /disability_status: "I do not wish to answer"/);
+  });
+  test('emits resume_facts arrays + scalar school', () => {
+    const yml = serializeProfileYaml({
+      basics: { full_name: 'X', email: 'x@y.com' },
+      target_roles: ['Y'],
+      resume_facts: {
+        preserved_companies: ['ACME', 'Globex'],
+        preserved_projects: ['Project X'],
+        preserved_school: 'MIT',
+        real_metrics: ['78% time saved', '$4M cost cut'],
+      },
+    });
+    assert.match(yml, /preserved_companies:/);
+    assert.match(yml, /- "ACME"/);
+    assert.match(yml, /- "Globex"/);
+    assert.match(yml, /preserved_school: "MIT"/);
+    assert.match(yml, /- "78% time saved"/);
+  });
+  test('skips empty resume_facts entries gracefully', () => {
+    const yml = serializeProfileYaml({
+      basics: { full_name: 'X', email: 'x@y.com' },
+      target_roles: ['Y'],
+      resume_facts: {
+        preserved_companies: ['ACME', '', null, 'Globex'],
+        preserved_projects: [],
+        real_metrics: ['78%'],
+      },
+    });
+    const acme = (yml.match(/- "ACME"/g) || []).length;
+    const empty = (yml.match(/- ""/g) || []).length;
+    assert.equal(acme, 1);
+    assert.equal(empty, 0);
   });
 });
 

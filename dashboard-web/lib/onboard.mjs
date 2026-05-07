@@ -24,6 +24,9 @@ export function serializeProfileYaml(p) {
   const b = (p && p.basics) || {};
   const c = (p && p.compensation) || {};
   const n = (p && p.narrative) || {};
+  const wa = (p && p.work_authorization) || {};
+  const eeo = (p && p.eeo_voluntary) || {};
+  const rf = (p && p.resume_facts) || {};
   const linkedin = (b.linkedin || '').trim().replace(/^https?:\/\//i, '');
   const locParts = (b.location || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -88,6 +91,45 @@ export function serializeProfileYaml(p) {
   out.push('  timezone: ""');
   out.push('  visa_status: ""');
   out.push('');
+
+  // Work authorization (auto-fill for "Are you legally authorized?" / "Do you
+  // require sponsorship?" — the two questions every US/CA application asks).
+  // Pattern adopted from ApplyPilot.
+  out.push('work_authorization:');
+  out.push(`  legally_authorized_to_work: ${yamlQuote(wa.legally_authorized_to_work || '')}`);
+  out.push(`  require_sponsorship: ${yamlQuote(wa.require_sponsorship || '')}`);
+  out.push(`  work_permit_type: ${yamlQuote(wa.work_permit_type || '')}`);
+  out.push('');
+
+  // EEO voluntary self-id defaults — most US Fortune 500 EEO sections are
+  // optional but mandatory to render. "Decline to self-identify" is always a
+  // valid answer; users can edit profile.yml to change.
+  out.push('eeo_voluntary:');
+  out.push(`  gender: ${yamlQuote(eeo.gender || 'Decline to self-identify')}`);
+  out.push(`  race_ethnicity: ${yamlQuote(eeo.race_ethnicity || 'Decline to self-identify')}`);
+  out.push(`  veteran_status: ${yamlQuote(eeo.veteran_status || 'I am not a protected veteran')}`);
+  out.push(`  disability_status: ${yamlQuote(eeo.disability_status || 'I do not wish to answer')}`);
+  out.push('');
+
+  // Resume facts — the immutable identity guard. These are facts the AI
+  // tailoring/cover-letter modes MUST treat as ground truth. Anything not
+  // here cannot be claimed without explicit user consent. Prevents
+  // hallucinated companies, projects, schools, and metrics.
+  out.push('resume_facts:');
+  out.push('  preserved_companies:');
+  for (const x of (Array.isArray(rf.preserved_companies) ? rf.preserved_companies : [])) {
+    if (x) out.push(`    - ${yamlQuote(x)}`);
+  }
+  out.push('  preserved_projects:');
+  for (const x of (Array.isArray(rf.preserved_projects) ? rf.preserved_projects : [])) {
+    if (x) out.push(`    - ${yamlQuote(x)}`);
+  }
+  out.push(`  preserved_school: ${yamlQuote(rf.preserved_school || '')}`);
+  out.push('  real_metrics:');
+  for (const x of (Array.isArray(rf.real_metrics) ? rf.real_metrics : [])) {
+    if (x) out.push(`    - ${yamlQuote(x)}`);
+  }
+  out.push('');
   return out.join('\n');
 }
 
@@ -124,6 +166,36 @@ export function validateOnboardPayload(p) {
     if (n.best_achievement != null && (typeof n.best_achievement !== 'string' || n.best_achievement.length > 4000)) errors.push('best_achievement too long');
     if (n.proof_points != null && !Array.isArray(n.proof_points)) errors.push('proof_points must be array');
     else if (Array.isArray(n.proof_points) && n.proof_points.length > 20) errors.push('too many proof_points');
+  }
+  // Optional ApplyPilot-style sections — all string-bounded, all skip-friendly.
+  if (p.work_authorization != null && typeof p.work_authorization === 'object') {
+    for (const k of ['legally_authorized_to_work', 'require_sponsorship', 'work_permit_type']) {
+      if (p.work_authorization[k] != null && (typeof p.work_authorization[k] !== 'string' || p.work_authorization[k].length > 200)) {
+        errors.push(`work_authorization.${k} invalid`);
+      }
+    }
+  }
+  if (p.eeo_voluntary != null && typeof p.eeo_voluntary === 'object') {
+    for (const k of ['gender', 'race_ethnicity', 'veteran_status', 'disability_status']) {
+      if (p.eeo_voluntary[k] != null && (typeof p.eeo_voluntary[k] !== 'string' || p.eeo_voluntary[k].length > 200)) {
+        errors.push(`eeo_voluntary.${k} invalid`);
+      }
+    }
+  }
+  if (p.resume_facts != null && typeof p.resume_facts === 'object') {
+    const rf = p.resume_facts;
+    for (const k of ['preserved_companies', 'preserved_projects', 'real_metrics']) {
+      if (rf[k] != null && !Array.isArray(rf[k])) errors.push(`resume_facts.${k} must be array`);
+      else if (Array.isArray(rf[k]) && rf[k].length > 100) errors.push(`resume_facts.${k} too many entries`);
+      else if (Array.isArray(rf[k])) {
+        for (const v of rf[k]) {
+          if (typeof v !== 'string' || v.length > 300) { errors.push(`resume_facts.${k} entry invalid`); break; }
+        }
+      }
+    }
+    if (rf.preserved_school != null && (typeof rf.preserved_school !== 'string' || rf.preserved_school.length > 200)) {
+      errors.push('resume_facts.preserved_school invalid');
+    }
   }
   return errors;
 }
