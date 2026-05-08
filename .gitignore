@@ -103,6 +103,13 @@ docs/solutions/
 tests/__fixtures__/tmp/
 .pr-body.md
 
+# Misplaced cross-drive paths (Windows: when a tool drops "E:/..."
+# inside this repo, the colon gets encoded to U+F03A by Win32; treat
+# any literal "E:/" or its encoded form as junk that must never ship.
+# The literal-codepoint rule lives at the bottom of this file because
+# git is byte-strict and the U+F03A char is invisible in most editors).
+E:/
+
 # ── Local experimental scripts (per-user, may contain PII) ──────────────────
 # These belong to individual user sessions / forks. The canonical features
 # they prototype eventually land in tracked scripts (auto-apply.mjs, scan.mjs,
@@ -122,3 +129,5 @@ batch/.js-prompt-*.md
 batch/jobseeker.pid
 batch/tracker-additions/merged/
 batch/tmp/
+# (literal E + U+F03A, the Win32 encoding of the colon when E:/ leaks into a repo)
+E/
