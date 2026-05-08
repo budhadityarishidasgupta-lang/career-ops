@@ -6,6 +6,45 @@ export const runtime = 'nodejs';
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024; // 12MB safety cap (Vercel-friendly)
 
+function ensurePdfJsPolyfills() {
+  // pdf.js expects DOMMatrix in some builds; Vercel Node runtime doesn't provide it.
+  const g: any = globalThis as any;
+  if (typeof g.DOMMatrix === 'undefined') {
+    class DOMMatrixPolyfill {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      constructor(init?: any) {
+        // Accept [a,b,c,d,e,f] or {a,b,c,d,e,f}
+        if (Array.isArray(init) && init.length >= 6) {
+          [this.a, this.b, this.c, this.d, this.e, this.f] = init.slice(0, 6).map(Number);
+        } else if (init && typeof init === 'object') {
+          this.a = Number(init.a ?? this.a);
+          this.b = Number(init.b ?? this.b);
+          this.c = Number(init.c ?? this.c);
+          this.d = Number(init.d ?? this.d);
+          this.e = Number(init.e ?? this.e);
+          this.f = Number(init.f ?? this.f);
+        }
+      }
+      static fromMatrix(init?: any) {
+        return new DOMMatrixPolyfill(init);
+      }
+      multiply(_other: any) {
+        // Minimal implementation: enough for pdf.js text extraction paths.
+        return new DOMMatrixPolyfill();
+      }
+      inverse() {
+        return new DOMMatrixPolyfill();
+      }
+      toString() {
+        return `matrix(${this.a}, ${this.b}, ${this.c}, ${this.d}, ${this.e}, ${this.f})`;
+      }
+    }
+    g.DOMMatrix = DOMMatrixPolyfill;
+    // Some builds reference DOMMatrixReadOnly too.
+    if (typeof g.DOMMatrixReadOnly === 'undefined') g.DOMMatrixReadOnly = DOMMatrixPolyfill;
+  }
+}
+
 function normalizeText(input: string) {
   return (input || '')
     .replace(/\r/g, '\n')
@@ -99,6 +138,7 @@ export async function POST(req: NextRequest) {
 
     step = 'imports';
     // Load parsers at runtime to avoid Turbopack/ESM export issues.
+    ensurePdfJsPolyfills();
     const pdfParseMod: any = await import('pdf-parse');
     const pdfParse: any = pdfParseMod?.default || pdfParseMod;
     const mammothMod: any = await import('mammoth');
