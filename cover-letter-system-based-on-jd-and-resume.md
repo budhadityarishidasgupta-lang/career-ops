@@ -314,7 +314,7 @@ Dear Hiring Manager,\par\vspace{6pt}
 [PARAGRAPH 1: Hook -- 3-4 sentences. Names role + company. Leads with exit-story. One hero metric.]
 \par\vspace{6pt}
 
-[PARAGRAPH 2: Why I match -- 4-5 sentences. JD keyword echo. 2-3 approved proof points. \textbf{} on 2-4 high-priority JD keywords echoing the resume.]
+[PARAGRAPH 2: Why I match -- 4-5 sentences. JD keyword echo. 2-3 approved proof points. \textbf{} on at least 2 high-priority JD keywords echoing the resume; the total across all paragraphs is 4-7 (see Phase 4).]
 \par\vspace{6pt}
 
 [PARAGRAPH 3: Why this company -- 3-4 sentences. Specific JD-supplied company detail. Why it matters to candidate.]
