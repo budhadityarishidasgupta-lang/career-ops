@@ -6,45 +6,6 @@ export const runtime = 'nodejs';
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024; // 12MB safety cap (Vercel-friendly)
 
-function ensurePdfJsPolyfills() {
-  // pdf.js expects DOMMatrix in some builds; Vercel Node runtime doesn't provide it.
-  const g: any = globalThis as any;
-  if (typeof g.DOMMatrix === 'undefined') {
-    class DOMMatrixPolyfill {
-      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-      constructor(init?: any) {
-        // Accept [a,b,c,d,e,f] or {a,b,c,d,e,f}
-        if (Array.isArray(init) && init.length >= 6) {
-          [this.a, this.b, this.c, this.d, this.e, this.f] = init.slice(0, 6).map(Number);
-        } else if (init && typeof init === 'object') {
-          this.a = Number(init.a ?? this.a);
-          this.b = Number(init.b ?? this.b);
-          this.c = Number(init.c ?? this.c);
-          this.d = Number(init.d ?? this.d);
-          this.e = Number(init.e ?? this.e);
-          this.f = Number(init.f ?? this.f);
-        }
-      }
-      static fromMatrix(init?: any) {
-        return new DOMMatrixPolyfill(init);
-      }
-      multiply(_other: any) {
-        // Minimal implementation: enough for pdf.js text extraction paths.
-        return new DOMMatrixPolyfill();
-      }
-      inverse() {
-        return new DOMMatrixPolyfill();
-      }
-      toString() {
-        return `matrix(${this.a}, ${this.b}, ${this.c}, ${this.d}, ${this.e}, ${this.f})`;
-      }
-    }
-    g.DOMMatrix = DOMMatrixPolyfill;
-    // Some builds reference DOMMatrixReadOnly too.
-    if (typeof g.DOMMatrixReadOnly === 'undefined') g.DOMMatrixReadOnly = DOMMatrixPolyfill;
-  }
-}
-
 function normalizeText(input: string) {
   return (input || '')
     .replace(/\r/g, '\n')
@@ -128,6 +89,30 @@ function parseEducation(text: string) {
   return out;
 }
 
+async function extractPdfText(bytes: Buffer): Promise<string> {
+  // Use unpdf - serverless-safe PDF text extraction (no workers, no DOM dependencies)
+  try {
+    const { extractText } = await import('unpdf');
+    const text = await extractText(bytes);
+    return text || '';
+  } catch (e: any) {
+    // Fallback: try pdfjs-dist directly with Node-friendly settings
+    try {
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
+      const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
+      }
+      return fullText;
+    } catch (e2: any) {
+      throw new Error(`PDF extraction failed: ${e?.message || ''} / fallback: ${e2?.message || ''}`);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   let step = 'auth';
   try {
@@ -135,14 +120,6 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    step = 'imports';
-    // Load parsers at runtime to avoid Turbopack/ESM export issues.
-    ensurePdfJsPolyfills();
-    const pdfParseMod: any = await import('pdf-parse');
-    const pdfParse: any = pdfParseMod?.default || pdfParseMod;
-    const mammothMod: any = await import('mammoth');
-    const mammoth: any = mammothMod?.default || mammothMod;
 
     step = 'formData';
     const form = await req.formData();
@@ -165,27 +142,10 @@ export async function POST(req: NextRequest) {
     step = 'parse';
     let text = '';
     if (lower.endsWith('.pdf')) {
-      // pdf-parse has multiple export shapes across versions.
-      // IMPORTANT (Vercel): Always prefer the PDFParse class path with disableWorker=true.
-      // The function export path can try to boot a PDF.js worker, which fails in serverless output.
-      const PDFParseCtor = pdfParse?.PDFParse || pdfParseMod?.PDFParse;
-      if (PDFParseCtor) {
-        // pdf-parse@2.x: pass the PDF buffer via constructor options; load() takes no args.
-        // IMPORTANT (Vercel): disable PDF.js worker. The worker chunk isn't available in serverless output,
-        // which causes "Setting up fake worker failed: Cannot find module ... pdf.worker.mjs".
-        const parser = new PDFParseCtor({ data: bytes, disableWorker: true });
-        await parser.load();
-        const out = await parser.getText();
-        text = out?.text || '';
-      } else if (typeof pdfParse === 'function') {
-        // Fallback: some builds expose a function. This path is less reliable on Vercel.
-        // Keep it as a last resort.
-        const parsed = await pdfParse(bytes);
-        text = parsed?.text || '';
-      } else {
-        throw new Error(`PDF parser unavailable (exports: ${Object.keys(pdfParseMod || {}).join(', ')})`);
-      }
+      text = await extractPdfText(bytes);
     } else if (lower.endsWith('.docx')) {
+      const mammothMod: any = await import('mammoth');
+      const mammoth: any = mammothMod?.default || mammothMod;
       const result = await mammoth.extractRawText({ buffer: bytes });
       text = result.value || '';
     } else {
@@ -209,21 +169,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-      ok: true,
-      // Back-compat for Dashboard UI: also expose fields at top-level.
-      experience,
-      education,
-      raw_text_preview,
-      extracted: {
+        ok: true,
+        // Back-compat for Dashboard UI: also expose fields at top-level.
         experience,
         education,
         raw_text_preview,
-      },
+        extracted: {
+          experience,
+          education,
+          raw_text_preview,
+        },
       },
       {
         headers: {
           // Lets us confirm Vercel picked up latest deploy.
-          'X-CareerOps-ResumeImport-Version': 'disableWorker-v2',
+          'X-CareerOps-ResumeImport-Version': 'unpdf-v1',
         },
       }
     );
@@ -235,6 +195,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-
 }
-
