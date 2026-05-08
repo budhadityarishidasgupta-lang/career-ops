@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Hireloom">
+  <title>Hireloom</title>
+  <defs>
+    <linearGradient id="hl-favicon-grad-l" x1="20" y1="2" x2="20" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="50%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+  </defs>
+  <!-- Light-mode squircle: cream surface so the gradient pops on white tabs -->
+  <rect x="0" y="0" width="40" height="40" rx="8" ry="8" fill="#fafaf9"/>
+  <path d="M4 12 L9 4 L14 12 L14 16 L26 16 L26 12 L31 4 L36 12 L36 28 L31 36 L26 28 L26 24 L14 24 L14 28 L9 36 L4 28 Z"
+        fill="url(#hl-favicon-grad-l)"/>
+</svg>

@@ -109,7 +109,7 @@ test('HTTP integration', async (t) => {
     assert.equal(r.statusCode, 200);
     const json = JSON.parse(r.body.toString('utf8'));
     assert.equal(json.app, 'Hireloom');
-    assert.equal(json.version, '1.7.0');
+    assert.equal(json.version, '1.8.0');
     assert.equal(json.ok, true);
     assert.equal(json.authMode, 'loopback');
     assert.equal(json.lastUnhandledRejection, null);

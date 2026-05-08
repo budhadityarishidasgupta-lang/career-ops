@@ -1,0 +1,101 @@
+name: Security
+
+# Defense-in-depth: catches secrets, dependency vulnerabilities, and known
+# bad patterns before they merge. CodeQL lives in its own workflow because
+# it needs the matrix strategy + gradle-style setup; this file owns the
+# faster, repository-only checks.
+
+on:
+  pull_request:
+    branches: [main, security/*]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly Monday 04:00 UTC sweep — catches new CVEs that landed against
+    # currently-pinned versions even when no human is pushing.
+    #
+    # Why GHA cron, not Vercel Cron: this job runs against the git repo
+    # (gitleaks needs full history, npm audit needs package-lock.json,
+    # forbidden-patterns greps tracked files). None of that has a Vercel
+    # deploy context — Vercel Cron Jobs invoke deployed API routes, which
+    # is a different problem.
+    - cron: '0 4 * * 1'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  npm-audit:
+    name: npm audit (production deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Audit (high severity blocks merge)
+        run: npm audit --audit-level=high --omit=dev
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  forbidden-patterns:
+    name: Forbidden patterns
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+      - name: Block PII / dev artifacts
+        run: |
+          # Gating list — these are red flags if any of them ship to main.
+          # Each rule has a "why" so future maintainers understand the intent.
+          FAIL=0
+
+          # 1. Real .env files (only .env.example may be tracked)
+          if git ls-files | grep -E '^\.env($|\.[^e])' | grep -v '\.example'; then
+            echo "::error::Tracked .env file detected — should be gitignored"
+            FAIL=1
+          fi
+
+          # 2. OAuth tokens accidentally checked in
+          if git ls-files | grep -E 'gmail-tokens\.json|gmail-cache\.json'; then
+            echo "::error::Gmail token / cache file is tracked — should be gitignored"
+            FAIL=1
+          fi
+
+          # 3. Personal CV / interview prep / story bank (PII)
+          if git ls-files | grep -E '^(cv\.md|interview-prep/.*\.md)$' | grep -v '\.template' | grep -v 'gitkeep'; then
+            echo "::error::Personal PII (cv.md / interview-prep) is tracked"
+            FAIL=1
+          fi
+
+          # 4. Cross-drive Windows path leak (E:/ encoded as U+F03A)
+          if git ls-files | grep -P '\xef\x80\xba'; then
+            echo "::error::Cross-drive Windows path leak detected"
+            FAIL=1
+          fi
+
+          # 5. console.log in committed source (allowed in tests + scripts)
+          if grep -rn 'console\.log' dashboard-web/server.mjs dashboard-web/lib/ 2>/dev/null | grep -v '// allow:console'; then
+            echo "::warning::console.log in production source — prefer structured logger"
+          fi
+
+          exit $FAIL

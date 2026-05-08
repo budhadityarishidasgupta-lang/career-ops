@@ -1,0 +1,27 @@
+{
+  "name": "Hireloom — Your AI-Powered Career Accelerator",
+  "short_name": "Hireloom",
+  "description": "A quiet, deliberate system for weaving a career — one application at a time, none of them spam.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0612",
+  "theme_color": "#0a0612",
+  "lang": "en",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

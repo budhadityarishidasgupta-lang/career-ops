@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.8.0](https://github.com/santifer/career-ops/compare/career-ops-v1.7.0...career-ops-v1.8.0) (2026-05-08)
+
+### Brand
+
+* **logo:** ship the official Hireloom mark — hexagonal "H" in a vivid blue → cyan → teal vertical gradient, paired with an uppercase HIRELOOM wordmark and soft cyan/blue halo. Inline SVG so it scales without raster artifacts. Replaces the violet circle pendant.
+* **tagline:** "Career Atelier" → "Your AI-Powered Career Accelerator" across `<title>`, file headers, and OG cards.
+* **favicons:** SVG favicon ships with separate dark + light variants; OS chooses based on `prefers-color-scheme`.
+* **PWA manifest** added at `/manifest.webmanifest` so the dashboard can be added to a home screen on iOS / Android.
+* **Open Graph + Twitter cards** with a 1200×630 SVG OG image — link previews now show the brand graphic.
+
+### Features
+
+* **structured error log** at `data/errors.log` with size-based rotation (2 MiB → `errors.log.1`). Surfaces last 8 entries + counters in `/api/health` so external monitors can graph error rates.
+* **skip-to-content link** for keyboard / screen-reader users (WCAG 2.4.1 — Bypass Blocks).
+* **mobile breakpoints** at ≤1024 / ≤768 / ≤480 px. Header collapses gracefully on phones; touch targets meet WCAG 2.2 AA 44×44 px minimum.
+* **`/favicon.ico` redirect** to `/favicon.svg` so legacy browsers stop 404-ing on the well-known path.
+
+### Tests
+
+* **brand-assets E2E tests** (`tests/e2e-brand-assets.test.mjs`) — verifies favicon, OG image, manifest endpoints + every meta tag in the head.
+* **browser E2E tests** (`tests/e2e-dashboard.browser.test.mjs`) — Playwright Chromium drives the dashboard end-to-end: logo SVG, theme toggle, dark/light backgrounds, keyboard nav, console errors, reduced-motion compliance.
+* **a11y E2E tests** (`tests/e2e-a11y.browser.test.mjs`) — WCAG AA contrast checks against rendered pixels, touch-target audit, focus-ring detection.
+* **performance E2E tests** (`tests/e2e-perf.browser.test.mjs`) — HTML payload size budget (≤200 KB gzipped), first-paint ≤1500 ms, CLS <0.10.
+* **Gmail OAuth contract tests** (`tests/e2e-gmail-contract.test.mjs`) — covers unconfigured / configured / valid tokens / expired tokens / no refresh-token / cached signal states.
+* **rate-limit + CSRF tests** (`tests/e2e-rate-limit-csrf.test.mjs`) — exhausts GET budget, verifies POST is tighter, replays cross-origin POSTs, oversized body, path traversal.
+* **backup/restore tests** (`tests/backup-restore.test.mjs`) — finalize-write-finalize verifies `.bak.{timestamp}` snapshot + 10-newest GC.
+* **error-log tests** (`tests/error-log.test.mjs`) — log lines, ring buffer, rotation, write-failure resilience.
+* shared `tests/_helpers/boot-server.mjs` — every E2E test boots a real server in an isolated tmp sandbox with optional file pre-seeding.
+
+### CI/CD
+
+* **`.github/workflows/test.yml`** runs on PR + push to `main` / `security/*` / `feat/*` with a Node 20 + 22 matrix. Adds `go-build` job (verifies `go.mod` is tidy, the TUI binary still compiles) and `version-sync` job (rejects PRs where `package.json`, `APP_VERSION`, and the test assertion drift apart).
+* **`.github/workflows/security.yml`** — npm audit (high severity blocks merge), gitleaks secret scan, forbidden-pattern check (.env, gmail-tokens.json, cv.md, U+F03A path leak, console.log in production source).
+* **brand-assets sanity job** — every commit runs `grep -q "M4 12 L9 4 L14 12"` against `favicon.svg` + `og-image.svg` so silent rebrand reverts can't ship.
+
+### Performance
+
+* SVG favicon + OG image gzipped on the wire with `Cache-Control: public, max-age=86400` and ETag round-trip.
+* Brand assets pre-loaded synchronously at boot — zero IO on the hot path.
+
+### Security
+
+* Logo's inline SVG carries `role="img"` + `aria-label="Hireloom"` (a11y) and `focusable="false"` on the inner `<svg>` (prevents Tab from landing on a decorative element).
+* Skip-to-content link uses `transform: translateY(-200%)` until focused, so it's invisible during normal use.
+* `Content-Security-Policy` already blocks unsafe inline scripts; the new manifest + favicon routes inherit this.
+
+### Documentation
+
+* **`DEPLOYMENT.md`** — local install, systemd / launchd / Task Scheduler, LAN setup with auth tokens, Docker compose, env-var reference, observability, backup strategy, troubleshooting matrix, production-readiness checklist.
+* **CHANGELOG entry** restructured to highlight Brand / Features / Tests / CI/CD / Performance / Security / Docs.
+
+### Internal
+
+* `APP_VERSION` is now a single source of truth referenced by `/api/health` and validated in CI against `package.json` + the test assertion.
+* `error-log.mjs` lives at `dashboard-web/lib/` for reuse and unit testability.
+* `boot-server.mjs` test helper accepts pre-seeded files so token / cache state is set BEFORE the server boots — fixes a class of flaky timing tests.
+
+---
+
 ## [1.7.0](https://github.com/santifer/career-ops/compare/career-ops-v1.6.0...career-ops-v1.7.0) (2026-05-06)
 
 

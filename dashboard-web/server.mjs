@@ -11,6 +11,7 @@
 import http from 'http';
 import https from 'https';
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import crypto from 'crypto';
@@ -26,6 +27,7 @@ import {
 import { makeSafeResolver } from './lib/path-safety.mjs';
 import { readJsonBody, MAX_BODY_BYTES } from './lib/http-utils.mjs';
 import { buildGmailStatus } from './lib/gmail-status.mjs';
+import { makeErrorLogger } from './lib/error-log.mjs';
 
 const PORT = Number(process.env.PORT || 4747);
 // Bind to loopback by default; opt-in to LAN exposure via HOST=0.0.0.0
@@ -44,6 +46,42 @@ const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID || '';
 const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || '';
 const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || `http://localhost:${PORT}/auth/gmail/callback`;
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
+
+// ── Application version + brand assets ───────────────────────────────────────
+//
+// APP_VERSION is the single source of truth used by /api/health and the
+// dashboard footer. Bump it when shipping a brand or feature update so
+// monitors / update-system.mjs can compare against the GitHub release tag.
+//
+// Brand assets are pre-loaded synchronously at boot — they are tiny SVG/JSON
+// strings (~6 KB total) so the synchronous read is well under one tick and
+// keeps the hot path zero-IO. Each asset has its own ETag so browsers can
+// 304 cleanly.
+
+const APP_VERSION = '1.8.0';
+
+const ASSETS_DIR = path.join(__dir, 'assets');
+
+function loadBrandAsset(filename, contentType) {
+  try {
+    const body = readFileSync(path.join(ASSETS_DIR, filename));
+    const etag = '"' + crypto.createHash('sha1').update(body).digest('hex').slice(0, 16) + '"';
+    return { body, contentType, etag };
+  } catch (err) {
+    // Boot-time read failures are loud — better to crash early than to ship
+    // a half-broken brand. The path lookup is deterministic so this only
+    // fires if the assets/ directory is missing from a deploy.
+    console.error(`[boot] failed to load brand asset ${filename}: ${err.message}`);
+    throw err;
+  }
+}
+
+const BRAND_ASSETS = Object.freeze({
+  '/favicon.svg':         loadBrandAsset('favicon.svg',         'image/svg+xml; charset=utf-8'),
+  '/favicon-light.svg':   loadBrandAsset('favicon-light.svg',   'image/svg+xml; charset=utf-8'),
+  '/og-image.svg':        loadBrandAsset('og-image.svg',        'image/svg+xml; charset=utf-8'),
+  '/manifest.webmanifest': loadBrandAsset('manifest.webmanifest', 'application/manifest+json; charset=utf-8'),
+});
 
 // ── Markdown table parser ─────────────────────────────────────────────────────
 
@@ -2430,8 +2468,34 @@ const HTML = /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Hireloom — Your AI-Powered Career Accelerator</title>
+  <meta name="description" content="A quiet, deliberate system for weaving a career — one application at a time, none of them spam.">
+  <meta name="theme-color" content="#0a0612" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- Brand assets: SVG favicon scales perfectly in tabs and PWAs.
+       Light-mode variant kicks in when the OS prefers light, so the
+       gradient pops on white tabs without needing a separate ICO. -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="apple-touch-icon" href="/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Open Graph + Twitter cards: shareable preview matches the brand graphic. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Hireloom — Your AI-Powered Career Accelerator">
+  <meta property="og:description" content="A quiet, deliberate system for weaving a career — one application at a time.">
+  <meta property="og:image" content="/og-image.svg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/svg+xml">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hireloom — Your AI-Powered Career Accelerator">
+  <meta name="twitter:description" content="A quiet, deliberate system for weaving a career — one application at a time.">
+  <meta name="twitter:image" content="/og-image.svg">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400,0..100;9..144,500,0..100;9..144,600,0..100;9..144,700,0..100&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -2755,6 +2819,88 @@ const HTML = /* html */ `<!DOCTYPE html>
     @media (max-width: 1320px) {
       .header { margin-left: 16px; margin-right: 16px; }
     }
+    /* ── Tablet portrait + small laptop: tighten the header capsule but
+       keep all action pills visible. Below 980px we already shrink
+       the layout in other rules; here we just match the header. */
+    @media (max-width: 1024px) {
+      .header { margin-left: 12px; margin-right: 12px; padding: 8px 12px; }
+      .header-actions { gap: 6px; }
+      .btn { padding: 8px 12px; font-size: 13px; }
+    }
+    /* ── Tablet (≤768px): icon-only action pills + scrollable header.
+       The "Apply" button keeps its label as the primary CTA, others
+       collapse to their leading glyph. The whole row gains horizontal
+       scroll-snap so users can flick to each pill on touch.
+       Selectors are scoped to header.header so they outrank the base
+       .btn rule (which lives later in source order). */
+    @media (max-width: 768px) {
+      .header {
+        margin: 8px 8px 0;
+        padding: 6px 8px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .header::-webkit-scrollbar { display: none; }
+      .header-actions { gap: 4px; }
+      header.header .btn,
+      header.header .btn-gmail,
+      header.header a.btn,
+      header.header a.btn-gmail {
+        min-height: 44px;       /* WCAG 2.2 AA touch target */
+        padding: 8px 10px;
+        font-size: 12.5px;
+      }
+      header.header .btn-ghost .btn-label { display: none; }
+      .last-updated { display: none; }
+      .logo { padding: 4px 12px 4px 6px; font-size: 12px; letter-spacing: .10em; }
+      .logo-mark { width: 26px; height: 26px; }
+    }
+    /* ── Phone (≤480px): everything stacks. Logo + theme toggle stay
+       in the floating header; the action bar drops below into its own
+       row with horizontal scroll. Stats grid collapses to 2x2. */
+    @media (max-width: 480px) {
+      .header {
+        flex-wrap: wrap;
+        padding: 6px;
+        border-radius: 14px;
+      }
+      .header-spacer { display: none; }
+      .header-actions {
+        flex: 1 1 100%;
+        order: 3;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--separator2);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .header-actions::-webkit-scrollbar { display: none; }
+      header.header .btn,
+      header.header .btn-gmail,
+      header.header a.btn,
+      header.header a.btn-gmail {
+        flex: 0 0 auto;
+        min-height: 44px;
+      }
+      header.header .btn-apply-batch {
+        flex: 1 1 auto;
+        min-width: 96px;
+      }
+      .stats-grid, .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+      }
+      .layout {
+        padding: 12px 8px !important;
+        gap: 12px !important;
+      }
+      .page-title { font-size: 22px !important; }
+      .table-wrap, .pipeline-table {
+        font-size: 12px;
+      }
+    }
     /* ── Hireloom wordmark — sits inside its own brand-pill on the left
        of the floating header. The hexagonal logo mark is paired with
        a confident uppercase "HIRELOOM" lockup that mirrors the official
@@ -2857,6 +3003,38 @@ const HTML = /* html */ `<!DOCTYPE html>
       outline: none;
       box-shadow: 0 0 0 3px var(--accent-ring);
     }
+    /* ── Skip-to-content link ──
+       Visible only when focused. Slides down from the top with a
+       high-contrast violet pill so keyboard users can bypass the
+       floating header in one Tab + Enter. Required by WCAG 2.4.1. */
+    .skip-to-content {
+      position: fixed;
+      top: 8px;
+      left: 50%;
+      transform: translate(-50%, -200%);
+      z-index: 9999;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,.30);
+      transition: transform 180ms ease;
+    }
+    .skip-to-content:focus,
+    .skip-to-content:focus-visible {
+      transform: translate(-50%, 0);
+      outline: 3px solid rgba(255,255,255,.65);
+      outline-offset: 2px;
+    }
+    /* Make the main landmark focusable target visually quiet — the focus
+       only triggers when the skip link sends users here. No persistent
+       focus ring on the entire main column. */
+    main#main-content:focus { outline: none; }
+    main#main-content:focus-visible { outline: none; }
     .btn:active { background-color: var(--surface3); }
     .btn:disabled, .btn[disabled] {
       opacity: .42; cursor: not-allowed; pointer-events: none;
@@ -4568,6 +4746,11 @@ const HTML = /* html */ `<!DOCTYPE html>
 </head>
 <body>
 
+<!-- Skip-to-content link: only visible on keyboard focus. Lets keyboard
+     users + screen-reader users bypass the floating header capsule and
+     jump straight to the main content. WCAG 2.4.1 (Bypass Blocks). -->
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+
 <header class="header">
   <div class="logo">
     <div class="logo-mark" role="img" aria-label="Hireloom">
@@ -4616,7 +4799,7 @@ const HTML = /* html */ `<!DOCTYPE html>
 
 <div class="layout">
   <!-- Main content -->
-  <main class="main">
+  <main class="main" id="main-content" tabindex="-1">
     <!-- Autopilot status bar -->
     <div class="autopilot-bar" id="autopilot-bar">
       <div class="autopilot-bar-dot"></div>
@@ -4890,7 +5073,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     <div class="wiz-step active" data-step="1">
       <div class="drop-zone" id="drop-zone"
            ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
-        <input type="file" accept=".txt,.md,.pdf" onchange="handleFileSelect(event)">
+        <input type="file" accept=".txt,.md,.pdf" onchange="handleFileSelect(event)" aria-label="Upload your CV (TXT, Markdown, or PDF)">
         <div class="drop-icon">📄</div>
         <div class="drop-label">Drop your CV here</div>
         <div class="drop-hint">TXT or Markdown — or click to browse</div>
@@ -4937,7 +5120,7 @@ const HTML = /* html */ `<!DOCTYPE html>
         <input class="wiz-input" id="wiz-comp-min" placeholder="Walk-away minimum (e.g. $170K)" aria-label="Minimum acceptable compensation">
       </div>
       <div class="wiz-row">
-        <select class="wiz-input" id="wiz-comp-currency">
+        <select class="wiz-input" id="wiz-comp-currency" aria-label="Compensation currency">
           <option value="USD">USD</option><option value="CAD">CAD</option>
           <option value="EUR">EUR</option><option value="GBP">GBP</option>
           <option value="CHF">CHF</option><option value="AUD">AUD</option>
@@ -4952,7 +5135,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       <div class="wiz-hint">Tap to flag. We'll auto-skip postings that match these.</div>
       <div class="wiz-chips" id="wiz-dealbreakers-chips"></div>
       <div class="wiz-add-row">
-        <input class="wiz-input" id="wiz-dealbreaker-add" placeholder="Anything else? (e.g. 'No on-call rotation')" onkeydown="if(event.key==='Enter'){event.preventDefault();wizAddCustom('dealbreakers');}">
+        <input class="wiz-input" id="wiz-dealbreaker-add" aria-label="Add custom deal-breaker" placeholder="Anything else? (e.g. 'No on-call rotation')" onkeydown="if(event.key==='Enter'){event.preventDefault();wizAddCustom('dealbreakers');}">
         <button class="wiz-add-btn" onclick="wizAddCustom('dealbreakers')">Add</button>
       </div>
 
@@ -7192,6 +7375,18 @@ function checkRateLimit(req) {
 // Track unhandledRejection state for /api/health introspection.
 let LAST_UNHANDLED_REJECTION = null;
 
+// Structured error log: writes one JSON line per error to data/errors.log
+// with size-based rotation. The handler from process.on('unhandledRejection')
+// pushes here so we have a durable trail across restarts.
+const ERROR_LOG = makeErrorLogger(path.join(DATA_DIR, 'errors.log'));
+
+// Counters surfaced by /api/health so monitors can graph error rates.
+const ERROR_COUNTERS = {
+  unhandledRejection: 0,
+  uncaughtException:  0,
+  routeError:         0,
+};
+
 async function handleRequest(req, res) {
   applySecurityHeaders(req, res);
   // Auth gate: only allow /api/health unauthenticated when bound to a
@@ -7773,6 +7968,47 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
   // ── API: Health check ──
   // Lightweight liveness probe for Docker HEALTHCHECK / load balancers.
   // Never touches disk or external services; just proves the event loop
+  // ── Brand assets (favicon, OG image, manifest) ──
+  // Served with a long cache TTL + ETag — the assets are immutable for the
+  // lifetime of a deploy and gzipped to keep the response tiny.
+  if (BRAND_ASSETS[pathname]) {
+    const asset = BRAND_ASSETS[pathname];
+    if (req.headers['if-none-match'] === asset.etag) {
+      res.writeHead(304, { 'ETag': asset.etag, 'Cache-Control': 'public, max-age=86400' });
+      res.end();
+      return;
+    }
+    const acceptsGzip = (req.headers['accept-encoding'] || '').includes('gzip');
+    const headers = {
+      'Content-Type': asset.contentType,
+      'ETag': asset.etag,
+      'Cache-Control': 'public, max-age=86400',
+      'Vary': 'Accept-Encoding',
+    };
+    if (acceptsGzip) {
+      const gz = zlib.gzipSync(asset.body, { level: 9 });
+      headers['Content-Encoding'] = 'gzip';
+      headers['Content-Length'] = gz.length;
+      res.writeHead(200, headers);
+      res.end(gz);
+    } else {
+      headers['Content-Length'] = asset.body.length;
+      res.writeHead(200, headers);
+      res.end(asset.body);
+    }
+    return;
+  }
+
+  // ── /favicon.ico fallback ──
+  // Some browsers still request /favicon.ico before reading the SVG <link>.
+  // Redirect to /favicon.svg (302) so we don't ship a separate ICO file —
+  // every modern browser supports SVG favicons.
+  if (pathname === '/favicon.ico') {
+    res.writeHead(302, { 'Location': '/favicon.svg', 'Cache-Control': 'public, max-age=86400' });
+    res.end();
+    return;
+  }
+
   // is alive. Returns 200 + uptime so monitors can graph it.
   if (pathname === '/api/health') {
     res.writeHead(200, {
@@ -7787,12 +8023,16 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
       ok: true,
       app: 'Hireloom',
       uptime: Math.round(process.uptime()),
-      version: '1.7.0',
+      version: APP_VERSION,
       now: new Date().toISOString(),
       lastUnhandledRejection: lastRej ? lastRej.iso : null,
       lastUnhandledRejectionAgoMs: lastRej ? (Date.now() - lastRej.t) : null,
       lastUnhandledRejectionMessage: lastRej ? lastRej.message : null,
       authMode: NON_LOOPBACK ? 'token' : 'loopback',
+      // Error counters survive logger writes so monitors can alert when
+      // the deltas spike. Recent entries help diagnose without ssh.
+      errorCounters: { ...ERROR_COUNTERS },
+      recentErrors: ERROR_LOG.recent({ limit: 8 }),
     }));
     return;
   }
@@ -8124,14 +8364,21 @@ async function start() {
   process.on('unhandledRejection', (reason) => {
     const message = reason instanceof Error ? (reason.message || String(reason)) : String(reason);
     const stack = reason instanceof Error ? reason.stack : null;
+    ERROR_COUNTERS.unhandledRejection += 1;
     console.error('[unhandledRejection]', stack || message);
     // Also expose to /api/health for external monitors.
     LAST_UNHANDLED_REJECTION = { t: Date.now(), iso: new Date().toISOString(), message };
+    // Persist to disk for post-mortem.
+    ERROR_LOG.log({ kind: 'unhandledRejection', message, stack });
   });
   process.on('uncaughtException', (err) => {
     // Truly unexpected. Log it, but DO exit — uncaught sync errors leave the
     // process in an undefined state and supervisord/systemd will restart us.
-    console.error('[uncaughtException]', err && err.stack || err);
+    ERROR_COUNTERS.uncaughtException += 1;
+    const message = err && err.message || String(err);
+    const stack = err && err.stack || null;
+    console.error('[uncaughtException]', stack || message);
+    ERROR_LOG.log({ kind: 'uncaughtException', message, stack });
     setTimeout(() => process.exit(1), 100); // give the log a chance to flush
   });
 
