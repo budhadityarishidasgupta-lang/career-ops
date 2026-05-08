@@ -102,7 +102,33 @@ function parseExperience(text: string) {
         }
       }
       
-      // If no separator found, use the whole line (without date) as role
+      // If no separator found, try to detect company vs role by position and patterns
+      if (!parsed) {
+        // Try to identify known company name patterns (capitalized words ending in common suffixes)
+        const companySuffixPattern = /(Solutions|Services|Technologies|Tech|Labs|Inc|LLC|Ltd|Corp|Company|Group|Partners|Consulting|Systems|Software|Digital|Global|Engineering|Products|Media|Enterprises|Holdings)/i;
+        const hasCompanySuffix = companySuffixPattern.test(lineWithoutDate);
+        
+        // Try to split by position - often "Company Role" or "Role at Company"
+        const words = lineWithoutDate.split(/\s+/);
+        if (words.length >= 4 && hasCompanySuffix) {
+          // Look for the company suffix position
+          const match = lineWithoutDate.match(companySuffixPattern);
+          if (match && match.index) {
+            // Everything up to and including the suffix is likely company
+            const splitPoint = match.index + match[0].length;
+            company = lineWithoutDate.slice(0, splitPoint).trim();
+            role = lineWithoutDate.slice(splitPoint).trim();
+            // If role is empty or just a dash, swap
+            if (!role || role === '—' || role === '-') {
+              role = company;
+              company = '';
+            }
+            parsed = true;
+          }
+        }
+      }
+      
+      // If still not parsed, use the whole line as role (company unknown)
       if (!parsed) {
         role = lineWithoutDate;
       }
@@ -110,6 +136,11 @@ function parseExperience(text: string) {
       // Final cleanup: remove any remaining date-like patterns
       company = company.replace(datePattern, '').trim();
       role = role.replace(datePattern, '').trim();
+      
+      // If company is duplicate of role, clear it
+      if (company.toLowerCase() === role.toLowerCase()) {
+        company = '';
+      }
       
       currentJob = { company, role, period, bullets: [] };
       bulletBuffer = [];
