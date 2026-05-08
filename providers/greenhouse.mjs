@@ -52,9 +52,9 @@ export default {
     // assertGreenhouseUrl above it guarantees the final hostname stays in the allowlist.
     const json = await ctx.fetchJson(apiUrl, { redirect: 'error' });
     const jobs = Array.isArray(json?.jobs) ? json.jobs : [];
-    return jobs.map(j => ({
+    return jobs.filter(j => j.absolute_url).map(j => ({
       title: j.title || '',
-      url: j.absolute_url || '',
+      url: j.absolute_url,
       company: entry.name,
       location: j.location?.name || '',
     }));
