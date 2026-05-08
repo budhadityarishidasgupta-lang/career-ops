@@ -1012,6 +1012,18 @@
 - [!] https://www.workatastartup.com/jobs/79772 | Hadrius | Founding Forward Deployed Engineer | New York, NY — On-site 5d/wk — moved to Procesadas (#673) 2026-05-08 (3.7/5 — YC W23 RegTech compliance $4T+ AUM 300+ FI customers; ~$157-167K + equity; HIPAA + O&G audit logging adjacent compliance; verify F-1 OPT W-2 sponsorship; PDF generated)
 - [!] https://ioet.na.teamtailor.com/jobs/607618-ai-engineer | ioet | AI Engineer | LATAM Fully Remote (LATAM-residency required) — moved to Procesadas (#674) 2026-05-08 (1.5/5 — LangChain/LangGraph/RAG stack 1:1 but LATAM-residency hard veto for F-1 OPT US-based candidate; SKIP)
 
+<!-- Overnight 2026-05-08T~14Z fifth pass: scan.mjs Level 1/2 (0 new) + Level 3 WebSearch (Ashby new-grad + Workable + workatastartup + Breezy + TeamTailor) -->
+- [!] https://www.workatastartup.com/jobs/76640 | kapa.ai | Software Engineer (Full-stack) | Europe-only Remote (DE/GB/FR/ES/IT/PL/RO/NL/BE/SE/CZ/GR/PT/HU/AT/CH/BG/DK/FI/NO/SK/LT/EE) — moved to Procesadas (#677) 2026-05-08 (1.8/5 — YC S22 RAG-as-a-service; Europe-only payroll = F-1 OPT geo veto; SKIP)
+- [!] https://www.workatastartup.com/jobs/76641 | kapa.ai | Research Engineer, Applied AI | Europe-only Remote (Copenhagen office optional) — moved to Procesadas (#678) 2026-05-08 (1.8/5 — Master's matches floor but Europe-only payroll = F-1 OPT geo veto; SKIP)
+- [!] https://www.workatastartup.com/jobs/80675 | Athelas | Software Engineer (Summer 2026 New Grad) | location verify — error: posting closed (YC WaaS HTTP 404 on 2026-05-08T14Z); archived
+- [!] https://keyo.breezy.hr/p/3e011d3cf307-junior-cv-ml-engineer-remote-global | Keyo | Junior CV/ML Engineer | Remote (Global) — error: posting closed (Breezy "Position Closed — no longer accepting candidates" on 2026-05-08T14Z); archived
+- [!] https://silenteight.teamtailor.com/jobs/6775552-forward-deployed-ai-engineer-llm-ml-investigations-decisioning | Silent Eight | Forward-Deployed AI Engineer (LLM/ML) — Investigations & Decisioning | Poland — Fully Remote — moved to Procesadas (#679) 2026-05-08 (1.8/5 — stack 1:1 + 2-3y exact fit but Polish-payroll fully-remote = F-1 OPT geo veto; sibling pattern to #669; SKIP)
+- [!] https://jobs.ashbyhq.com/zip/19f459ee-4907-4883-9d70-35eb96f62082 | Zip | Software Engineer, New Grad (2026 Start) | San Francisco, CA — Hybrid — moved to Procesadas (#675) 2026-05-08 (3.8/5 — AI procurement $2.2B Series D; OpenAI/Anthropic/Snowflake/Coinbase/JPMorgan customers; Master's match + production AI portfolio above new-grad floor; $186-280K SF range; verify F-1 OPT W-2 sponsorship; PDF generated)
+- [!] https://jobs.ashbyhq.com/Speakeasy/def210b2-b6aa-421b-84c4-dcd278f95db9 | Speakeasy | Forward Deployed Engineer | San Francisco, CA — Remote/hybrid — moved to Procesadas (#676) 2026-05-08 (3.5/5 — Dev-tools SDK gen + Terraform providers; YC W21; multi-provider integration analog (Manga Lens 4 vision providers + Dream Decoder Perplexity+Replicate); $180-233K remote band; verify F-1 OPT W-2 sponsorship; PDF generated)
+- [!] https://jobs.ashbyhq.com/comstruct/5aab69c9-273a-41dd-a7a6-ad7789a32533 | comstruct ICT | Founding Forward Deployed Engineer | Munich, Germany — On-site — moved to Procesadas (#681) 2026-05-08 (1.5/5 — German fluency + Munich on-site + EU payroll = F-1 OPT triple veto; SKIP)
+- [!] https://builtin.com/job/junior-ai-prompt-engineer-contract/4455928 | Hippocratic AI | Junior AI Prompt Engineer (Contract) | Palo Alto, CA — error: posting removed from BuiltIn (2025-05-21); archived. Hippocratic AI active postings already covered (#657 Akron OH FDE)
+- [!] https://apply.workable.com/translation-empire/j/6E41412053 | Translation Empire | Junior AI Engineer | Pakistan-headquartered — moved to Procesadas (#680) 2026-05-08 (1.5/5 — PK-headquartered translation SaaS; Workable JS-only render returned thin content; PK-payroll geo veto for F-1 OPT US-based candidate; SKIP)
+
 
 ## Procesadas
 
@@ -1404,3 +1416,5 @@
 - [x] #668 | https://www.workatastartup.com/jobs/92848 | Uplane | Forward Deployed Software Engineer | San Francisco, CA — On-site | 3.5/5 | PDF ✅
 - [x] #672 | https://www.workatastartup.com/jobs/78325 | GigaML | Forward Deployed Engineer | San Francisco, CA — On-site 100% | 3.4/5 | PDF ✅
 - [x] #673 | https://www.workatastartup.com/jobs/79772 | Hadrius | Founding Forward Deployed Engineer | New York, NY — On-site 5d/wk | 3.7/5 | PDF ✅
+- [x] #675 | https://jobs.ashbyhq.com/zip/19f459ee-4907-4883-9d70-35eb96f62082 | Zip | Software Engineer, New Grad (2026 Start) | San Francisco, CA — Hybrid | 3.8/5 | PDF ✅
+- [x] #676 | https://jobs.ashbyhq.com/Speakeasy/def210b2-b6aa-421b-84c4-dcd278f95db9 | Speakeasy | Forward Deployed Engineer | San Francisco, CA — Remote/hybrid | 3.5/5 | PDF ✅
