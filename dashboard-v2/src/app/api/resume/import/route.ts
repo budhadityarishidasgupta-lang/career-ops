@@ -93,8 +93,9 @@ async function extractPdfText(bytes: Buffer): Promise<string> {
   // Use unpdf - serverless-safe PDF text extraction (no workers, no DOM dependencies)
   try {
     const { extractText } = await import('unpdf');
-    const text = await extractText(bytes);
-    return text || '';
+    const result = await extractText(bytes);
+    // unpdf returns { totalPages: number; text: string[] }
+    return Array.isArray(result?.text) ? result.text.join('\n') : '';
   } catch (e: any) {
     // Fallback: try pdfjs-dist directly with Node-friendly settings
     try {
