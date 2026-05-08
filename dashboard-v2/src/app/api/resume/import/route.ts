@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024; // 12MB safety cap (Vercel-friendly)
+const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 function normalizeText(input: string) {
   return (input || '')
@@ -24,125 +24,146 @@ function extractSection(text: string, heading: RegExp) {
   return text.slice(start, end).trim();
 }
 
+// Role keywords to help identify which part is the role
+const ROLE_KEYWORDS = /\b(?:Software|Engineer|Developer|Manager|Architect|Lead|Senior|Junior|Principal|Staff|Director|Head|VP|Analyst|Consultant|Specialist|Administrator|Intern|Trainee|Full-Stack|Back-End|Front-End|DevOps|Data|Machine Learning|Product|Project|QA|Test|Security|Cloud|Infrastructure|Support|Technician|Designer|Writer|Editor|Marketing|Sales|Business|Operations|Finance|HR|Recruiter|Coordinator|Assistant|Associate|Representative|Supervisor|Executive|Officer|Partner|Founder|Owner|Freelance)\b/gi;
+
 function parseExperience(text: string) {
-  // Comprehensive parser - captures ALL job entries with dates
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const out: any[] = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const jobs: any[] = [];
   
-  // Date pattern - catches various formats
-  const datePattern = /(20\d{2}\s*[-–—]\s*(?:20\d{2}|present|current|now)|\d{4}\s*[-–—]\s*(?:\d{4}|present))/i;
-  
-  // Company suffixes for detection
-  const companySuffixes = /(?:Solutions|Services|Technologies|Tech|Labs|Inc\.?|LLC|Ltd\.?|Corp\.?|Corporation|Company|Group|Partners|Consulting|Systems|Software|Digital|Global|Engineering|Engineers|Products|Media|Enterprises|Holdings|Platforms|Ventures|Studios|Industries|International|Network|Group|Ltd)/i;
+  // Date pattern: catches "Jul 2025 – Present", "Aug 2023 – Oct 2024", etc.
+  const datePattern = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}\s*[-–—]\s*(?:\d{4}|Present|Current|Now|\w+\s+\d{4}))/i;
+  const yearPattern = /\b(20\d{2}|19\d{2})\b/;
   
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     
-    // Check if this line has a date - indicates job header
-    const dateMatch = line.match(datePattern);
+    // Skip empty or very short lines
+    if (line.length < 10) {
+      i++;
+      continue;
+    }
     
-    if (dateMatch) {
-      const period = dateMatch[0].trim();
-      // Remove date from line to get company/role
-      let headerText = line.replace(dateMatch[0], '').trim();
+    // Check if this line has a date pattern (indicates job header)
+    const dateMatch = line.match(datePattern);
+    const hasYear = yearPattern.test(line);
+    
+    if (dateMatch || (hasYear && line.length < 150 && ROLE_KEYWORDS.test(line))) {
+      // This looks like a job header line
+      let headerText = line;
+      let period = '';
       
-      // Clean up separators around the removed date
-      headerText = headerText.replace(/\s*[|—–-]\s*$/, '').trim();
-      headerText = headerText.replace(/^\s*[|—–-]\s*/, '').trim();
+      // Extract and remove the date portion
+      if (dateMatch) {
+        period = dateMatch[0].trim();
+        headerText = line.slice(0, dateMatch.index).trim();
+      }
       
-      // Try to split company and role
-      let company = '';
+      // Parse role and company from headerText
+      // Format is typically: "Role — Company" or "Role | Company" or "Role - Company"
       let role = '';
+      let company = '';
       
-      // Method 1: Look for separator
-      const separators = [' — ', ' | ', ' - ', ' – ', '—', '|'];
-      let split = false;
+      // Try various separators (em-dash, en-dash, hyphen, pipe)
+      const separators = [' — ', ' – ', ' - ', ' | ', '—', '–', '-'];
+      let foundSeparator = false;
       
       for (const sep of separators) {
-        if (headerText.includes(sep)) {
-          const parts = headerText.split(sep).map(p => p.trim()).filter(Boolean);
-          if (parts.length >= 2) {
-            // Check which part looks like company (has suffix or is shorter)
-            const part0HasSuffix = companySuffixes.test(parts[0]);
-            const part1HasSuffix = companySuffixes.test(parts[1]);
-            
-            // Role keywords
-            const roleKeywords = /engineer|developer|manager|architect|analyst|consultant|lead|senior|junior|staff|principal|director|head|vp/i;
-            const part0HasRole = roleKeywords.test(parts[0]);
-            const part1HasRole = roleKeywords.test(parts[1]);
-            
-            if ((part0HasSuffix && !part1HasSuffix) || (part0HasRole && !part1HasRole)) {
-              company = parts[0];
-              role = parts[1];
-            } else if ((part1HasSuffix && !part0HasSuffix) || (part1HasRole && !part0HasRole)) {
-              company = parts[1];
-              role = parts[0];
-            } else {
-              // Default: first part is company, second is role
-              company = parts[0];
-              role = parts[1];
-            }
-            split = true;
-            break;
+        const idx = headerText.indexOf(sep);
+        if (idx > 0) {
+          const part1 = headerText.slice(0, idx).trim();
+          const part2 = headerText.slice(idx + sep.length).trim();
+          
+          // Count role keywords in each part
+          const part1Roles = (part1.match(ROLE_KEYWORDS) || []).length;
+          const part2Roles = (part2.match(ROLE_KEYWORDS) || []).length;
+          
+          // The part with MORE role keywords is the role
+          // The part with FEWER role keywords is the company
+          if (part1Roles >= part2Roles) {
+            role = part1;
+            company = part2;
+          } else {
+            role = part2;
+            company = part1;
           }
+          foundSeparator = true;
+          break;
         }
       }
       
-      // Method 2: No separator - try to detect by suffix
-      if (!split && headerText.length > 0) {
-        // Find company suffix position
-        const suffixMatch = headerText.match(companySuffixes);
-        if (suffixMatch && suffixMatch.index !== undefined) {
-          const endOfCompany = suffixMatch.index + suffixMatch[0].length;
-          company = headerText.slice(0, endOfCompany).trim();
-          role = headerText.slice(endOfCompany).replace(/^[—|–\-]+\s*/, '').trim();
-          
-          // If role is empty or just punctuation, swap
-          if (!role || role.match(/^[—|–\-]$/)) {
-            role = headerText;
-            company = '';
-          }
+      // If no separator found, try to detect by position
+      if (!foundSeparator) {
+        // Common pattern: "Role at Company" or "Role, Company"
+        const atMatch = headerText.match(/(.+?)\s+at\s+(.+)/i);
+        if (atMatch) {
+          role = atMatch[1].trim();
+          company = atMatch[2].trim();
         } else {
-          // No company suffix found - treat whole thing as role
+          // Last resort: if it has role keywords, use the whole thing as role
           role = headerText;
         }
       }
       
-      // Collect bullets - all following lines until next date or blank/new section
+      // Clean up: remove any remaining date patterns
+      const cleanRole = (r: string) => r.replace(/\b\d{4}\b/g, '').replace(/\s+/g, ' ').trim();
+      const cleanCompany = (c: string) => c.replace(/\b\d{4}\b/g, '').replace(/\s+/g, ' ').trim();
+      
+      role = cleanRole(role);
+      company = cleanCompany(company);
+      
+      // Skip if this looks like bullet text (starts with verb words)
+      const bulletStarters = /^(architected|spearhead|design|enforce|engineered|optimized|automated|developed|analyzed|configured|fortified|built|integrated|constructed|authored|formulated|provisioned)/i;
+      if (bulletStarters.test(role) && !company) {
+        i++;
+        continue;
+      }
+      
+      // Collect bullets - all lines until next job header
       const bullets: string[] = [];
       i++;
       while (i < lines.length) {
         const nextLine = lines[i];
         
-        // Stop if we hit another date (new job)
-        if (datePattern.test(nextLine)) {
+        // Stop if we hit another job header (has date + role keywords)
+        const nextHasDate = datePattern.test(nextLine);
+        const nextHasRole = ROLE_KEYWORDS.test(nextLine);
+        const nextHasYear = yearPattern.test(nextLine);
+        
+        if ((nextHasDate && nextHasRole) || (nextHasYear && nextLine.length < 150 && nextHasRole && nextLine.includes('—'))) {
+          // This is a new job header
           break;
         }
         
-        // Stop if we hit a new section header (all caps)
+        // Stop if we hit a new section (all caps heading)
         if (/^[A-Z][A-Z\s&]{3,}$/.test(nextLine)) {
           break;
         }
         
         // This is a bullet point
         const cleanBullet = nextLine.replace(/^[•\-▸*]\s*/, '').trim();
-        if (cleanBullet.length > 5) {
+        if (cleanBullet.length > 15) {
           bullets.push(cleanBullet);
         }
         i++;
       }
       
-      // Add job if we have meaningful content
-      if (company || role || bullets.length > 0) {
-        out.push({ company, role, period, bullets });
+      // Only add if we have meaningful content
+      if ((role || company) && bullets.length > 0) {
+        jobs.push({
+          role,
+          company,
+          period: period || '',
+          bullets
+        });
       }
     } else {
       i++;
     }
   }
   
-  return out;
+  return jobs;
 }
 
 function parseEducation(text: string) {
@@ -156,11 +177,16 @@ function parseEducation(text: string) {
     const hasDegree = degreePattern.test(line);
     const years = line.match(yearPattern);
     
-    if (hasDegree || years) {
+    if (hasDegree && years) {
+      // Extract school name
+      const parts = line.split(/[-–—]/);
+      const degreePart = parts[0].trim();
+      const schoolPart = parts.length > 1 ? parts[1].trim() : '';
+      
       out.push({
-        degree: line.replace(/\s*\([^)]*\)/g, '').trim(),
-        school: '',
-        period: years ? years.join(' — ') : '',
+        degree: degreePart,
+        school: schoolPart,
+        period: years.join(' — '),
       });
     }
     
@@ -245,7 +271,7 @@ export async function POST(req: NextRequest) {
       },
       {
         headers: {
-          'X-CareerOps-ResumeImport-Version': 'comprehensive-v3',
+          'X-CareerOps-ResumeImport-Version': 'v4-role-company-fix',
         },
       }
     );
