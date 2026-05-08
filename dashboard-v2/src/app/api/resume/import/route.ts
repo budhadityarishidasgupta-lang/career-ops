@@ -91,27 +91,10 @@ function parseEducation(text: string) {
 
 async function extractPdfText(bytes: Buffer): Promise<string> {
   // Use unpdf - serverless-safe PDF text extraction (no workers, no DOM dependencies)
-  try {
-    const { extractText } = await import('unpdf');
-    const result = await extractText(bytes);
-    // unpdf returns { totalPages: number; text: string[] }
-    return Array.isArray(result?.text) ? result.text.join('\n') : '';
-  } catch (e: any) {
-    // Fallback: try pdfjs-dist directly with Node-friendly settings
-    try {
-      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
-      const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
-      }
-      return fullText;
-    } catch (e2: any) {
-      throw new Error(`PDF extraction failed: ${e?.message || ''} / fallback: ${e2?.message || ''}`);
-    }
-  }
+  const { extractText } = await import('unpdf');
+  const result = await extractText(bytes);
+  // unpdf returns { totalPages: number; text: string[] }
+  return Array.isArray(result?.text) ? result.text.join('\n') : '';
 }
 
 export async function POST(req: NextRequest) {
