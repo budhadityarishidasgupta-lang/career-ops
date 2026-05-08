@@ -222,12 +222,24 @@ SUBCOMMANDS['check-duplicate'] = async (args) => {
   if (!cs || !rs || !date) fail('check-duplicate requires --company-slug, --role-slug, --date');
   const jd_rel = buildJdPath(cs, rs, date);
   const pdf_rel = buildPdfPath(cs, rs, date);
+  const cl_rel = buildCoverLetterPdfPath(cs, rs, date);
   const jd_abs = resolve(projectRoot(), jd_rel);
   const pdf_abs = resolve(projectRoot(), pdf_rel);
+  const cl_abs = resolve(projectRoot(), cl_rel);
   const which = [];
   if (await fileExists(jd_abs)) which.push('jd');
   if (await fileExists(pdf_abs)) which.push('pdf');
-  ok({ exists: which.length > 0, which, jd_path: jd_rel, pdf_path: pdf_rel });
+  // Cover letter is reported but does NOT trigger the dedup gate
+  // (dedup gate is JD+PDF; cover-letter alone shouldn't block reruns).
+  const cover_letter_exists = await fileExists(cl_abs);
+  ok({
+    exists: which.length > 0,
+    which,
+    jd_path: jd_rel,
+    pdf_path: pdf_rel,
+    cover_letter_exists,
+    cover_letter_path: cl_rel,
+  });
 };
 
 SUBCOMMANDS['mark-processed'] = async (args) => {

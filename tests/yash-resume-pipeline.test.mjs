@@ -850,3 +850,26 @@ test('log: without cover-letter args omits the three new fields (backward compat
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('check-duplicate: reports cover_letter_exists field', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'yrp-test-'));
+  await mkdirTest(join(dir, 'cover-letters'), { recursive: true });
+  await writeFileTest(join(dir, 'cover-letters/X_Y_Yash_Anghan_Cover_Letter_2026-05-08.pdf'), '%PDF-1.4 fake');
+  try {
+    const { stdout } = await execFileP('node', [SCRIPT,
+      'check-duplicate',
+      '--company-slug', 'X',
+      '--role-slug', 'Y',
+      '--date', '2026-05-08',
+    ], { cwd: dir });
+    const obj = JSON.parse(stdout.trim());
+    assert.equal(obj.status, 'ok');
+    assert.equal(obj.cover_letter_exists, true);
+    assert.equal(obj.cover_letter_path, 'cover-letters/X_Y_Yash_Anghan_Cover_Letter_2026-05-08.pdf');
+    // The dedup gate (exists/which) is unaffected by cover-letter alone:
+    assert.equal(obj.exists, false, 'JD/resume duplicate gate not triggered by cover-letter alone');
+    assert.deepEqual(obj.which, []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
