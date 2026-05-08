@@ -158,6 +158,9 @@ function renderExperience(exp, tailoredBullets, jdText = '', maxPages = 2) {
         tailoredJobIndex = idx;
       }
     });
+    console.log(`[DEBUG] Selected job #${tailoredJobIndex + 1} (${exp[tailoredJobIndex]?.role} at ${exp[tailoredJobIndex]?.company}) for tailored bullets`);
+  } else {
+    console.log(`[DEBUG] No tailored bullets or JD provided. Using original bullets for all jobs.`);
   }
 
   // Date patterns to aggressively strip from company/role
@@ -180,6 +183,9 @@ function renderExperience(exp, tailoredBullets, jdText = '', maxPages = 2) {
   return exp.map((job, idx) => {
     // Apply tailored bullets to the most relevant job, original bullets to others
     const useTailored = (idx === tailoredJobIndex) && tailoredBullets && tailoredBullets.length > 0;
+    if (useTailored) {
+      console.log(`[DEBUG] Applying ${tailoredBullets.length} tailored bullets to job #${idx + 1} (${job.role})`);
+    }
     const bullets = useTailored
       ? tailoredBullets.slice(0, maxBulletsPerJob)
       : (job.bullets || []).slice(0, maxBulletsPerJob);
@@ -704,6 +710,10 @@ OUTPUT FORMAT (JSON ONLY):
     const canonicalUrl = canonicalizeUrl(entry.url);
     const result = await tailorPackage(jdText, profile, entry.company);
     const tailoring = result.resume;
+
+    // Debug: Log tailored bullets
+    console.log(`[DEBUG] AI generated ${(tailoring?.experience || []).length} tailored bullets:`);
+    (tailoring?.experience || []).forEach((b, i) => console.log(`  ${i + 1}. ${b?.substring(0, 60)}...`));
 
     // Calculate ATS Score
     const atsScore = calculateATSScore(profile, jdText, tailoring);
