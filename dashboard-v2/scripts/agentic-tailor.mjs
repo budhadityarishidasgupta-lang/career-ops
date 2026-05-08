@@ -345,39 +345,47 @@ async function tailorPackage(jd, profile, companyName) {
         core_competencies: (profile?.narrative?.superpowers || []).slice(0, 12),
         experience: (profile?.experience?.[0]?.bullets || []).slice(0, 3),
       },
-      cover_letter: `Dear Hiring Team at ${companyName},\n\nI am excited to apply for this role. My background aligns strongly with the core requirements in your job description, and I focus on high-quality delivery, measurable outcomes, and cross-functional collaboration.\n\nI would value the opportunity to contribute and discuss how I can help your team.\n\nBest regards,\n${profile?.candidate?.full_name || 'Candidate'}`
+      cover_letter: `${companyName}'s ${jd.substring(0, 60).replace(/\n/g, ' ')}... requirements match what I've built: ${(profile?.narrative?.superpowers || []).slice(0, 2).join(', ')}.\n\nI can start contributing immediately. Reach me at ${profile?.candidate?.email || ''} or ${profile?.candidate?.phone || ''} to discuss.`
     };
   }
   
   const cvContext = `Headline: ${profile?.narrative?.headline || ''}\nSummary: ${profile?.narrative?.exit_story || ''}\nSuperpowers: ${(profile?.narrative?.superpowers || []).join(', ')}`;
   const prompt = `
-    You are an expert technical recruiter and resume writer. I will provide a Job Description (JD) and my professional profile.
-    
-    TASK:
-    1. RESUME TAILORING: Identify North Star requirements and generate:
-       - A summary.
-       - 12 core competencies.
-       - 3 rewritten bullet points for the current role.
-    2. COVER LETTER: Write a persuasive 3-paragraph letter:
-       - Para 1: Hook them with why THIS company (e.g. ${companyName}) excites you.
-       - Para 2: Map your specific "Superpowers" to their biggest challenges in the JD.
-       - Para 3: Call to action.
-    
-    JD:
-    ${jd.substring(0, 4000)}
-    
-    My Context:
-    ${cvContext}
-    
-    OUTPUT FORMAT (JSON ONLY):
-    {
-      "resume": {
-        "summary": "...",
-        "core_competencies": ["kw1", "kw2", ...],
-        "experience": ["bullet1", "bullet2", "bullet3"]
-      },
-      "cover_letter": "..."
-    }
+You are a senior technical writer who writes direct, conversational cover letters without corporate fluff.
+
+RULES:
+- NO salutations (no "Dear", "To whom it may concern")
+- NO closings (no "Best regards", "Sincerely", "Warm regards")
+- NO buzzwords: passion, leveraging, synergies, robust, seamless, cutting-edge, proven track record
+- NO AI-sounding phrases
+- Use short sentences, active voice, specific numbers
+- Lead with impact, not filler
+
+TASK:
+1. RESUME TAILORING: Identify 3-4 JD requirements and generate:
+   - A one-line summary stating what you do + years of experience
+   - 8-10 core competencies (skills/tools from JD)
+   - 3 rewritten bullets for ONE role that maps to JD requirements
+
+2. COVER LETTER: Write 2 tight paragraphs ONLY (no greeting, no sign-off):
+   - Para 1: One sentence hook citing something specific from their JD/company, then 2-3 bullets mapping your experience to their needs with metrics
+   - Para 2: One sentence stating availability + how to reach you
+
+JD:
+${jd.substring(0, 4000)}
+
+My Context:
+${cvContext}
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "resume": {
+    "summary": "...",
+    "core_competencies": ["kw1", "kw2", ...],
+    "experience": ["bullet1", "bullet2", "bullet3"]
+  },
+  "cover_letter": "..."
+}
   `;
 
   const messages = [
