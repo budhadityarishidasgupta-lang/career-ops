@@ -265,8 +265,11 @@ async function main() {
   }
 
   const resolveErrCount = resolveErrors.length;
-  const skipSuffix = resolveErrCount ? `, ${resolveErrCount} unknown provider` : '';
-  console.log(`Scanning ${targets.length} companies via providers (${skippedCount} skipped — no provider matched${skipSuffix})`);
+  const parts = [];
+  if (skippedCount) parts.push(`${skippedCount} skipped — no provider matched`);
+  if (resolveErrCount) parts.push(`${resolveErrCount} unknown provider${resolveErrCount === 1 ? '' : 's'}`);
+  const suffix = parts.length ? ` (${parts.join(', ')})` : '';
+  console.log(`Scanning ${targets.length} companies via providers${suffix}`);
   if (dryRun) console.log('(dry run — no files will be written)\n');
 
   // 4. Load dedup sets
