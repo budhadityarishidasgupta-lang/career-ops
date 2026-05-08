@@ -35,17 +35,15 @@ Repeat until queue empty, user quits, or 3 consecutive failures:
 
    Returns JSON on stdout, exit 0 on ok / exit 1 on fail.
 
-   - On `status: "ok"` → use `title`, `body`, and `source_hint` from the JSON to continue.
-   - On `status: "fail"`:
-     - run `mark-failed --url <url> --reason "scrapling: <error from JSON>"`
-     - run `log --status fail --url <url> --reason "scrapling: <error from JSON>"`
+   - On `status: ok` → use `title`, `body`, and `source_hint` from the JSON to continue.
+   - On `status: fail`:
+     - run `mark-failed --url <url> --reason "scrapling: <json.error>"`
+     - run `log --status fail --url <url> --reason "scrapling: <json.error>"`
      - ask user: continue with next URL? (yes / quit)
-
-   The `source_hint` field already provides the portal mapping (lever / ashby / greenhouse / workday / other) so step 4's "Use the URL host as a portal hint" instruction is satisfied automatically — just propagate the hint.
 
 4. **Parse JD fields** from raw text (LLM judgment):
    - Extract `company`, `role`, `location`, `posted_date`.
-   - Use the URL host as a portal hint: `lever`, `ashby`, `greenhouse`, `workday`, or `other`.
+   - For the portal hint, use the `source_hint` returned by step 3 (`lever` / `ashby` / `greenhouse` / `workday` / `other`). Do not re-derive from the URL host.
    - If `company` or `role` confidence is low, ask user once to confirm/correct.
    - If user can't say, run `mark-failed --url <url> --reason "could not determine company/role"` and continue.
 
