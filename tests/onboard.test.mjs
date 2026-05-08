@@ -327,9 +327,9 @@ describe('serializeProfileYaml', () => {
     const withAch = serializeProfileYaml({
       basics: { full_name: 'X', email: 'x@y.com' },
       target_roles: ['Y'],
-      narrative: { best_achievement: 'Built Jarvis' },
+      narrative: { best_achievement: 'Shipped feature' },
     });
-    assert.match(withAch, /best_achievement: "Built Jarvis"/);
+    assert.match(withAch, /best_achievement: "Shipped feature"/);
     const without = serializeProfileYaml({
       basics: { full_name: 'X', email: 'x@y.com' },
       target_roles: ['Y'],

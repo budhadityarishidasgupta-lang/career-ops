@@ -7,11 +7,11 @@
  *   - cv.md                (CV body, markdown)
  *   - config/profile.yml   (header: name, contact line)
  * Output:
- *   - output/{kebab(full_name)}-cv.pdf  (e.g. output/tony-walteur-cv.pdf)
+ *   - output/{kebab(full_name)}-cv.pdf  (e.g. output/jane-smith-cv.pdf)
  *
- * Falls back to output/tony-walteur-cv.pdf if profile.yml is missing or
- * incomplete, so existing consumers (auto-apply.mjs RESUME_PDF_LEGACY) still
- * find the file.
+ * Falls back to output/cv.pdf if profile.yml is missing or incomplete, so
+ * downstream consumers (auto-apply.mjs, dashboard autopilot) still find the
+ * file even before the user has filled in their profile.
  */
 
 import { chromium } from 'playwright';
@@ -201,9 +201,10 @@ async function main() {
   writeFileSync(htmlPath, html, 'utf8');
   console.log(`HTML written: ${htmlPath}`);
 
-  // Filename: kebab(full_name)-cv.pdf, with the legacy filename as fallback.
+  // Filename: kebab(full_name)-cv.pdf, with a generic fallback when the
+  // profile is empty (so downstream consumers can still resolve a path).
   const slug = profile.full_name ? kebabCase(profile.full_name) : '';
-  const pdfName = slug ? `${slug}-cv.pdf` : 'tony-walteur-cv.pdf';
+  const pdfName = slug ? `${slug}-cv.pdf` : 'cv.pdf';
   const pdfPath = join(OUTPUT_DIR, pdfName);
 
   const browser = await chromium.launch({ headless: true });

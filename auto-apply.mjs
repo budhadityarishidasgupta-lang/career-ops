@@ -49,7 +49,8 @@ const TRACKER_FILE = join(PROJECT_DIR, 'data', 'applications.md');
 const LOG_DIR      = join(PROJECT_DIR, 'batch', 'logs');
 const LOG_FILE     = join(LOG_DIR, `auto-apply-${TODAY}.log`);
 // Resume PDF path is resolved later (after identity loads) — see resolveResumePath()
-const LEGACY_RESUME_PDF = join(PROJECT_DIR, 'output', 'tony-walteur-cv.pdf');
+// Generic fallback used when profile.full_name is missing or no kebab-named PDF exists.
+const GENERIC_RESUME_PDF = join(PROJECT_DIR, 'output', 'cv.pdf');
 const PROFILE_FILE = join(PROJECT_DIR, 'config', 'profile.yml');
 const TMP_DIR      = join(PROJECT_DIR, 'batch', 'tmp');
 
@@ -101,7 +102,7 @@ function loadCandidateIdentity() {
   };
 }
 
-const TONY = loadCandidateIdentity();
+const CANDIDATE = loadCandidateIdentity();
 
 // ─── Resume PDF path (derived from profile, with legacy fallback) ────────────
 
@@ -113,14 +114,15 @@ function kebabCase(s) {
 }
 
 function resolveResumePath() {
-  const fullName = `${TONY.firstName} ${TONY.lastName}`.trim();
+  const fullName = `${CANDIDATE.firstName} ${CANDIDATE.lastName}`.trim();
   const slug = fullName ? kebabCase(fullName) : '';
   const derived = slug ? join(PROJECT_DIR, 'output', `${slug}-cv.pdf`) : '';
-  // Prefer derived path if it exists, else legacy filename, else derived (so
-  // generate-cv-pdf.mjs writes to the new location next time).
+  // Prefer the kebab-named PDF if it exists, else the generic fallback, else
+  // the derived path (so generate-cv-pdf.mjs writes to the new location next
+  // time the user generates one).
   if (derived && existsSync(derived)) return derived;
-  if (existsSync(LEGACY_RESUME_PDF)) return LEGACY_RESUME_PDF;
-  return derived || LEGACY_RESUME_PDF;
+  if (existsSync(GENERIC_RESUME_PDF)) return GENERIC_RESUME_PDF;
+  return derived || GENERIC_RESUME_PDF;
 }
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -276,13 +278,13 @@ async function callKimi(system, user, maxTokens = 2000) {
 async function generateAnswers(fields, pkg, jobCtx) {
   const profile = existsSync(PROFILE_FILE) ? readFileSync(PROFILE_FILE, 'utf8') : '';
 
-  const fullName = `${TONY.firstName} ${TONY.lastName}`.trim();
+  const fullName = `${CANDIDATE.firstName} ${CANDIDATE.lastName}`.trim();
   const system = `You are an expert job application assistant filling out forms for ${fullName}.
 Rules:
 - NEVER fabricate metrics or experiences not in the profile.
 - NEVER use em-dashes (—). Use commas or periods instead.
 - Be direct, confident, and concise.
-- Answer in first person as ${TONY.firstName}.
+- Answer in first person as ${CANDIDATE.firstName}.
 - For salary: return "Competitive / Market rate".
 - For "How did you hear about us": return "LinkedIn".`;
 
@@ -308,9 +310,9 @@ Rules per field type:
 - radio: return exactly one of the listed options
 - text/email/tel: direct value
 - textarea: 2-4 sentence answer (or adapt from cover letter for "why this company" questions)
-- location/city: "${TONY.location}" or "${TONY.city}" or "${TONY.country}" as appropriate
-- first_name: "${TONY.firstName}", last_name: "${TONY.lastName}", email: "${TONY.email}", phone: "${TONY.phone}"
-- linkedin: "${TONY.linkedin}"
+- location/city: "${CANDIDATE.location}" or "${CANDIDATE.city}" or "${CANDIDATE.country}" as appropriate
+- first_name: "${CANDIDATE.firstName}", last_name: "${CANDIDATE.lastName}", email: "${CANDIDATE.email}", phone: "${CANDIDATE.phone}"
+- linkedin: "${CANDIDATE.linkedin}"
 
 Return ONLY the JSON object, no explanation or markdown.`;
 
@@ -323,7 +325,7 @@ Return ONLY the JSON object, no explanation or markdown.`;
 // ─── Kimi pre-submit review ───────────────────────────────────────────────────
 
 async function reviewApplication(filledData, jobCtx, pkg) {
-  const candidateName = `${TONY.firstName} ${TONY.lastName}`.trim();
+  const candidateName = `${CANDIDATE.firstName} ${CANDIDATE.lastName}`.trim();
   const system = `You are a quality reviewer for ${candidateName}'s job applications.
 Respond with EXACTLY "APPROVED" or "FLAGGED: [reason]" — nothing else.`;
 
@@ -405,13 +407,13 @@ async function extractFields(page) {
 
 function mergeIdentity(answers, fields) {
   const identity = {
-    first_name: TONY.firstName, firstname: TONY.firstName,
-    last_name:  TONY.lastName,  lastname:  TONY.lastName,
-    email:      TONY.email,     phone:     TONY.phone,
-    phone_number: TONY.phone,   linkedin_profile: TONY.linkedin,
-    linkedin:   TONY.linkedin,  'applicant[first_name]': TONY.firstName,
-    'applicant[last_name]': TONY.lastName, 'applicant[email]': TONY.email,
-    'applicant[phone]':     TONY.phone,
+    first_name: CANDIDATE.firstName, firstname: CANDIDATE.firstName,
+    last_name:  CANDIDATE.lastName,  lastname:  CANDIDATE.lastName,
+    email:      CANDIDATE.email,     phone:     CANDIDATE.phone,
+    phone_number: CANDIDATE.phone,   linkedin_profile: CANDIDATE.linkedin,
+    linkedin:   CANDIDATE.linkedin,  'applicant[first_name]': CANDIDATE.firstName,
+    'applicant[last_name]': CANDIDATE.lastName, 'applicant[email]': CANDIDATE.email,
+    'applicant[phone]':     CANDIDATE.phone,
   };
 
   for (const [key, val] of Object.entries(identity)) {

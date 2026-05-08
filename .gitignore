@@ -12,6 +12,10 @@ batch/batch-state.tsv
 batch/batch-input.tsv
 batch/tracker-additions/*.tsv
 !batch/tracker-additions/.gitkeep
+# Batch summaries + cover-letter prompts — generated per-user, contain PII
+batch/batch-*-summary.md
+batch/cover-letter-prompt.md
+batch/cover-letters/
 jds/*
 !jds/.gitkeep
 
@@ -86,8 +90,35 @@ data/pipeline.md.bak
 # Worktrees + agent scratch
 .claude/worktrees/
 .claude/scheduled_tasks.lock
-.conductor/mistakes-read
+.claude/audit.log
+.conductor/
 dashboard-web/.conductor/
+# Session memory + planning scratch (per-user, contains paths + branch state)
+.planning/
+PROGRESS.md
+CODEMAP.md
+docs/solutions/
 
 # Test scratch
 tests/__fixtures__/tmp/
+.pr-body.md
+
+# ── Local experimental scripts (per-user, may contain PII) ──────────────────
+# These belong to individual user sessions / forks. The canonical features
+# they prototype eventually land in tracked scripts (auto-apply.mjs, scan.mjs,
+# etc.). Until then, keep them local.
+apply-one.mjs
+assemble-package.mjs
+auto-pipeline.mjs
+jobseeker.mjs
+keep-alive.bat
+llm-api.mjs
+obsidian-sync.mjs
+scan-portals.mjs
+tailor-resume.mjs
+test-llm-pipeline.mjs
+validate-readiness.mjs
+batch/.js-prompt-*.md
+batch/jobseeker.pid
+batch/tracker-additions/merged/
+batch/tmp/

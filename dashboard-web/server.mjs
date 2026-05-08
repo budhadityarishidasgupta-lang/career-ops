@@ -893,7 +893,16 @@ async function launchBrowser() {
 }
 
 async function loadProfile() {
-  const p = { full_name: '', email: '', phone: '', location: '', linkedin: '' };
+  // All defaults are empty strings — the autopilot's compose* helpers turn
+  // empty fields into "skip the question" so we never inject another user's
+  // PII into someone else's application.
+  const p = {
+    full_name: '', email: '', phone: '', location: '', linkedin: '',
+    portfolio_url: '', github: '',
+    headline: '', exit_story: '', best_achievement: '',
+    target_range: '', minimum: '', currency: '',
+    visa_status: '',
+  };
   try {
     const yml = await fs.readFile(path.join(CONFIG_DIR, 'profile.yml'), 'utf8');
     const get = (key) => { const m = yml.match(new RegExp(`${key}:\\s*"?([^"\\n]+)"?`)); return m ? m[1].trim() : ''; };
@@ -902,8 +911,87 @@ async function loadProfile() {
     p.phone = get('phone');
     p.location = get('location');
     p.linkedin = get('linkedin');
+    p.portfolio_url = get('portfolio_url');
+    p.github = get('github');
+    p.headline = get('headline');
+    p.exit_story = get('exit_story');
+    p.best_achievement = get('best_achievement');
+    p.target_range = get('target_range');
+    p.minimum = get('minimum');
+    p.currency = get('currency');
+    p.visa_status = get('visa_status');
   } catch {}
   return p;
+}
+
+// ─── Autopilot answer composition (profile-driven, no hardcoded PII) ─────────
+//
+// These helpers turn profile.yml into form answers. Each returns null when
+// the relevant profile field is empty so the autopilot can skip the field
+// rather than fall back to someone else's data. Keep the strings concise and
+// neutral — they're appended to whatever the user writes in profile.yml.
+
+function composeSalary(profile) {
+  if (!profile.target_range) return null;
+  const cur = profile.currency ? ` ${profile.currency}` : '';
+  return `My target range is ${profile.target_range}${cur} depending on total compensation package, equity, and role scope. I'm flexible on structure.`;
+}
+
+function composeMotivation(profile) {
+  // "Why this role / company" — the most personal answer; require explicit
+  // user content rather than any default.
+  return profile.exit_story || null;
+}
+
+function composeAchievement(profile) {
+  // "Describe an experience / specific example / proudest moment".
+  return profile.best_achievement || null;
+}
+
+function composeCoverLetter(profile) {
+  const bits = [profile.headline, profile.exit_story, profile.best_achievement].filter(Boolean);
+  return bits.length ? bits.join(' ') : null;
+}
+
+function composeVisa(profile) {
+  return profile.visa_status || null;
+}
+
+function composeProfileSummary(profile) {
+  return profile.headline || profile.exit_story || null;
+}
+
+function composeAiExperiment(profile) {
+  // No dedicated profile field for "last AI experiment"; the closest match is
+  // the best achievement. Returns null if the user hasn't written one.
+  return profile.best_achievement || null;
+}
+
+// ─── Resume path resolver ────────────────────────────────────────────────────
+//
+// The PDF generator writes to `output/<kebab(full_name)>-cv.pdf`. We try that
+// first, then fall back to a generic `output/cv.pdf` so a freshly-cloned repo
+// without a profile still has somewhere to look. Never hard-codes a person's
+// name.
+
+function resumeCandidatePaths(profile) {
+  const out = [];
+  if (profile && profile.full_name) {
+    const slug = String(profile.full_name).toLowerCase()
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim().replace(/\s+/g, '-');
+    if (slug) out.push(path.join(ROOT, 'output', `${slug}-cv.pdf`));
+  }
+  out.push(path.join(ROOT, 'output', 'cv.pdf'));
+  return out;
+}
+
+async function findResumePdf(profile) {
+  for (const p of resumeCandidatePaths(profile)) {
+    try { await fs.access(p); return p; } catch {}
+  }
+  return null;
 }
 
 async function runAutoApply() {
@@ -1226,10 +1314,9 @@ async function runAutopilot() {
                     // Re-upload resume and retry submit
                     autopilotState.currentStep = 'Re-uploading resume at ' + app.company;
                     try {
-                      const cvPdf = path.join(ROOT, 'output', 'tony-walteur-cv.pdf');
                       const cvMd = path.join(ROOT, 'cv.md');
-                      let rp = null;
-                      try { await fs.access(cvPdf); rp = cvPdf; } catch { try { await fs.access(cvMd); rp = cvMd; } catch {} }
+                      let rp = await findResumePdf(profile);
+                      if (!rp) { try { await fs.access(cvMd); rp = cvMd; } catch {} }
                       if (rp) await page.locator('#resume, input[type="file"]').first().setInputFiles(rp);
                     } catch {}
                     await page.waitForTimeout(1000);
@@ -1509,16 +1596,20 @@ async function fillGreenhouseForm(page, profile) {
     return result;
   });
 
+  // Tailored answers come from config/profile.yml. Empty profile fields turn
+  // into null so the field is left blank for the user to fill in manually,
+  // rather than leaking a stale default into someone else's application.
   for (const q of questionMap) {
     const t = q.text.toLowerCase();
     let answer = null;
 
-    // LinkedIn
-    if (t.includes('linkedin')) answer = profile.linkedin || 'linkedin.com/in/tonywalteur';
-    // Website / portfolio
-    else if (t.includes('website') || t.includes('portfolio') || t.includes('github')) answer = profile.linkedin || '';
-    // Visa sponsorship
-    else if (t.includes('visa') || t.includes('sponsorship') || t.includes('authorized') || t.includes('employment eligibility')) answer = 'Yes, I will require visa sponsorship for US-based roles. I am a Canadian citizen/resident.';
+    // LinkedIn / portfolio / GitHub — fall back to empty (skip), never to a default URL.
+    if (t.includes('linkedin')) answer = profile.linkedin || null;
+    else if (t.includes('website') || t.includes('portfolio') || t.includes('github')) {
+      answer = profile.portfolio_url || profile.github || profile.linkedin || null;
+    }
+    // Visa sponsorship / right to work
+    else if (t.includes('visa') || t.includes('sponsorship') || t.includes('authorized') || t.includes('employment eligibility')) answer = composeVisa(profile);
     // Relocation
     else if (t.includes('relocation') || t.includes('relocate') || t.includes('open to')) {
       if (t.includes('relocat')) answer = 'Yes, I am open to relocation for this role.';
@@ -1529,45 +1620,49 @@ async function fillGreenhouseForm(page, profile) {
     else if (t.includes('start') || t.includes('earliest') || t.includes('available')) answer = 'Available immediately — can start within 2-3 weeks.';
     // Timeline / deadlines
     else if (t.includes('deadline') || t.includes('timeline') || t.includes('consideration')) answer = 'No hard deadlines. I am actively interviewing and can prioritize.';
-    // Why company
-    else if (t.includes('why anthropic') || t.includes('why do you want') || t.includes('interest in')) answer = 'I built Jarvis — an agentic AI management platform on the Claude API and MCP — delivering $40M+ in projected annual savings for 1,800 managers. I am deeply invested in the Anthropic ecosystem: fully certified across the Claude stack (API, MCP Advanced, Subagents, Claude Code), with production experience deploying Claude in regulated enterprise environments. I want to bring my ecosystem architecture and enterprise deployment expertise directly to Anthropic to help scale AI adoption responsibly.';
+    // Why this company
+    else if (t.includes('why ') || t.includes('why do you want') || t.includes('interest in')) answer = composeMotivation(profile);
     // AI policy acknowledgment
     else if (t.includes('ai policy') || t.includes('acknowledge') || t.includes('consent')) answer = 'I acknowledge and agree to the AI policy for this application.';
-    // Interviewed before
-    else if (t.includes('interview') && t.includes('before')) answer = 'No, I have not interviewed at Anthropic before.';
-    // How did you hear
-    else if (t.includes('how did you') || t.includes('where did you') || t.includes('hear about') || t.includes('source')) answer = 'Direct research — I actively track roles as a certified Claude developer and ecosystem builder.';
-    // Work address / location
-    else if (t.includes('address') || (t.includes('where') && t.includes('work')) || (t.includes('plan') && t.includes('work'))) answer = 'Montreal, QC, Canada — open to relocation.';
-    // Based in / currently located
-    else if (t.includes('based in') || t.includes('currently based') || t.includes('currently located') || t.includes('currently live')) answer = 'I am based in Montreal, Canada. Open to relocation.';
+    // Interviewed before — keep neutral; user can override
+    else if (t.includes('interview') && t.includes('before')) answer = 'No.';
+    // How did you hear — leave blank by default; this answer is application-specific
+    else if (t.includes('how did you') || t.includes('where did you') || t.includes('hear about') || t.includes('source')) answer = null;
+    // Work address / based in / currently located — use profile.location or skip
+    else if (t.includes('address') || (t.includes('where') && t.includes('work')) || (t.includes('plan') && t.includes('work'))
+             || t.includes('based in') || t.includes('currently based') || t.includes('currently located') || t.includes('currently live')) {
+      answer = profile.location || null;
+    }
     // Office / hybrid (broader match)
     else if (t.includes('office') || t.includes('hybrid') || t.includes('2-3 days') || t.includes('on-site') || t.includes('onsite')) answer = 'Yes, I am open to hybrid / in-office work.';
-    // Experience / describe / driven adoption (open-ended questions)
-    else if ((t.includes('describe') || t.includes('driven') || t.includes('experience')) && (t.includes('adoption') || t.includes('customer') || t.includes('technical') || t.includes('complex') || t.includes('expansion') || t.includes('upsell'))) answer = 'At Amaris Consulting I lead enterprise IT transformation for Fortune 500 clients, directing a 15-consultant Center of Excellence and a 10M dollar portfolio. I built Jarvis, an agentic AI platform projecting 1.35M manager-hours and over 40M in annual savings. I have driven adoption of complex platforms across 25+ enterprise accounts with 95% on-time delivery. I identified and drove a 2M+ net-new revenue expansion through co-sell motions with Microsoft, Apple, Meta, and Kelvin Zero by packaging standardized MDM/UEM offers for Fortune 500 accounts.';
+    // Experience / describe / driven adoption (open-ended) → best_achievement
+    else if ((t.includes('describe') || t.includes('driven') || t.includes('experience')) && (t.includes('adoption') || t.includes('customer') || t.includes('technical') || t.includes('complex') || t.includes('expansion') || t.includes('upsell'))) answer = composeAchievement(profile);
     // Salary expectations
-    else if (t.includes('salary') || t.includes('compensation') || t.includes('pay expectation') || t.includes('total comp')) answer = 'My target range is $150,000-250,000+ depending on the total compensation package, equity, and scope of the role. I am flexible on structure.';
+    else if (t.includes('salary') || t.includes('compensation') || t.includes('pay expectation') || t.includes('total comp')) answer = composeSalary(profile);
     // How are you using AI / AI experiment
-    else if (t.includes('using ai') || t.includes('ai today') || t.includes('ai experiment') || t.includes('last ai')) answer = 'I built Jarvis (PAC-Man), an agentic AI management platform on the Anthropic Claude API and Model Context Protocol (MCP), projecting 1.35M manager-hours and over 40M dollars in annual savings across 1,800 managers. I hold 20+ AI certifications including the full Anthropic Claude stack (API, MCP Advanced, Subagents, Claude Code). I also built career-ops, an AI-powered job search pipeline that automates offer evaluation, cover letter generation, and application tracking using Claude Code and autonomous agent orchestration.';
-    // Specific example / STAR format questions
-    else if (t.includes('specific example') || t.includes('tell us about a time') || t.includes('give an example') || t.includes('describe a situation')) answer = 'At Amaris Consulting, I identified that our Jamf professional services were underleveraged in the partner ecosystem. I re-engineered the delivery model for AWS Marketplace and Microsoft co-sell, built distribution frameworks across TD SYNNEX, Climb, and Ingram Micro, and established Amaris as the sole Canadian Jamf Certified Integrator. This unlocked a multi-hundred-million-dollar TAM and generated 2M+ in net-new revenue YTD through high-velocity co-sell motions with Fortune 500 accounts.';
-    // Country-based eligibility / where are you based
-    else if ((t.includes('country') || t.includes('countries') || t.includes('based')) && (t.includes('eligible') || t.includes('currently') || t.includes('these'))) answer = 'Canada';
+    else if (t.includes('using ai') || t.includes('ai today') || t.includes('ai experiment') || t.includes('last ai')) answer = composeAiExperiment(profile);
+    // Specific example / STAR format questions → best_achievement
+    else if (t.includes('specific example') || t.includes('tell us about a time') || t.includes('give an example') || t.includes('describe a situation')) answer = composeAchievement(profile);
+    // Country-based eligibility / where are you based — derive from profile.location
+    else if ((t.includes('country') || t.includes('countries') || t.includes('based')) && (t.includes('eligible') || t.includes('currently') || t.includes('these'))) {
+      const parts = (profile.location || '').split(',').map(s => s.trim()).filter(Boolean);
+      answer = parts[parts.length - 1] || null;
+    }
     // Notice period / availability
     else if (t.includes('notice period') || t.includes('when can you start') || t.includes('availability')) answer = 'Available immediately — can start within 2-3 weeks.';
-    // Motivation / why this company (generic)
-    else if (t.includes('why do you want') || t.includes('what excites you') || t.includes('what interests you') || t.includes('what draws you') || t.includes('motivation')) answer = 'I am drawn to this role because it sits at the intersection of AI innovation and enterprise ecosystem architecture — the exact space where I have built my career. I bring 8+ years of enterprise IT transformation, a track record of building agentic AI platforms (Jarvis: 1.35M manager-hours projected savings), and deep experience orchestrating partnerships across Microsoft, Apple, AWS, and Meta. I want to bring this execution capability to drive real impact at scale.';
+    // Motivation (generic catch — try this AFTER the specific "why X" branch above)
+    else if (t.includes('what excites you') || t.includes('what interests you') || t.includes('what draws you') || t.includes('motivation')) answer = composeMotivation(profile);
     // Cover letter / anything else
-    else if (t.includes('cover letter') || t.includes('anything else') || t.includes('additional information') || t.includes('additional context')) answer = 'I bring 8+ years of enterprise IT transformation experience as sole executive for AI and Innovation across Mantu Group North America (12,000 people, 1.2B EUR). I built Jarvis, an agentic AI platform projecting 1.35M manager-hours and 40M+ in annual savings. Anthropic certified across the full Claude stack. I would welcome the opportunity to discuss how my background can contribute to your team.';
-    // Right to work / authorized
-    else if (t.includes('right to work') || t.includes('authorized to work') || t.includes('work permit') || t.includes('legally authorized')) answer = 'I am a Canadian citizen. I would require visa sponsorship for US-based roles. For European roles, I am open to relocation and work permit processes.';
+    else if (t.includes('cover letter') || t.includes('anything else') || t.includes('additional information') || t.includes('additional context')) answer = composeCoverLetter(profile);
+    // Right to work
+    else if (t.includes('right to work') || t.includes('authorized to work') || t.includes('work permit') || t.includes('legally authorized')) answer = composeVisa(profile);
     // Location / city — must come BEFORE catch-all to avoid enterprise-text in city fields
-    else if ((t.includes('city') || (t.includes('location') && !t.includes('relocation') && !t.includes('office') && !t.includes('remote') && !t.includes('where') && !t.includes('plan'))) && q.tag === 'INPUT') answer = profile.location || 'Montreal, QC, Canada';
+    else if ((t.includes('city') || (t.includes('location') && !t.includes('relocation') && !t.includes('office') && !t.includes('remote') && !t.includes('where') && !t.includes('plan'))) && q.tag === 'INPUT') answer = profile.location || null;
     // Gender / demographics (optional)
     else if (t.includes('gender') || t.includes('hispanic') || t.includes('veteran') || t.includes('disability') || t.includes('race') || t.includes('ethnicity') || t.includes('pronoun') || t.includes('personal preference')) answer = null;
-    // Catch-all for required text fields — but EXCLUDE basic fields that Phase 3 handles
+    // Catch-all for required text fields → fall back to a profile-derived summary
     else if (t.includes('*') && !t.includes('first name') && !t.includes('last name') && !t.includes('email') && !t.includes('phone') && !t.includes('country') && !t.includes('resume') && !t.includes('attach') && !t.includes('gender') && !t.includes('hispanic') && !t.includes('veteran') && !t.includes('disability')) {
-      answer = 'I bring 8+ years of enterprise IT transformation, AI platform development (Jarvis: 1.35M manager-hours, 40M+ annual savings), and ecosystem architecture across Microsoft, Apple, AWS, and Meta. Happy to elaborate in an interview.';
+      answer = composeProfileSummary(profile);
     }
     // Optional fields without a match: skip
     else answer = null;
@@ -1923,12 +2018,9 @@ async function fillGreenhouseForm(page, profile) {
 
   // --- PHASE 2.5: Upload resume AFTER all dropdowns (dropdowns clear file inputs) ---
   try {
-    const cvPdf = path.join(ROOT, 'output', 'tony-walteur-cv.pdf');
     const cvMd = path.join(ROOT, 'cv.md');
-    let resumePath = null;
-    try { await fs.access(cvPdf); resumePath = cvPdf; } catch {
-      try { await fs.access(cvMd); resumePath = cvMd; } catch {}
-    }
+    let resumePath = await findResumePdf(profile);
+    if (!resumePath) { try { await fs.access(cvMd); resumePath = cvMd; } catch {} }
     if (resumePath) {
       const fileInput = page.locator('#resume').first();
       if (await fileInput.count() > 0) { await fileInput.setInputFiles(resumePath); filled = true; }
@@ -2004,8 +2096,8 @@ async function fillGreenhouseForm(page, profile) {
     if (await locField.isVisible({ timeout: 500 }).catch(() => false)) {
       const locVal = await locField.inputValue().catch(() => '');
       if (!locVal || locVal.trim().length < 3) {
-        const locTarget = profile.location || 'Montreal, QC, Canada';
-        await fillLocationField(locField, locTarget);
+        // Use profile.location if set; otherwise leave the field for the user.
+        if (profile.location) await fillLocationField(locField, profile.location);
       }
     }
   } catch {}
@@ -2045,20 +2137,21 @@ async function fillGreenhouseForm(page, profile) {
     return result;
   });
 
-  const aiAnswer = 'I built Jarvis (PAC-Man), an agentic AI management platform on the Anthropic Claude API and Model Context Protocol (MCP), projecting 1.35M manager-hours and over 40M dollars in annual savings across 1,800 managers. My last AI experiment: I automated the full job-search pipeline (offer evaluation, CV generation, form filling, and ATS submission) using Claude Code and autonomous agent orchestration — saving 40+ hours per week. I hold 20+ AI certifications including the full Anthropic Claude stack (API, MCP Advanced, Subagents, Claude Code).';
-  const experienceAnswer = 'At Amaris Consulting I lead enterprise IT transformation for Fortune 500 clients, directing a 15-consultant Center of Excellence and a 10M dollar portfolio. I built Jarvis, an agentic AI platform projecting 1.35M manager-hours and over 40M in annual savings. I have driven adoption of complex platforms across 25+ enterprise accounts with 95% on-time delivery. I identified and drove a 2M+ net-new revenue expansion through co-sell motions with Microsoft, Apple, Meta, and Kelvin Zero.';
+  // Profile-derived answers; empty fields produce null and the question is skipped.
+  const aiAnswer = composeAiExperiment(profile);
+  const experienceAnswer = composeAchievement(profile);
 
   for (const ta of emptyTextareas) {
     const t = ta.text.toLowerCase();
     let ans = null;
     if (t.includes('using ai') || t.includes('ai today') || t.includes('ai experiment') || t.includes('last ai')) ans = aiAnswer;
     else if (t.includes('driven') || t.includes('adoption') || t.includes('expansion') || t.includes('upsell') || t.includes('post-sale') || t.includes('post sale') || t.includes('aar') || t.includes('$500k') || t.includes('500k')) ans = experienceAnswer;
-    else if (t.includes('salary') || t.includes('compensation') || t.includes('expectation')) ans = 'My target range is CAD $150,000-250,000+ depending on total compensation package, equity, and role scope.';
+    else if (t.includes('salary') || t.includes('compensation') || t.includes('expectation')) ans = composeSalary(profile);
     else if (t.includes('notice') || t.includes('available to start') || t.includes('when can you start') || t.includes('start date')) ans = 'Immediately / 2 weeks notice.';
-    else if (t.includes('why') || t.includes('motivation') || t.includes('interest')) ans = 'I am drawn to this role because it sits at the intersection of AI innovation and enterprise ecosystem architecture — the exact space where I have built my career over 8+ years.';
+    else if (t.includes('why') || t.includes('motivation') || t.includes('interest')) ans = composeMotivation(profile);
     else if (t.includes('describe') || t.includes('example') || t.includes('tell us') || t.includes('specific')) ans = experienceAnswer;
-    else if (t.includes('cover letter') || t.includes('additional') || t.includes('anything else')) ans = 'I bring 8+ years of enterprise IT transformation experience. I built Jarvis, an agentic AI platform projecting 1.35M manager-hours and 40M+ in annual savings. Anthropic certified across the full Claude stack. Would welcome the opportunity to discuss how my background can contribute to your team.';
-    else if (t.includes('*')) ans = 'I bring 8+ years of enterprise IT transformation, AI platform development (Jarvis: 1.35M manager-hours, 40M+ annual savings), and ecosystem architecture across Microsoft, Apple, AWS, and Meta. Happy to elaborate in an interview.';
+    else if (t.includes('cover letter') || t.includes('additional') || t.includes('anything else')) ans = composeCoverLetter(profile);
+    else if (t.includes('*')) ans = composeProfileSummary(profile);
 
     if (ans && ta.id) {
       try {
@@ -2098,12 +2191,14 @@ async function fillGreenhouseForm(page, profile) {
   for (const inp of emptyInputs) {
     const t = inp.text.toLowerCase();
     let ans = null;
-    if (t.includes('salary') || t.includes('compensation') || t.includes('expectation') || t.includes('pay')) ans = '$150,000–250,000+ (flexible on structure)';
-    else if (t.includes('city') || (t.includes('location') && !t.includes('relocation') && !t.includes('remote') && !t.includes('where'))) ans = profile.location || 'Montreal, QC';
-    else if (t.includes('linkedin')) ans = profile.linkedin || 'linkedin.com/in/tonywalteur';
+    if (t.includes('salary') || t.includes('compensation') || t.includes('expectation') || t.includes('pay')) {
+      ans = profile.target_range ? `${profile.target_range}${profile.currency ? ' ' + profile.currency : ''} (flexible on structure)` : null;
+    }
+    else if (t.includes('city') || (t.includes('location') && !t.includes('relocation') && !t.includes('remote') && !t.includes('where'))) ans = profile.location || null;
+    else if (t.includes('linkedin')) ans = profile.linkedin || null;
     else if (t.includes('notice') || t.includes('available to start') || t.includes('when can you start') || t.includes('start date')) ans = 'Immediately / 2 weeks notice';
-    else if (t.includes('why') || t.includes('motivation')) ans = 'I am drawn to this role because it sits at the intersection of AI innovation and enterprise ecosystem architecture — the exact space where I have built my career over 8+ years.';
-    else if (t.includes('portfolio') || t.includes('website') || t.includes('github')) ans = profile.linkedin || 'linkedin.com/in/tonywalteur';
+    else if (t.includes('why') || t.includes('motivation')) ans = composeMotivation(profile);
+    else if (t.includes('portfolio') || t.includes('website') || t.includes('github')) ans = profile.portfolio_url || profile.github || profile.linkedin || null;
     if (ans) {
       const sel = inp.id ? '#' + inp.id : (inp.name ? `input[name="${inp.name}"]` : null);
       if (!sel) continue;
@@ -4483,7 +4578,7 @@ const HTML = /* html */ `<!DOCTYPE html>
       <div class="wiz-hint">Situation → action → measurable result. Specific numbers beat adjectives.</div>
       <textarea class="wiz-textarea" id="wiz-best"
         aria-label="Best achievement — situation, action, measurable result"
-        placeholder="e.g. Led the AI transformation across 12,000 consultants in 60 countries; built Jarvis (agentic platform on Claude API + MCP) projecting 1.35M manager-hours and $40M+ in annual savings."></textarea>
+        placeholder="e.g. Led the migration of legacy ETL pipelines to a unified data platform serving 200+ analysts; cut nightly batch runtime from 6h to 45min and saved $2.4M/yr in cloud spend."></textarea>
 
       <span class="wiz-label">Proof points (optional but high-leverage)</span>
       <div class="wiz-hint">Public-facing things you can point to: case study, repo, talk, article, dashboard.</div>
@@ -6092,7 +6187,7 @@ const HTML = /* html */ `<!DOCTYPE html>
     // Use data-attributes + delegated event handlers (same pattern as chips).
     list.innerHTML = items.map((p, i) =>
       '<div class="wiz-proof" data-idx="' + i + '">' +
-      '<input class="wiz-input" data-field="name"        placeholder="Name (e.g. Jarvis platform)" value="' + esc(p.name || '') + '">' +
+      '<input class="wiz-input" data-field="name"        placeholder="Name (e.g. Project Atlas)" value="' + esc(p.name || '') + '">' +
       '<input class="wiz-input" data-field="url"         placeholder="URL (optional)"             value="' + esc(p.url || '') + '">' +
       '<input class="wiz-input" data-field="hero_metric" placeholder="Hero metric (e.g. $26M ROI)" value="' + esc(p.hero_metric || '') + '">' +
       '<button class="wiz-proof-rm" data-action="remove" aria-label="Remove proof point">×</button>' +
@@ -6348,21 +6443,41 @@ const HTML = /* html */ `<!DOCTYPE html>
     showToast('CV PDF still generating — check output/ shortly', 'info');
   }
 
-  // Check setup status on boot — show banner if cv.md missing.
-  // Stashes the result on window.cvExists so renderApps can pick the right
-  // empty-state copy (pre-CV vs profile-set-but-no-apps).
+  // Check setup status on boot — show banner if cv.md or profile.yml missing.
+  // Stashes the result on window.cvExists/profileExists so renderApps can pick
+  // the right empty-state copy. For a brand-new user (no CV AND no profile),
+  // auto-open the onboarding wizard so the very first interaction is "give me
+  // your details" rather than a blank dashboard.
   async function checkSetupStatus() {
     try {
       const res = await fetch('/api/setup-status');
-      const { cvExists } = await res.json();
+      const { cvExists, profileExists } = await res.json();
       window.cvExists = !!cvExists;
+      window.profileExists = !!profileExists;
+      const freshUser = !cvExists && !profileExists;
+
       if (!cvExists) {
         const btn = document.getElementById('profile-btn');
-        btn.textContent = '⚠ Setup';
-        btn.style.color = 'var(--orange)';
-        btn.style.borderColor = 'rgba(212,168,67,.4)';
-        showToast('No CV found — drop your resume to get started', 'error');
+        if (btn) {
+          btn.textContent = '⚠ Setup';
+          btn.style.color = 'var(--orange)';
+          btn.style.borderColor = 'rgba(212,168,67,.4)';
+        }
       }
+
+      if (freshUser) {
+        // Brand-new install — open the wizard immediately. Defer one frame so
+        // the dashboard layout has settled before the modal traps focus.
+        requestAnimationFrame(() => {
+          try { openOnboard(); } catch {}
+        });
+      } else if (!cvExists) {
+        showToast('No CV found — drop your resume to get started', 'error');
+      } else if (!profileExists) {
+        // CV is there but no profile yet — nudge gently, don't auto-open.
+        showToast('Profile not configured yet — click ⊕ Profile to finish setup', 'info');
+      }
+
       // Re-paint the empty-state copy now that cvExists is known. No-op when
       // there ARE applications (renderApps short-circuits).
       if (typeof allApps !== 'undefined' && Array.isArray(allApps) && allApps.length === 0) {
@@ -7257,18 +7372,9 @@ GMAIL_REDIRECT_URI=${redirect}</pre>
       return;
     }
     // Check the candidate PDF filenames for a fresh mtime.
-    const candidates = [
-      path.join(ROOT, 'output', 'tony-walteur-cv.pdf'),
-    ];
-    // Also check kebab-case based on current profile.yml full_name
-    try {
-      const yml = await fs.readFile(path.join(CONFIG_DIR, 'profile.yml'), 'utf8');
-      const m = yml.match(/full_name:\s*"([^"]+)"/);
-      if (m) {
-        const slug = m[1].toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
-        if (slug) candidates.unshift(path.join(ROOT, 'output', `${slug}-cv.pdf`));
-      }
-    } catch {}
+    // Order: kebab-of-current-profile.full_name first, then generic cv.pdf.
+    const profileForPdf = await loadProfile();
+    const candidates = resumeCandidatePaths(profileForPdf);
     let ready = false;
     for (const p of candidates) {
       try {
