@@ -124,12 +124,50 @@ export default function Dashboard() {
   };
 
   const steps = [
-    { target: null, title: "Welcome to Alpha v2.0", content: "Your AI career command center is live. Let's configure your agent for maximum discovery.", icon: <Zap size={24}/> },
-    { target: "nav-terminal", title: "The Command Engine", content: "The Terminal is where you control the agent. Type 'scan' to search 11+ job portals or 'tailor' to generate resumes.", icon: <TerminalIcon size={24}/> },
-    { target: "nav-settings", title: "Your Training Ground", content: "Before you scan, you must train the AI. Let's head to Settings to define your professional identity.", icon: <Settings size={24}/> },
-    { target: "config-narrative", title: "Core Narrative", content: "This is your AI Identity. The 'Executive Story' is used to automatically tailor every resume and cover letter we generate.", icon: <FileText size={24}/>, tab: 'settings' },
-    { target: "config-targeting", title: "Hunting Strategy", content: "Targeting Parameters define your 'Hunting Logic'. Use keywords to tell the AI exactly which roles to prioritize or ignore.", icon: <Search size={24}/>, tab: 'settings' },
-    { target: "nav-pipeline", title: "The Payoff", content: "Every job found is ranked 0-10 based on your strategy. Your best matches will appear here in the Pipeline.", icon: <BarChart3 size={24}/> }
+    {
+      target: null,
+      title: "Welcome to Career Command Center",
+      content: "Your AI-powered job search pipeline is ready. This dashboard helps you scan 45+ portals, auto-tailor ATS-optimized resumes, track applications, and prepare for interviews — all from one place. Let's get you set up for success.",
+      icon: <Zap size={24}/>
+    },
+    {
+      target: "nav-terminal",
+      title: "The Command Terminal",
+      content: "Your control center for background jobs. Type 'scan' to crawl job portals, 'rank' to score matches, 'tailor 123 --deep' to generate ATS-optimized resumes, or 'apply 123 --deep' to auto-fill applications. Use '--deep' to run heavy tasks on GitHub Actions (recommended).",
+      icon: <TerminalIcon size={24}/>
+    },
+    {
+      target: "nav-settings",
+      title: "Build Your Profile",
+      content: "The AI needs to know you to represent you well. Upload your resume or manually fill in your Experience, Education, and skills. The more complete your profile, the better your tailored resumes and cover letters will be.",
+      icon: <Settings size={24}/>
+    },
+    {
+      target: "config-narrative",
+      title: "Your Professional Story",
+      content: "This shapes every resume and cover letter. Write a 2-3 sentence headline that captures what you do best (e.g., 'Senior Backend Engineer specializing in distributed systems and 99.99% uptime'). Add 3-5 'superpowers' — specific skills where you excel (e.g., 'Microservices Architecture', 'AWS Cost Optimization', 'Team Leadership').",
+      icon: <FileText size={24}/>,
+      tab: 'settings'
+    },
+    {
+      target: "config-targeting",
+      title: "Smart Job Filtering",
+      content: "Define what you're hunting for. Add POSITIVE keywords for roles you want (e.g., 'Senior', 'Backend', 'Remote', 'AWS'). Add NEGATIVE keywords to filter out noise (e.g., 'Frontend', 'Junior', 'PHP'). The AI uses this to score every job 0-10 and surface your best matches.",
+      icon: <Search size={24}/>,
+      tab: 'settings'
+    },
+    {
+      target: "nav-pipeline",
+      title: "Your Job Pipeline",
+      content: "Every discovered job lands here with an AI score. High scores (7+) are strong matches — click 'Tailor' to generate a resume/cover letter customized to that specific JD. Your tailored documents are saved and accessible via the 'Generated Docs' section.",
+      icon: <BarChart3 size={24}/>
+    },
+    {
+      target: null,
+      title: "You're Ready to Hunt",
+      content: "Quick start: 1) Complete your profile in Settings, 2) Set targeting keywords, 3) Run 'scan --deep' in the terminal, 4) Review high-scoring jobs in Pipeline, 5) Click 'Tailor' to generate ATS-optimized applications. Good luck!",
+      icon: <CheckCircle2 size={24}/>
+    }
   ];
 
   useEffect(() => {
@@ -1162,13 +1200,25 @@ System Initialized — v2.0`}
                    <h2 className="text-4xl font-bold text-[#1c1917] tracking-tight">System Configuration</h2>
                    <p className="text-[#a8a29e] mt-1 font-medium italic">Establishing your global professional identity.</p>
                  </div>
-                 <button 
-                   onClick={handleSaveSettings}
-                   disabled={isSaving}
-                   className={`px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${saveStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-[#1c1917] text-white hover:bg-[#27272a]'}`}
-                 >
-                   {saveStatus === 'saving' ? 'Syncing...' : saveStatus === 'success' ? <><CheckCircle2 size={18} /> Profile Locked</> : 'Save Changes'}
-                 </button>
+                 <div className="flex items-center gap-3">
+                   <button
+                     onClick={() => {
+                       localStorage.removeItem(`career_ops_onboarding_v2:${session?.user?.email || session?.user?.id || 'default'}`);
+                       setWalkthroughStep(0);
+                     }}
+                     className="px-5 py-4 rounded-2xl font-bold text-xs text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-all flex items-center gap-2"
+                   >
+                     <Play size={14} />
+                     Restart Tour
+                   </button>
+                   <button
+                     onClick={handleSaveSettings}
+                     disabled={isSaving}
+                     className={`px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${saveStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-[#1c1917] text-white hover:bg-[#27272a]'}`}
+                   >
+                     {saveStatus === 'saving' ? 'Syncing...' : saveStatus === 'success' ? <><CheckCircle2 size={18} /> Profile Locked</> : 'Save Changes'}
+                   </button>
+                 </div>
                </div>
 
                <div className="grid grid-cols-2 gap-10">
@@ -1921,46 +1971,69 @@ System Initialized — v2.0`}
             />
 
             <div className="absolute inset-0 flex items-center justify-center p-6">
-              <motion.div 
+              <motion.div
                 key={walkthroughStep}
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-white rounded-[2.5rem] border border-[#e7e5e4] shadow-2xl max-w-sm w-full p-10 relative pointer-events-auto transition-all duration-500 max-h-[calc(100vh-2rem)] overflow-y-auto"
+                className="bg-white rounded-[2rem] border border-[#e7e5e4] shadow-2xl max-w-md w-full p-8 relative pointer-events-auto transition-all duration-500 max-h-[calc(100vh-2rem)] overflow-y-auto"
                 style={spotlightRect ? {
                     position: 'absolute',
-                    top: Math.min(window.innerHeight - 450, Math.max(20, spotlightRect.top + spotlightRect.height + 20)),
-                    left: Math.min(window.innerWidth - 420, Math.max(20, spotlightRect.left))
+                    top: Math.min(window.innerHeight - 480, Math.max(20, spotlightRect.top + spotlightRect.height + 20)),
+                    left: Math.min(window.innerWidth - 440, Math.max(20, spotlightRect.left))
                 } : {}}
               >
-                <div className="absolute top-0 right-0 p-6">
+                <div className="absolute top-0 right-0 p-5">
                   <button onClick={completeOnboarding} className="text-[#a8a29e] hover:text-[#1c1917] transition-colors">
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Skip</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Skip Tour</span>
                   </button>
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#a8a29e]">
+                    Step {walkthroughStep + 1} of {steps.length}
+                  </span>
+                  <div className="flex-1 h-1 bg-[#f5f5f4] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#1c1917] transition-all duration-300"
+                      style={{ width: `${((walkthroughStep + 1) / steps.length) * 100}%` }}
+                    />
+                  </div>
                 </div>
 
                 <div className="mb-6">
-                  <div className="h-12 w-12 bg-[#1c1917] rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-black/10">
+                  <div className="h-12 w-12 bg-gradient-to-br from-[#1c1917] to-[#44403c] rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-black/10">
                     <div className="text-white">{steps[walkthroughStep].icon}</div>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-[#1c1917] mb-3 tracking-tight">{steps[walkthroughStep].title}</h2>
-                  <p className="text-[#78716c] font-medium leading-relaxed text-sm">{steps[walkthroughStep].content}</p>
+                  <h2 className="text-xl font-bold text-[#1c1917] mb-3 tracking-tight leading-tight">{steps[walkthroughStep].title}</h2>
+                  <p className="text-[#78716c] leading-relaxed text-sm">{steps[walkthroughStep].content}</p>
                 </div>
 
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#f5f5f4]">
+                <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#f5f5f4]">
                   <div className="flex gap-1.5">
                     {steps.map((_, s) => (
-                      <div key={s} className={`h-1 w-1 rounded-full transition-all duration-500 ${walkthroughStep === s ? 'bg-[#1c1917] w-4' : 'bg-[#e7e5e4]'}`} />
+                      <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${walkthroughStep === s ? 'bg-[#1c1917] w-6' : 'bg-[#e7e5e4] w-1.5'}`} />
                     ))}
                   </div>
-                  <button 
-                    onClick={() => walkthroughStep < steps.length - 1 ? setWalkthroughStep(walkthroughStep + 1) : completeOnboarding()}
-                    className="px-6 py-3 bg-[#1c1917] text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-[#27272a] transition-all"
-                  >
-                    {walkthroughStep === steps.length - 1 ? 'Finish Tour' : 'Next Step'}
-                    <ChevronRight size={14} />
-                  </button>
+                  <div className="flex gap-2">
+                    {walkthroughStep > 0 && (
+                      <button
+                        onClick={() => setWalkthroughStep(walkthroughStep - 1)}
+                        className="px-4 py-2.5 text-[#78716c] hover:text-[#1c1917] rounded-xl font-bold text-xs transition-colors"
+                      >
+                        Back
+                      </button>
+                    )}
+                    <button
+                      onClick={() => walkthroughStep < steps.length - 1 ? setWalkthroughStep(walkthroughStep + 1) : completeOnboarding()}
+                      className="px-5 py-2.5 bg-[#1c1917] text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-[#27272a] transition-all shadow-lg shadow-black/10"
+                    >
+                      {walkthroughStep === steps.length - 1 ? 'Get Started' : 'Next'}
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </div>
