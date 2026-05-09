@@ -31,11 +31,11 @@ states:
     description: Active interview process
     dashboard_group: interview
 
-  - id: opening
-    label: Opening
+  - id: offer
+    label: Offer
     aliases: [oferta]
-    description: Opening received
-    dashboard_group: opening
+    description: Offer received
+    dashboard_group: offer
 
   - id: rejected
     label: Rejected

@@ -47,7 +47,7 @@ const ALIASES = {
   'applied': 'applied', 'sent': 'applied',
   'respondido': 'responded',
   'entrevista': 'interview',
-  'oferta': 'opening',
+  'oferta': 'offer',
   'rechazado': 'rejected', 'rechazada': 'rejected',
   'descartado': 'discarded', 'descartada': 'discarded',
   'cerrada': 'discarded', 'cancelada': 'discarded',

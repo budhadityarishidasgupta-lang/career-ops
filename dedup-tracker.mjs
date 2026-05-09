@@ -34,7 +34,7 @@ const STATUS_RANK = {
   'applied': 3,
   'responded': 4,
   'interview': 5,
-  'opening': 6,
+  'offer': 6,
   // Spanish aliases — kept for backwards compat with existing tracker data
   'no_aplicar': 0,
   'no aplicar': 0,

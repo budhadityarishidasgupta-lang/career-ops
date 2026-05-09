@@ -37,7 +37,7 @@ const ALIASES = {
   'applied': 'applied', 'sent': 'applied',
   'respondido': 'responded',
   'entrevista': 'interview',
-  'oferta': 'opening',
+  'oferta': 'offer',
   'rechazado': 'rejected', 'rechazada': 'rejected',
   'descartado': 'discarded', 'descartada': 'discarded',
   'cerrada': 'discarded', 'cancelada': 'discarded',
@@ -52,7 +52,7 @@ function normalizeStatus(raw) {
 
 function classifyOutcome(status) {
   const s = normalizeStatus(status);
-  if (['interview', 'opening', 'responded', 'applied'].includes(s)) return 'positive';
+  if (['interview', 'offer', 'responded', 'applied'].includes(s)) return 'positive';
   if (['rejected', 'discarded'].includes(s)) return 'negative';
   if (['skip'].includes(s)) return 'self_filtered';
   return 'pending'; // evaluated
@@ -478,7 +478,7 @@ function printSummary(result) {
   // Funnel
   console.log('CONVERSION FUNNEL');
   console.log('-'.repeat(40));
-  const funnelOrder = ['evaluated', 'applied', 'responded', 'interview', 'opening', 'rejected', 'discarded', 'skip'];
+  const funnelOrder = ['evaluated', 'applied', 'responded', 'interview', 'offer', 'rejected', 'discarded', 'skip'];
   for (const status of funnelOrder) {
     if (funnel[status]) {
       const pct = Math.round((funnel[status] / metadata.total) * 100);
