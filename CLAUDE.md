@@ -5,6 +5,15 @@
 
 If the user is sitting down to build application materials → open `data/TODAY.md` first (master nav), then `data/APPLY-NOW.md` (ranked queue), then follow `data/HOW-TO-APPLY.md`. Pre-flight via `data/pre-flight-checklist.md` before submitting.
 
+## Session Notes — 2026-05-08 (cost reduction boosters)
+- scripts/cost-logger.mjs: per-batch TSV cost logger (data/cost-log.tsv, gitignored); fix: monthlySpend() was using require() in ESM — fixed to use readFileSync from top-level import
+- scripts/warm-cache.mjs: pre-batch cache warmer (max_tokens=1 preflight to prime Anthropic cache); --dry-run + --model flags
+- batch-runner-batches.mjs: logBatchCost() integrated into phaseProcess() — aggregates token usage across all succeeded results after the loop
+- batch-runner-batches.mjs: budget guard in phaseSubmit() — reads cost-log.tsv rolling 30-day total, aborts + exits if MONTHLY_BUDGET_USD env var exceeded
+- .gitignore: added data/cost-log.tsv + data/triage-cache.tsv (runtime-generated pipeline data)
+- URL dedup cache (data/triage-cache.tsv): in-memory session cache + 7-day persistent TSV cache; borderline scores (3.0–4.0) intentionally not cached to avoid freezing ambiguous results
+- All 4 booster files pass node --check syntax validation
+
 ## Session Notes — 2026-05-08 (cost reduction autonomous run)
 - Baseline captured: 944/1314 advanced (71.8%) on backlog run — triage too permissive
 - cache_control added to batch-runner-batches.mjs (static block ~26,715 tokens)
