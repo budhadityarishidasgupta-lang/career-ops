@@ -9,7 +9,7 @@
 states:
   - id: evaluated
     label: Evaluated
-    aliases: [evaluada]
+    aliases: [evaluada, hold, condicional]
     description: Offer evaluated with report, pending decision
     dashboard_group: evaluated
 
