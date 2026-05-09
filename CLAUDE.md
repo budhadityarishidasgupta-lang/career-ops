@@ -5,6 +5,14 @@
 
 If the user is sitting down to build application materials → open `data/TODAY.md` first (master nav), then `data/APPLY-NOW.md` (ranked queue), then follow `data/HOW-TO-APPLY.md`. Pre-flight via `data/pre-flight-checklist.md` before submitting.
 
+## Session Notes — 2026-05-09 (freshness-aware triage + source quality cleanup)
+- triage.mjs: scan-history.tsv loaded at startup into Map; per-URL age computed; source-specific TTLs applied (LinkedIn 10d, Glassdoor 0, Workday 14d, Amazon 28d, GH/Ashby/Lever 21d); stale URLs auto-expired before quota spending; fresh items sorted newest-first
+- scan.mjs + scan-email.mjs: ISO date stamp added to each pipeline.md write (`| ${date}`)
+- scan-email.mjs: Glassdoor blocked at ingestion (JOB_URL_PATTERNS + normalizer removed) — always 403, zero signal
+- portals.yml (gitignored): Red Ventures, Gartner, Saatva, Angi → enabled: false (0% advance rate since Apr 29, data-driven; comments explain each disable reason)
+- batch/triage-advance.tsv: deduped 338 → 237 items (103 duplicate URLs removed, first occurrence kept)
+- Source quality finding: Glassdoor (0% due to 403), Workday (0% — no API), job boards via email scanner top performers: Greenhouse/Ashby/Lever direct APIs highest quality; HN Who Is Hiring anecdotally high signal
+
 ## Session Notes — 2026-05-08 (cost reduction boosters v2 — self-generated additions)
 - batch-runner-batches.mjs: max_tokens 4096→1400 on Sonnet batch evals (reports are 500–900 tokens; 4096 burned money on runaway outliers)
 - batch-runner-batches.mjs: temperature: 0 on batch evals (eliminates verbose preambles that inflate output token count)
