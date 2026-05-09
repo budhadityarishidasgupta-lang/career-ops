@@ -5,6 +5,12 @@
 
 If the user is sitting down to build application materials → open `data/TODAY.md` first (master nav), then `data/APPLY-NOW.md` (ranked queue), then follow `data/HOW-TO-APPLY.md`. Pre-flight via `data/pre-flight-checklist.md` before submitting.
 
+## Session Notes — 2026-05-08 (cost reduction boosters v2 — self-generated additions)
+- batch-runner-batches.mjs: max_tokens 4096→1400 on Sonnet batch evals (reports are 500–900 tokens; 4096 burned money on runaway outliers)
+- batch-runner-batches.mjs: temperature: 0 on batch evals (eliminates verbose preambles that inflate output token count)
+- batch-runner-batches.mjs: JD fetch trim 12,000→5,500 chars (saves ~1,625 tokens/item; first 5,500 chars covers role/requirements, rest is boilerplate)
+- batch-runner-batches.mjs: dry-run cost estimator now uses accurate per-item math (static block cache rate, dynamic input, real max_tokens=1400 output cap) instead of flat $0.035/item guess
+
 ## Session Notes — 2026-05-08 (cost reduction boosters)
 - scripts/cost-logger.mjs: per-batch TSV cost logger (data/cost-log.tsv, gitignored); fix: monthlySpend() was using require() in ESM — fixed to use readFileSync from top-level import
 - scripts/warm-cache.mjs: pre-batch cache warmer (max_tokens=1 preflight to prime Anthropic cache); --dry-run + --model flags
