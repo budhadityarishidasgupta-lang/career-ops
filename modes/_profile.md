@@ -109,13 +109,13 @@ When a JD mentions any of these — cite it as a direct match. Most candidates w
 | **Data Platform / Infrastructure** | **+0.2** | Strong fit, AI-resilient. |
 | **Analytics Engineering** (dbt + semantic layer) | **+0.1** | Good fit, secondary preference. |
 | **BI / Insights Engineering** | neutral | Acceptable, not preferred. |
-| **ML Engineer / Data Scientist** (primary focus) | **−0.2** | Open to it but not primary interest. Apply only if other signals are strong. |
+| **ML Engineer / Data Scientist** | neutral (0) | Open to it, no penalty — just no boost. |
 | **Hybrid DE + ML** ("ML Platform Engineer", "MLOps") | **+0.1** | DE-flavored ML is fine. |
 
 **Detection guide:**
 - Look at the JD's day-to-day responsibilities, not just the title.
 - A "Data Scientist" role that's 70% pipelines and 30% modeling = treat as Data Engineering (+0.3).
-- A "Data Engineer" role that's 70% notebook ML work = treat as ML (−0.2).
+- A "Data Engineer" role that's 70% notebook ML work = treat as ML (neutral).
 
 **Annotate the adjustment in the report:**
 > Role type: Data Engineering — applied +0.3 (primary interest area).
