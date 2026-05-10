@@ -36,7 +36,10 @@ function runScraper(userId) {
     const start = Date.now();
 
     const script = process.env.ACTION_SCRIPT || 'scratch-scan.mjs';
-    const scriptArgs = process.env.ACTION_ARGS ? process.env.ACTION_ARGS.split(' ') : [];
+    const rawArgs = (process.env.ACTION_ARGS || '').trim();
+    // Job URLs (LinkedIn, etc.) contain `&` and must stay a single argv — never split on spaces.
+    const scriptArgs =
+      script === 'add-job.mjs' && rawArgs ? [rawArgs] : rawArgs ? rawArgs.split(/\s+/) : [];
 
     const child = spawn('node', [script, ...scriptArgs], {
       cwd: ROOT,

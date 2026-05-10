@@ -42,17 +42,82 @@ function calculateJobScore(jdText, profile) {
   return Math.max(0, Math.min(10, Math.round(score)));
 }
 
-// Extract company name from URL
+function canonicalJobUrl(url) {
+  try {
+    const u = new URL(String(url).trim());
+    u.hash = '';
+    // LinkedIn: stable id lives in path; strip tracking query params
+    if (u.hostname.includes('linkedin.com') && u.pathname.includes('/jobs/view/')) {
+      u.search = '';
+    }
+    return u.toString();
+  } catch {
+    return String(url || '').split('?')[0];
+  }
+}
+
+// Heuristic parse for LinkedIn public job pages (body text varies by locale / auth wall)
+function extractLinkedInCompanyTitle(jdText, url) {
+  if (!url.includes('linkedin.com')) return { company: null, title: null };
+  const head = String(jdText || '').slice(0, 6000);
+  // Document title / hero often: "Co hiring Role — Remote | LinkedIn"
+  const hiring = head.match(
+    /^[^\n]*\b([^\n|]{2,80}?)\s+hiring\s+([^\n|]+?)(?:\s+[-—]\s*(?:Remote|Hybrid|On-site)[^\n|]*)?(?:\s*\||\s*$)/im
+  );
+  if (hiring) {
+    const company = hiring[1].replace(/\s+/g, ' ').trim();
+    let title = hiring[2].replace(/\s+/g, ' ').trim();
+    title = title.replace(/\s+[-—]\s+Remote in .+$/i, '').trim();
+    if (company.length >= 2 && title.length >= 4) return { company, title };
+  }
+  const lines = String(jdText || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const skip = (l) =>
+    /^(skip to|sign in|join now|apply|save|report|get ai|email or phone|password|new to linkedin)/i.test(l) ||
+    l.length < 2;
+
+  const good = lines.filter((l) => !skip(l));
+
+  let title = null;
+  let company = null;
+
+  for (let i = 0; i < Math.min(good.length, 50); i++) {
+    const line = good[i];
+    if (
+      !title &&
+      /(engineer|developer|manager|architect|lead|remote|contract|full[\s-]?stack|software|data|product|devops)/i.test(line) &&
+      line.length < 140
+    ) {
+      title = line.replace(/\s+/g, ' ').trim();
+      continue;
+    }
+    if (title && !company && line.length > 1 && line.length < 100) {
+      // Often: "Kake · Spain" or "Kake Spain" or "Company Name"
+      if (line === title) continue;
+      const c = line.split('·')[0].split('|')[0].trim();
+      if (c && c.toLowerCase() !== title.toLowerCase()) {
+        company = c;
+        break;
+      }
+    }
+  }
+
+  return { company, title };
+}
+
+// Extract company name from URL (non-LinkedIn)
 function extractCompanyFromUrl(url) {
   try {
     const hostname = new URL(url).hostname;
     const parts = hostname.split('.');
-    // Handle subdomains: jobs.company.com or company.ashbyhq.com
+    if (hostname.includes('linkedin.com')) return 'LinkedIn Job';
     if (hostname.includes('ashbyhq.com') || hostname.includes('greenhouse.io')) {
       const match = url.match(/\/([^/]+)\/\d+/);
       if (match) return match[1].charAt(0).toUpperCase() + match[1].slice(1);
     }
-    // Default: second-level domain
     if (parts.length >= 2) {
       return parts[parts.length - 2].charAt(0).toUpperCase() + parts[parts.length - 2].slice(1);
     }
@@ -85,6 +150,27 @@ async function scrapeJD(url) {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(2000);
 
+    let linkedInMeta = { company: null, title: null };
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('linkedin.com')) {
+        linkedInMeta = await page.evaluate(() => {
+          const title =
+            document.querySelector('h1')?.innerText?.trim() ||
+            document.querySelector('.jobs-unified-top-card__job-title')?.innerText?.trim() ||
+            null;
+          const companyEl =
+            document.querySelector('.jobs-unified-top-card__company-name a') ||
+            document.querySelector('.jobs-unified-top-card__company-name') ||
+            document.querySelector('a[href*="/company/"]');
+          const company = companyEl?.innerText?.trim() || null;
+          return { company, title };
+        });
+      }
+    } catch {
+      // ignore DOM parse failures
+    }
+
     // Try to find JD in common containers first
     const selectors = [
       '[data-testid="job-description"]',
@@ -112,7 +198,9 @@ async function scrapeJD(url) {
     }
 
     await browser.close();
-    return jdText.trim();
+    const text = jdText.trim();
+    const meta = { ...linkedInMeta, text };
+    return meta;
   } catch (err) {
     await browser.close();
     throw new Error(`Scrape failed: ${err.message}`);
@@ -120,11 +208,17 @@ async function scrapeJD(url) {
 }
 
 async function main() {
-  console.log(`➕ Adding job: ${url}`);
+  const rawUrl = String(url).trim();
+  const canonical = canonicalJobUrl(rawUrl);
+  console.log(`➕ Adding job: ${rawUrl}`);
+  console.log(`   Canonical: ${canonical}`);
 
-  // Check if already exists
+  // Dedupe by canonical URL or exact URL
   const existing = await sql`
-    SELECT id FROM jobs WHERE url = ${url} AND user_id = ${userId} LIMIT 1
+    SELECT id FROM jobs
+    WHERE user_id = ${userId}
+      AND (url = ${rawUrl} OR url = ${canonical} OR canonical_url = ${canonical})
+    LIMIT 1
   `;
   if (existing.length > 0) {
     console.log(`⚠️ Job already exists in database (ID: ${existing[0].id})`);
@@ -147,25 +241,30 @@ async function main() {
   };
 
   // Scrape JD
-  let jdText;
+  let scrape;
   try {
-    jdText = await scrapeJD(url);
-    console.log(`✓ Scraped ${jdText.length} characters`);
+    scrape = await scrapeJD(url);
+    console.log(`✓ Scraped ${scrape.text.length} characters`);
   } catch (e) {
     console.error(`❌ Failed to scrape: ${e.message}`);
     process.exit(1);
   }
 
-  // Extract metadata
-  const company = extractCompanyFromUrl(url);
-  const title = extractTitleFromJd(jdText);
-  const cleanUrl = url.split('?')[0];
+  const jdText = scrape.text;
+  const li = extractLinkedInCompanyTitle(jdText, rawUrl);
+  let company = extractCompanyFromUrl(rawUrl);
+  let title = extractTitleFromJd(jdText);
+  if (scrape.company) company = scrape.company;
+  else if (li.company) company = li.company;
+  if (scrape.title) title = scrape.title;
+  else if (li.title) title = li.title;
+
   const score = calculateJobScore(jdText, profile);
 
-  // Insert to database
+  // Insert to database (store full URL user pasted; canonical for dedupe / display)
   const [inserted] = await sql`
     INSERT INTO jobs (user_id, url, canonical_url, company, title, source, score, jd_text, created_at)
-    VALUES (${userId}, ${url}, ${cleanUrl}, ${company}, ${title}, 'manual-add', ${score}, ${jdText.slice(0, 25000)}, NOW())
+    VALUES (${userId}, ${rawUrl}, ${canonical}, ${company}, ${title}, 'manual-add', ${score}, ${jdText.slice(0, 25000)}, NOW())
     RETURNING id, company, title, score
   `;
 

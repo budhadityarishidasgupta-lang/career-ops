@@ -100,21 +100,21 @@ export async function GET(req: NextRequest) {
           controller.close();
           return;
         } else if (cmd === 'add') {
-          if (args.length === 0) {
-            send({ type: 'stderr', content: `Usage: add <job_url>\n  Example: add https://jobs.ashbyhq.com/company/job-id\n  Example: add https://linkedin.com/jobs/view/123\n` });
+          // Take everything after "add " as the URL (LinkedIn URLs contain &query=… and must not be token-split)
+          const rest = q.trim().replace(/^add\s+/i, '').trim();
+          if (!rest) {
+            send({ type: 'stderr', content: `Usage: add <job_url>\n  Example: add https://jobs.ashbyhq.com/company/job-id\n  Example: add https://www.linkedin.com/jobs/view/123?...\n` });
             send({ type: 'done', code: 1 });
             controller.close();
             return;
           }
-          const url = args[0];
-          if (!url.startsWith('http')) {
+          if (!/^https?:\/\//i.test(rest)) {
             send({ type: 'stderr', content: `Error: URL must start with http:// or https://\n` });
             send({ type: 'done', code: 1 });
             controller.close();
             return;
           }
-          // Trigger add-job workflow (scrape + score + save to DB)
-          await triggerGitHubAction(send, controller, userId, 'add-job.mjs', url);
+          await triggerGitHubAction(send, controller, userId, 'add-job.mjs', rest);
           return;
         } else if (cmd === 'clear') {
           send({ type: 'clear' });

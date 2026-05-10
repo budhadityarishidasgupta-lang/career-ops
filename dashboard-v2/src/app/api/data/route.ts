@@ -109,18 +109,18 @@ export async function GET() {
           ) AS is_tailored
         FROM jobs
         WHERE user_id = ${userId}
-          AND (score > 0 OR score IS NULL)
+          AND (score IS NULL OR COALESCE(score, 0) >= 0)
           AND id NOT IN (SELECT job_id FROM applications WHERE user_id = ${userId})
-        ORDER BY score DESC, created_at DESC
+        ORDER BY score DESC NULLS LAST, created_at DESC
       `;
     } catch {
       pipeline = await sql`
         SELECT id as pipeline_id, url, title, company, score, source, created_at
         FROM jobs
         WHERE user_id = ${userId}
-          AND (score > 0 OR score IS NULL)
+          AND (score IS NULL OR COALESCE(score, 0) >= 0)
           AND id NOT IN (SELECT job_id FROM applications WHERE user_id = ${userId})
-        ORDER BY score DESC, created_at DESC
+        ORDER BY score DESC NULLS LAST, created_at DESC
       `;
       pipeline = pipeline.map((p: any) => ({ ...p, canonical_url: p.url, is_tailored: false }));
     }

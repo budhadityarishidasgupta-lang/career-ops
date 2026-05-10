@@ -917,7 +917,7 @@ export default function Dashboard() {
                                className="text-[10px] font-bold text-[#a8a29e] hover:text-[#1c1917] transition-colors inline-flex items-center gap-2"
                              >
                                <ExternalLink size={12} />
-                               <span>{String(job.canonical_url || job.url).substring(0, 34)}...</span>
+                               <span>Open posting</span>
                              </a>
                            ) : (
                              <span className="text-[10px] font-bold text-[#a8a29e]">—</span>
