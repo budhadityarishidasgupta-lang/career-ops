@@ -72,8 +72,11 @@ const companies = config.tracked_companies || [];
 // load already seen urls from db
 const seenUrls = new Set();
 try {
-  const existing = await sql`SELECT url FROM jobs WHERE user_id = ${userId}`;
-  existing.forEach(r => seenUrls.add(r.url));
+  const rows = await sql`SELECT url, canonical_url FROM jobs WHERE user_id = ${userId}`;
+  rows.forEach(r => {
+    if (r.url) seenUrls.add(r.url);
+    if (r.canonical_url) seenUrls.add(r.canonical_url);
+  });
   console.log(`✓ Loaded ${seenUrls.size} existing jobs from database for deduplication.`);
 } catch (e) {
   console.warn("⚠ Database not ready for dedup check, proceeding anyway.");
@@ -105,6 +108,7 @@ function tryAdd(url, company, title, source) {
     return 'filtered';
   }
   seenUrls.add(url);
+  seenUrls.add(cleanUrl);
   newJobs.push({ url, canonical_url: cleanUrl, company, title, source });
   return 'added';
 }

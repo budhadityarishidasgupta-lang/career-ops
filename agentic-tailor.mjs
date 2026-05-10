@@ -16,11 +16,11 @@ const TEMPLATE = 'templates/ats-template-professional.html';
 const require = createRequire(import.meta.url);
 
 const idOrUrl = process.argv[2];
-const rawUserId = process.env.SCAN_USER_ID || 1;
-const userId = Number.parseInt(String(rawUserId), 10);
-if (!Number.isFinite(userId)) {
-  throw new Error(`Invalid SCAN_USER_ID: ${rawUserId}`);
+const rawUserId = process.env.SCAN_USER_ID;
+if (!rawUserId || !/^\d+$/.test(String(rawUserId).trim())) {
+  throw new Error('SCAN_USER_ID environment variable is required and must be a positive integer.');
 }
+const userId = Number.parseInt(String(rawUserId), 10);
 
 if (!idOrUrl) {
   console.error("Usage: tailor <job_id_or_url>");
@@ -482,7 +482,6 @@ async function checkSync() {
     if (!cvStat || profileStat.mtime > cvStat.mtime) {
       console.warn('⚠️  Profile change detected: config/profile.yml is newer than cv.md.');
       console.warn('    Run `node sync-profile.mjs` manually to update cv.md.');
-      // NOTE: We do NOT auto-run sync-profile.mjs here — cv.md is a user-layer file.
     }
   } catch (e) {
     console.warn('⚠️ Could not check profile sync:', e.message);
@@ -699,10 +698,25 @@ OUTPUT FORMAT (JSON ONLY):
         }
       } catch (e) {}
     } else {
-      let jobId = Number.parseInt(String(idOrUrl), 10);
-      if (!Number.isFinite(jobId)) {
-        throw new Error(`Invalid job id: ${idOrUrl}`);
-      }
+      let jobIdStr = String(idOrUrl);
+      
+      // If the input looks like a URL-ish path (e.g. company.com/job/123) but lacks protocol,
+      // treat it as a URL rather than an ID.
+      if (!/^\d+$/.test(jobIdStr) && (jobIdStr.includes('.') || jobIdStr.includes('/'))) {
+        console.log("🔗 URL-like input detected. Treating as direct URL...");
+        entry.url = canonicalizeUrl(jobIdStr);
+        try {
+          const u = new URL(entry.url);
+          const parts = u.hostname.split('.');
+          if (parts.length >= 2) {
+            entry.company = parts[parts.length - 2].charAt(0).toUpperCase() + parts[parts.length - 2].slice(1);
+          }
+        } catch (e) {}
+      } else {
+        let jobId = Number.parseInt(jobIdStr, 10);
+        if (!Number.isFinite(jobId)) {
+          throw new Error(`Invalid job id: ${idOrUrl}`);
+        }
       
       // If the ID is a small number (e.g., from rank output), try to resolve it from the mapping file
       if (jobId < 1000 && fs.existsSync('data/current_eval.json')) {
@@ -759,6 +773,7 @@ OUTPUT FORMAT (JSON ONLY):
         entry = jobRecord;
       }
     }
+  }
 
     // Debug: log what we have
     console.log(`[DEBUG] Entry resolved: id=${entry?.id}, company=${entry?.company}`);

@@ -1129,7 +1129,7 @@ async function loadAnalytics() {
     const sRender = document.getElementById('sources-render');
     if (sRender) {
       sRender.innerHTML = '';
-      const maxVal = sources[0]?.count || 1;
+      const maxVal = Math.max(1, ...sources.map(s => Number(s.count) || 0));
       sources.forEach(s => {
         const row = document.createElement('div');
         row.className = 'source-row';
@@ -1268,7 +1268,14 @@ async function renderCVTab() {
       pdfList.innerHTML = `<div class="empty-state">no tailored PDFs found in output/.</div>`;
     } else {
       pdfList.innerHTML = pdfs.map(f => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface0);border-radius:6px;border:1px solid var(--surface1); cursor:pointer" onclick="window.open('/output/${f.name}')">
+        <div 
+          style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface0);border-radius:6px;border:1px solid var(--surface1); cursor:pointer" 
+          tabindex="0"
+          role="link"
+          aria-label="Open PDF ${f.name}"
+          onclick="window.open('/output/${f.name}', '_blank', 'noopener')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){window.open('/output/${f.name}','_blank','noopener');event.preventDefault();}"
+        >
           <span style="color:var(--green);font-size:18px">📄</span>
           <div style="flex:1">
             <div style="font-weight:600">${f.name}</div>
@@ -1303,7 +1310,14 @@ async function renderReportsTab() {
       list.innerHTML = `<div class="empty-state">no reports found in reports/.</div>`;
     } else {
       list.innerHTML = reports.map(r => `
-        <div style="padding:16px;background:var(--base);border:1px solid var(--surface0);border-radius:8px;display:flex;align-items:center;gap:16px;cursor:pointer" onclick="window.open('/reports/${r.name}')">
+        <div 
+          style="padding:16px;background:var(--base);border:1px solid var(--surface0);border-radius:8px;display:flex;align-items:center;gap:16px;cursor:pointer" 
+          tabindex="0"
+          role="link"
+          aria-label="Open report ${r.name}"
+          onclick="window.open('/reports/${r.name}', '_blank', 'noopener')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){window.open('/reports/${r.name}','_blank','noopener');event.preventDefault();}"
+        >
           <div style="width:40px;height:40px;background:var(--surface0);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📊</div>
           <div style="flex:1">
             <div style="font-weight:600">${r.name}</div>
@@ -1343,7 +1357,7 @@ function renderScanTab() {
         <td style="color:var(--overlay0);font-size:11px">${String(i+1).padStart(3,'0')}</td>
         <td><span style="font-weight:600;color:var(--text)">${p.company}</span></td>
         <td style="color:var(--subtext1);font-size:12px">${p.title.length>70?p.title.substring(0,70)+'…':p.title}</td>
-        <td><a href="${p.url}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:11px">open ↗</a></td>
+        <td><a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--blue);text-decoration:none;font-size:11px">open ↗</a></td>
       </tr>
     `).join('');
   });
@@ -1388,8 +1402,8 @@ async function loadData() {
             tabindex="0"
             role="link"
             aria-label="Open ${a.company} job posting"
-            onclick="window.open('${a.url}', '_blank')"
-            onkeydown="if(event.key==='Enter'||event.key===' '){window.open('${a.url}','_blank');event.preventDefault();}"
+            onclick="window.open('${a.url}', '_blank', 'noopener')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){window.open('${a.url}','_blank','noopener');event.preventDefault();}"
           >
             <td style="color:var(--overlay0);font-size:11px">${a.id || '#'}</td>
             <td>
@@ -1404,7 +1418,7 @@ async function loadData() {
             <td>${score > 0 ? `<span class="score-tag ${scoreClass(score)}">${score.toFixed(1)}</span>` : '<span style="color:var(--overlay0)">—</span>'}</td>
             <td><span class="status-tag ${stClass(a.status)}">${a.status}</span></td>
             <td style="text-align:center">${a.resume_file ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--overlay0)">✗</span>'}</td>
-            <td style="color:var(--subtext0);font-size:11px">${new Date(a.applied_at || Date.now()).toLocaleDateString()}</td>
+            <td style="color:var(--subtext0);font-size:11px">${a.applied_at ? new Date(a.applied_at).toLocaleDateString() : '—'}</td>
           </tr>
         `;
       }).join('');
@@ -1423,8 +1437,8 @@ async function loadData() {
           tabindex="0"
           role="link"
           aria-label="Open ${p.company} job posting"
-          onclick="window.open('${p.url}', '_blank')"
-          onkeydown="if(event.key==='Enter'||event.key===' '){window.open('${p.url}','_blank');event.preventDefault();}"
+          onclick="window.open('${p.url}', '_blank', 'noopener')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){window.open('${p.url}','_blank','noopener');event.preventDefault();}"
         >
           <span class="p-prefix">${String(i+1).padStart(2,'0')}.</span>
           <div>
