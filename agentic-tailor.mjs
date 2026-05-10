@@ -362,6 +362,55 @@ function calculateYearsOfExperience(experience) {
   return totalYears;
 }
 
+function buildExperienceDigestForPrompt(experience, maxRoles = 6) {
+  if (!Array.isArray(experience) || experience.length === 0) {
+    return '(No roles in profile — keep the summary generic and honest; do not invent employers.)';
+  }
+  return experience
+    .slice(0, maxRoles)
+    .map((e) => {
+      const role = e?.role || e?.title || 'Role';
+      const company = e?.company || 'Company';
+      const period = e?.period || '';
+      const blurb = (e?.bullets || []).filter(Boolean).slice(0, 2).join(' ');
+      return `• ${role} — ${company} (${period})${blurb ? ` — ${blurb.slice(0, 160)}` : ''}`;
+    })
+    .join('\n');
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Plain summary: ≤4 lines, ≤~520 chars; use with white-space: pre-line in HTML. */
+function normalizeResumeSummaryPlain(rawSummary, yearsExp) {
+  let t = String(rawSummary || '').trim();
+  const y = Number(yearsExp) || 0;
+  if (!t) {
+    t =
+      y > 0
+        ? `Engineer with ${y}+ years shipping production software, APIs, and reliability-focused systems.\nHands-on with design, delivery, incident ownership, and performance tuning.\nComfortable owning features end-to-end across distributed backends and cloud infrastructure.`
+        : `Engineer focused on production systems, APIs, and measurable delivery.\nOwns implementation through monitoring, incidents, and iterative improvements.\nWorks with modern backend stacks and cross-functional partners.`;
+  }
+  let lines = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 1) {
+    const parts = t.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length > 1) lines = parts.slice(0, 4);
+  }
+  lines = lines.slice(0, 4);
+  lines = lines.map((line) => (line.length > 200 ? `${line.slice(0, 197)}…` : line));
+  const joined = lines.join('\n');
+  return joined.length > 580 ? `${joined.slice(0, 577)}…` : joined;
+}
+
+function formatResumeSummaryHtml(rawSummary, yearsExp) {
+  return escapeHtml(normalizeResumeSummaryPlain(rawSummary, yearsExp));
+}
+
 // Calculate ATS score based on keyword matching
 function calculateATSScore(profile, jdText, tailoring) {
   if (!jdText || !profile) return { score: 0, matched: [], missing: [] };
@@ -530,17 +579,31 @@ async function tailorPackage(jd, profile, companyName) {
   } else if (hfTokenInUse) {
     console.log(`🤖 Using direct Hugging Face API with ${HF_MODEL}...`);
   } else {
+    const y = calculateYearsOfExperience(profile?.experience);
     return {
       resume: {
-        summary: profile?.narrative?.exit_story || 'Experienced software engineer with product-minded execution and delivery focus.',
+        summary: normalizeResumeSummaryPlain(
+          profile?.narrative?.exit_story ||
+            `Engineer with ${y || 'several'}+ years building production systems and APIs.`,
+          y
+        ),
         core_competencies: (profile?.narrative?.superpowers || []).slice(0, 12),
         experience: (profile?.experience?.[0]?.bullets || []).slice(0, 3),
       },
       cover_letter: `${companyName}'s ${jd.substring(0, 60).replace(/\n/g, ' ')}... requirements match what I've built: ${(profile?.narrative?.superpowers || []).slice(0, 2).join(', ')}.\n\nI can start contributing immediately. Reach me at ${profile?.candidate?.email || ''} or ${profile?.candidate?.phone || ''} to discuss.`
     };
   }
-  
-  const cvContext = `Headline: ${profile?.narrative?.headline || ''}\nSummary: ${profile?.narrative?.exit_story || ''}\nSuperpowers: ${(profile?.narrative?.superpowers || []).join(', ')}`;
+
+  const yearsExp = calculateYearsOfExperience(profile?.experience);
+  const experienceDigest = buildExperienceDigestForPrompt(profile?.experience);
+  const cvContext = `Approximate career span from dated roles below: ~${yearsExp} years (only state a number if it matches these dates; never invent more).
+
+Headline: ${profile?.narrative?.headline || ''}
+Positioning (from profile): ${profile?.narrative?.exit_story || ''}
+Superpowers / keywords: ${(profile?.narrative?.superpowers || []).join(', ')}
+
+Recent roles — fact base for what you worked on (paraphrase; do not fabricate employers or metrics):
+${experienceDigest}`;
   const prompt = `
 You are a senior technical writer who writes direct, conversational cover letters without corporate fluff.
 
@@ -554,9 +617,9 @@ RULES:
 
 TASK:
 1. RESUME TAILORING: CRITICAL - Every bullet must include at least ONE specific technology/requirement from the JD:
-   - A one-line summary stating what you do + years of experience
+   - **Professional summary** (resume.summary): EXACTLY 3–4 lines as ONE JSON string with newline characters \\n between lines (not HTML). Line 1: title/scope plus years of experience grounded in the digest above. Lines 2–4: concrete domains, stacks, systems, and outcomes you have shipped (from digest + superpowers), lightly aligned to the JD — no filler, no soft-skill-only fluff. Total under ~90 words. No bullet characters unless they read naturally in prose.
    - 8-10 core competencies (skills/tools from JD)
-   - 3 rewritten bullets for ONE role that EXPLICITLY mentions JD technologies
+   - 3 rewritten bullets for ONE role that maps to JD requirements
 
    BULLET REQUIREMENTS:
    - Each bullet MUST include at least one technology/skill from the JD
@@ -605,6 +668,10 @@ OUTPUT FORMAT (JSON ONLY):
     const content = response.choices[0].message.content;
     const jsonStr = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
     const data = JSON.parse(jsonStr);
+    const y = calculateYearsOfExperience(profile?.experience);
+    if (data?.resume?.summary) {
+      data.resume.summary = normalizeResumeSummaryPlain(data.resume.summary, y);
+    }
     return data;
   } catch (err) {
     console.error("Failed to parse AI response:", response.choices[0].message.content);
@@ -782,6 +849,7 @@ OUTPUT FORMAT (JSON ONLY):
 
     const resumeReps = {
       ...commonReps,
+      SUMMARY_TEXT: formatResumeSummaryHtml(tailoring?.summary, yearsExp),
       EXPERIENCE: hasExperience ? renderExperience(experienceToShow, tailoring.experience, jdText, maxPages) : '',
       EXPERIENCE_DISPLAY: hasExperience ? 'block' : 'none',
       EDUCATION: hasEducation ? renderEducation(profile.education) : '',

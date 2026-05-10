@@ -128,11 +128,15 @@
     line-height: 1.2;
   }
 
-  /* === PROFESSIONAL SUMMARY === */
+  /* === PROFESSIONAL SUMMARY ===
+     Expect 3–4 short lines (newline-separated): years + scope, domains/stack, outcomes.
+     Generator should keep under ~90 words; no buzzwords. */
   .summary-text {
     font-size: 11px;
-    line-height: 1.7;
+    line-height: 1.65;
     color: #2f2f2f;
+    white-space: pre-line;
+    max-width: 100%;
   }
 
   /* Links must never break across lines */
