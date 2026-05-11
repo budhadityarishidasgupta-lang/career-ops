@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centific Stage 1 Checklist — 2026-05-12 15:00</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 24px 16px;
+    max-width: 720px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  header {
+    background: #0F766E;
+    color: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  header h1 { font-size: 1.2rem; font-weight: 700; }
+  header p { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
+
+  section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  section h2 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0F766E;
+    margin-bottom: 16px;
+  }
+
+  .item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+  .item:last-child { margin-bottom: 0; }
+
+  .item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    accent-color: #0F766E;
+    cursor: pointer;
+  }
+
+  .item label { cursor: pointer; flex: 1; }
+  .item label .q {
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .item label .en {
+    font-size: 0.85rem;
+    color: #555;
+    background: #f0fdfa;
+    border-left: 3px solid #0F766E;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .item label .zh {
+    font-size: 0.85rem;
+    color: #555;
+    background: #f5f5f5;
+    border-left: 3px solid #aaa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: block;
+  }
+  .item label .note {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 6px;
+    display: block;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge-priority { background: #fee2e2; color: #b91c1c; }
+  .badge-optional { background: #e5e7eb; color: #6b7280; }
+  .badge-anchor   { background: #ccfbf1; color: #0F766E; }
+
+  .answered { opacity: 0.45; }
+  .answered .q { text-decoration: line-through; }
+
+  .warn {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: #92400e;
+    margin-top: 16px;
+  }
+
+  .meta-card {
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.82rem;
+    color: #134e4a;
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .meta-card strong { color: #0F766E; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Centific Sr. AI-Native Frontend — Stage 1</h1>
+  <p>2026-05-12（二）15:00 TPE &nbsp;·&nbsp; Video call &nbsp;·&nbsp; 3 interviewers（role 未告知）</p>
+</header>
+
+<!-- 背景速記 -->
+<section>
+  <h2>背景速記</h2>
+  <div class="meta-card">
+    <strong>公司</strong>：Centific = ex-Pactera EDGE rebrand，AI-first，與 Microsoft 深度合作<br>
+    <strong>HR</strong>：Adam Chuang（莊先生）/ 0913830927<br>
+    <strong>流程</strong>：Stage 1 of 3 technical rounds<br>
+    <strong>Salary band</strong>：1.05M–1.6M TWD（1.6M ceiling 已確認可接受，這關不主動提）<br>
+    <strong>合作模式</strong>：跟台灣 vendor team 一起做事；<strong style="color:#b91c1c;">reporting line 是微軟的人</strong>，無跨時區凌晨會<br>
+    <strong>AI tools</strong>：work allows Cursor / Claude Code daily
+  </div>
+</section>
+
+<!-- 自我介紹 -->
+<section>
+  <h2>自我介紹（開場，約 30–45 秒）</h2>
+
+  <div style="margin-bottom: 14px;">
+    <div style="font-size:0.75rem;font-weight:700;color:#0F766E;margin-bottom:6px;">中文</div>
+    <div style="background:#f5f5f5;border-left:3px solid #aaa;padding:12px 14px;border-radius:4px;font-size:0.88rem;line-height:1.7;color:#333;">
+      「我是 Yi-Chen，前端工程師，有六年左右的工程經驗。過去幾年在 Binance 做全球規模的 B2C 產品，主要負責 KYC 流程的前端，專注在可配置架構和用戶轉換率的優化——在這個過程中也把 AI 輔助工具帶進日常開發流程，明顯提升了交付效率。個人專案方面，我更進一步，嘗試用多代理人的架構做產品開發，自己只負責提供方向和決策，讓 AI 完成實作，從設計到上線全程跑通。我對 Centific 這個職位很有興趣，因為技術棧高度吻合，而且 AI-Native frontend 這個切角，正好對應到我這一年在做的方向。」
+    </div>
+  </div>
+
+  <div>
+    <div style="font-size:0.75rem;font-weight:700;color:#0F766E;margin-bottom:6px;">English</div>
+    <div style="background:#f0fdfa;border-left:3px solid #0F766E;padding:12px 14px;border-radius:4px;font-size:0.88rem;line-height:1.7;color:#333;">
+      "I'm Yi-Chen, a frontend engineer with around six years of experience. I spent most of that time at Binance working on global-scale B2C products — mainly owning the KYC frontend, focused on configurable architecture and conversion optimization. Along the way I also integrated AI-assisted tools into my daily workflow, which noticeably improved delivery speed. In my personal projects I've taken that further — using a multi-agent architecture where I focus purely on direction and decision-making while AI handles the implementation, running the full cycle from design to production. Centific stands out to me because the tech stack is a strong match, and the AI-Native frontend angle directly maps to the direction I've been pushing my own work toward."
+    </div>
+  </div>
+</section>
+
+<!-- 你要問的問題 -->
+<section>
+  <h2>你要問的問題（3 interviewer 各 1 題）</h2>
+
+  <div class="item" id="q1">
+    <input type="checkbox" id="c1" onchange="toggle('q1','c1')">
+    <label for="c1">
+      <span class="q">① 我會做的產品 + ownership 範圍 <span class="badge badge-priority">必問</span></span>
+      <span class="en">"Could you tell me more about what the team is actually building — what kind of product am I going to be working on day to day, and how much of it is owned end-to-end by the Centific Taiwan team versus driven by the Microsoft side?"</span>
+      <span class="zh">「可以多說一點 team 實際在做什麼產品嗎？我每天會在做什麼樣的東西？哪些部分是 Centific 台灣 team end-to-end 自己 own、哪些是微軟那邊主導？」</span>
+      <span class="note">確認你是真 owner 還是純執行；vendor team 模式很關鍵</span>
+    </label>
+  </div>
+
+  <div class="item" id="q2">
+    <input type="checkbox" id="c2" onchange="toggle('q2','c2')">
+    <label for="c2">
+      <span class="q">② AI tool stack 實際長什麼樣 <span class="badge badge-priority">必問</span></span>
+      <span class="en">"The role is titled AI-Native Frontend — what does that mean in practice? Is the team standardized on Cursor / Claude Code / Copilot, or is each engineer free to pick their own workflow?"</span>
+      <span class="zh">「JD 寫 AI-Native Frontend，實際上 team 的 AI 工具是統一用 Cursor / Claude Code / Copilot，還是每個人自由選工作流？」</span>
+      <span class="note">直接驗證「AI scope = 一般前端」的疑慮是否真的解掉</span>
+    </label>
+  </div>
+
+  <div class="item" id="q3">
+    <input type="checkbox" id="c3" onchange="toggle('q3','c3')">
+    <label for="c3">
+      <span class="q">③ 微軟 manager 互動模式 + 台灣 team 規模 <span class="badge badge-optional">有時間再問</span></span>
+      <span class="en">"Since the reporting line goes to a Microsoft manager — what does the day-to-day cadence look like? 1:1 frequency, sync vs async, English written vs spoken? And how big is the Centific Taiwan team I'd be working alongside?"</span>
+      <span class="zh">「既然 reporting line 是微軟的 manager，日常 cadence 大概長什麼樣？1:1 頻率、sync 還是 async、英文書面還是口頭為主？另外，我會一起合作的 Centific 台灣 team 大概多大規模？」</span>
+      <span class="note">判斷英文 1:1 load、台灣 team 是大組還是 2-3 人小單位</span>
+    </label>
+  </div>
+</section>
+
+<!-- 對方會問的 -->
+<section>
+  <h2>對方會問的 — 準備好的答案</h2>
+
+  <div class="item" id="q4">
+    <input type="checkbox" id="c4" onchange="toggle('q4','c4')">
+    <label for="c4">
+      <span class="q">Why Centific？</span>
+      <span class="en">"Centific sits at an interesting intersection — Microsoft-scale clients with the engineering autonomy of a focused product team. The AI-Native frontend angle is what convinced me to move on this role specifically; I've been building my own development workflow around Cursor and Claude Code for the past year, and I want to be in an environment where that's the default expectation, not a side experiment."</span>
+      <span class="zh">「Centific 處在一個有意思的交叉點——Microsoft 等級的客戶，但工程上有產品 team 的自主性。讓我特別想投這個職位的是 AI-Native frontend 這個切角，過去一年我自己的開發流程都圍繞 Cursor 跟 Claude Code 在做，想找一個 AI 是預設、不是 side experiment 的環境。」</span>
+    </label>
+  </div>
+
+  <div class="item" id="q5">
+    <input type="checkbox" id="c5" onchange="toggle('q5','c5')">
+    <label for="c5">
+      <span class="q">AI workflow case study — Binance KYC <span class="badge badge-anchor">錨點 1</span></span>
+      <span class="en">"At Binance KYC we had 5 country flows with different rules — every new step meant hand-coding schema and the matching React component. I fed existing schema configs and Figma screenshots into Cursor and Claude Code as context, had them generate the new schema plus component updates, then reviewed and refined. Cut schema config time by about 50% — engineers got to focus on edge cases and UX details instead of boilerplate."</span>
+      <span class="zh">「Binance KYC 有 5 國流程、每國規則不同，每加一個步驟就要手刻 schema 跟對應 React component。我把現有 schema config 跟 Figma 截圖丟給 Cursor 跟 Claude Code 當 context，讓 AI 生成新 schema 跟 component update，自己 review 跟修整。Schema config 時間砍約 50%，工程師可以把心力放在 edge case 跟 UX 細節。」</span>
+      <span class="note">tie-in：「對 Microsoft client 來說，這套流程能 scale 到 multi-tenant config / locale-specific 客製。」</span>
+    </label>
+  </div>
+
+  <div class="item" id="q6">
+    <input type="checkbox" id="c6" onchange="toggle('q6','c6')">
+    <label for="c6">
+      <span class="q">AI workflow case study — K-Line 六代理人 <span class="badge badge-anchor">錨點 2</span></span>
+      <span class="en">"I wanted to validate whether AI agents could replace a multi-person team for product development. I defined six role-based agents — PM, Architect, Engineer, Reviewer, QA, Designer — and ran development ticket-driven. Shipped 40+ scoped tickets in 7 days, full-stack on production: React/TypeScript frontend, FastAPI backend on Cloud Run. It's live at k-line-prediction-app.web.app."</span>
+      <span class="zh">「我想驗證 AI agent 能不能取代一個多人 team 做產品開發。我定義了六個 role 的 agent——PM、Architect、Engineer、Reviewer、QA、Designer——用 ticket-driven 方式跑開發，7 天內跑完 40+ scoped ticket，full-stack 上線：React/TypeScript 前端、FastAPI on Cloud Run，URL 是 k-line-prediction-app.web.app。」</span>
+      <span class="note">tie-in：「這個方法論能讓一個 senior engineer 在 client project 上輸出兩三個人的 throughput。」</span>
+    </label>
+  </div>
+
+  <div class="item" id="q7">
+    <input type="checkbox" id="c7" onchange="toggle('q7','c7')">
+    <label for="c7">
+      <span class="q">Why leaving Binance？</span>
+      <span class="en">"Binance went through a headcount reduction and my position was affected. I used the time since to go deep on K-Line and on the AI workflow methodology, which I'm now applying to my next role."</span>
+      <span class="zh">「Binance 做了組織縮編，我的職位在這次受影響。離職後我把時間拿去把 K-Line 跟 AI workflow 方法論做深，現在帶進下一份工作。」</span>
+      <span class="note">追問「是表現問題嗎？」→ "No — this was a company-wide headcount reduction, not performance-related. My manager was very supportive throughout."</span>
+    </label>
+  </div>
+
+  <div class="item" id="q8">
+    <input type="checkbox" id="c8" onchange="toggle('q8','c8')">
+    <label for="c8">
+      <span class="q">薪資（等對方先開口）</span>
+      <span class="en">"Adam and I aligned on a band already — I'd rather focus this conversation on the role and team fit, and revisit numbers when there's mutual interest."</span>
+      <span class="zh">「我跟 Adam 之前已經對齊過 band 了，這輪我想先聚焦在 role 跟 team fit，等雙方有 mutual interest 時再回到數字會比較自然。」</span>
+      <span class="note">被逼問具體數字 → "My target is in the upper range Adam and I discussed — closer to the 1.6M ceiling than the floor."</span>
+    </label>
+  </div>
+</section>
+
+<!-- React 概念題備案 -->
+<section>
+  <h2>React / JS 概念題（中低機率，輕量備）</h2>
+
+  <div class="item" id="qr1">
+    <input type="checkbox" id="cr1" onchange="toggle('qr1','cr1')">
+    <label for="cr1">
+      <span class="q">useEffect vs useMemo</span>
+      <span class="zh">useEffect 跑副作用（DOM / fetch / subscription）；useMemo 快取計算結果，dep 變才重算。</span>
+    </label>
+  </div>
+
+  <div class="item" id="qr2">
+    <input type="checkbox" id="cr2" onchange="toggle('qr2','cr2')">
+    <label for="cr2">
+      <span class="q">Render perf debug 怎麼做</span>
+      <span class="zh">React DevTools Profiler 抓 unnecessary re-render → 檢查 referential stability（inline object / function）→ 必要才 memo / useMemo / useCallback。</span>
+    </label>
+  </div>
+
+  <div class="item" id="qr3">
+    <input type="checkbox" id="cr3" onchange="toggle('qr3','cr3')">
+    <label for="cr3">
+      <span class="q">Webview Pool 怎麼設計（Binance Electron 30% 提升）</span>
+      <span class="zh">pre-load + cache 高頻 micro-app、共用渲染容器、idle 時 release。Trade memory for cold-start time。</span>
+    </label>
+  </div>
+
+  <div class="item" id="qr4">
+    <input type="checkbox" id="cr4" onchange="toggle('qr4','cr4')">
+    <label for="cr4">
+      <span class="q">Electron 多進程 vs 單進程</span>
+      <span class="zh">多進程：隔離 + 崩潰不互影響，記憶體高；單進程：省記憶體要 sandbox event loop。讓 user 依裝置 trade off。</span>
+    </label>
+  </div>
+
+  <div class="item" id="qr5">
+    <input type="checkbox" id="cr5" onchange="toggle('qr5','cr5')">
+    <label for="cr5">
+      <span class="q">RTL / i18n 經驗</span>
+      <span class="zh">Binance Arabic RTL：layout mirror、icon flip、numeric direction、CSS logical properties（margin-inline-start 等）。</span>
+    </label>
+  </div>
+</section>
+
+<div class="warn">
+  ⚠️ AI workflow 是核心差異化，三位 interviewer 至少一位要聽到完整錨點。中英切換看對方開口語言，技術詞彙不翻譯。微軟 manager 是 reporting line（不是 client）+ 跟台灣 vendor team 合作，回答時注意 framing 不要講成「為 client 做事」。
+</div>
+
+<script>
+  function toggle(itemId, checkId) {
+    const item = document.getElementById(itemId);
+    const cb = document.getElementById(checkId);
+    if (cb.checked) {
+      item.classList.add('answered');
+    } else {
+      item.classList.remove('answered');
+    }
+  }
+</script>
+
+</body>
+</html>
