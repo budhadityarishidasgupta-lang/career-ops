@@ -206,7 +206,70 @@
 
 ---
 
-## 8. 後續紀錄 gate
+## 8. 薪資對盤（2026-05-11 多源綜合）
+
+### 公開數據
+
+**Levels.fyi（按 level）**
+
+| Level | Total Comp (TWD) | Base | Bonus | Stock |
+|-------|------------------|------|-------|-------|
+| SE（Entry） | ~NT$1.07M | 31.8K USD | 1.8K | $0 |
+| Senior SE I | **~NT$1.52M** | 42.6K USD | 5K | $0 |
+| Senior SE II | **~NT$1.93M** | 59.5K USD | 0.77K | $0 |
+| Senior SE III | 未公開 | — | — | — |
+
+- 整體：NT$1.05M – 1.88M+，median **NT$1.37M**
+- **股票幾乎為 0**（公開 level 顯示 $0 equity，Appier 已上市但 IC grant 規模不大）
+
+**Glassdoor**
+- Appier 全 SE in Taipei（27 樣本）：avg **NT$1.26M**，p25 1.03M / p75 1.91M
+- 台北 Senior Frontend 一般市場（6 樣本，非 Appier）：avg NT$1.4M，range 1.0M – 2.0M
+
+**salary.tw / GoodJob**
+- 月薪 median **85K** → 年薪 median **NT$1.17M**
+- 公司平均 **13.8 個月**（base × 13.8，即 1–2 個月績效獎金）
+- 評語：相對台灣頂級科技 / 真正 MNC 算「普通」
+
+### Yi-Chen anchor band（6 年 FE + Binance + AI 自帶）
+
+| 區間 | Total (TWD) | 對應 level | 用途 |
+|------|-------------|------------|------|
+| 保守底 | 1.5M–1.7M | Senior SE I | walk-away 底線 |
+| **目標中位** | **1.7M–2.0M** | Sr I → II | HR 報價 anchor |
+| 進取上限 | 2.0M–2.3M | Senior SE II | 對方主動加碼才提 |
+| 天花板 | 2.3M–2.5M | Sr III（爭 level） | 罕見，需 level 突破 |
+
+### HR call 上的薪資對應 script
+
+- 被問期望時 → **「以 base 1.7M 起為主，total package 看 bonus 結構談」**（中位偏上錨點，留價）
+- 不要先曝光 Binance 底薪（會變 ceiling）
+- 必問回去：
+  - 「Senior Frontend 在 Appier 內部對應到 Sr I / II / III 哪個 level？band 範圍？」（拿到 level 才能估）
+  - 「Equity 是 RSU 還是 option？vesting schedule？」（levels.fyi 顯示 $0，個案要驗）
+  - 「績效獎金 13.8 個月是公司平均，IC 實拿幾個月？」（區分 avg vs reality）
+  - 「Total package 還含哪些？health / 補助 / 進修 / equity refresh？」
+
+### 紅線
+
+- < NT$1.5M total → walk-away
+- 1.5M–1.7M 且無 equity → 看其他 factor（remote / level / team）再決定
+- ≥ 1.7M 且 remote-friendly → 認真考慮
+- ≥ 2.0M → 強訊號，平行其他 pipeline 也要參考此價
+
+### 參考來源（薪資）
+
+- [Levels.fyi Appier SWE](https://www.levels.fyi/zh-tw/companies/appier/salaries/software-engineer)
+- [Glassdoor Appier SWE Taipei](https://www.glassdoor.com/Salary/Appier-Software-Engineer-Taipei-Salaries-EJI_IE1089725.0,6_KO7,24_IL.25,31_IC3271041.htm)
+- [Glassdoor Senior FE Taipei (市場)](https://www.glassdoor.com/Salaries/t-ai-pei-senior-software-engineer-frontend-salary-SRCH_IL.0,8_IS6962_KO9,42.htm)
+- [比薪水 Appier](https://salary.tw/c/XTDv)
+- [比薪水 blog — Appier 薪水大公開](https://blog.salary.tw/article/appier-ca-sw-salary)
+- [GoodJob Appier 薪水](https://www.goodjob.life/companies/%E6%B2%9B%E6%98%9F%E4%BA%92%E5%8B%95%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%20APPIER/salary-work-times)
+- [Dcard 多 offer 比較含 Appier](https://www.dcard.tw/f/tech_job/p/252940069)
+
+---
+
+## 9. 後續紀錄 gate
 
 每 round 結束後寫回 `data/recruiter-comms.md` #35：
 
