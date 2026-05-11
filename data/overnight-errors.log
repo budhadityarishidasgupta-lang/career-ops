@@ -96,3 +96,14 @@ Not logged in · Please run /login
   - Root cause: local-proxy receive-pack advertises only refs/heads/auto-apply and refs/heads/claude/fix-routine-github-push-H2AE6; main is blocked by branch protection on origin
   - Fallback: pushed commit 189a27d to refs/heads/claude/relaxed-euler-fGS7m (session-designated branch). The CI overnight-routine.yml uses GITHUB_TOKEN with admin-bypass on main, so direct push works there but not from this Claude session.
   - Action taken: continue cleanly; user/maintainer can fast-forward main to 189a27d via PR or admin-bypass merge from claude/relaxed-euler-fGS7m.
+=== 2026-05-11T07:10Z ===
+Step: COMMIT + PUSH
+Error: git push -u origin main failed 4 times with HTTP 403 (exponential backoff 2s, 4s, 8s, 16s)
+stderr: error: RPC failed; HTTP 403 curl 22 The requested URL returned error: 403
+       send-pack: unexpected disconnect while reading sideband packet
+       fatal: the remote end hung up unexpectedly
+Local commit SHA: de9dd9e (overnight: 2026-05-11T07:09Z scan+pipeline+cleanup)
+State: All 6 reports (#692-#697), 5 below-threshold archives, 1 PDF, tracker merge, verify-pipeline clean (0/0)
+       — committed locally on main but NOT pushed to origin.
+Likely cause: branch protection on main blocks direct pushes from this session (proxy returns 403 even for fast-forward).
+Per task hard rules: did not switch to sub-branch; logged error and exited cleanly. Operator can replay push manually.
