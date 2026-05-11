@@ -90,3 +90,9 @@ Not logged in · Please run /login
 Not logged in · Please run /login
 Not logged in · Please run /login
 Not logged in · Please run /login
+2026-05-10T19:08Z - push-to-main blocked by proxy (HTTP 403)
+  - Commit: 189a27d "overnight: 2026-05-10T19:06Z scan+pipeline+cleanup (+4 reports, +2 PDFs, archived 1 below-threshold)"
+  - Attempted: git push -u origin main (4 retries with 2s/4s/8s/16s backoff, all 403)
+  - Root cause: local-proxy receive-pack advertises only refs/heads/auto-apply and refs/heads/claude/fix-routine-github-push-H2AE6; main is blocked by branch protection on origin
+  - Fallback: pushed commit 189a27d to refs/heads/claude/relaxed-euler-fGS7m (session-designated branch). The CI overnight-routine.yml uses GITHUB_TOKEN with admin-bypass on main, so direct push works there but not from this Claude session.
+  - Action taken: continue cleanly; user/maintainer can fast-forward main to 189a27d via PR or admin-bypass merge from claude/relaxed-euler-fGS7m.

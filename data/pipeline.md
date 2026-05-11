@@ -1041,6 +1041,18 @@
 - [!] https://apply.workable.com/memrise/j/4BA29FC5E4 | Memrise | Junior AI Engineer | London, UK / UK Remote — moved to Procesadas (#685) 2026-05-08 (2.8/5 — junior prompt chains + RAG + recommendations + eval 1:1 with Healthcare RAG + Dream Decoder; Kotlin gap; F-1 OPT UK geo block (UK-payroll only likely); SKIP unless remote-from-anywhere/US-payroll variant confirmed)
 - [!] https://apply.workable.com/neurohire-dot-a-i/j/23AB9552F9/ | neurohire.ai | AI Engineer | Texas City, TX (verify remote/hybrid) — moved to Procesadas (#686) 2026-05-08 (2.4/5 — HR-tech AI engineer; ML/DL/NLP/CV breadth covers surface but $70-85K disclosed band materially below US AI engineer market; off-archetype hiring/recruitment domain; SKIP unless comp band moves)
 
+### 2026-05-10
+<!-- Overnight 2026-05-10 first pass: scan.mjs (0 new) + Level 3 WebSearch (Ashby + Lever + workatastartup + fwddeploy.com) -->
+- [!] https://www.workatastartup.com/jobs/76938 | Vooma | Forward Deployed Engineer | San Francisco, CA — On-site — moved to Procesadas (#687) 2026-05-10 (2.8/5 — YC freight-broker AI agents; SF in-person + JD says "US citizen/visa only" (F-1 OPT ambiguous); strong agentic stack 1:1 but geo+visa friction; SKIP unless Vooma confirms OPT compatibility AND relocation support)
+- [!] https://jobs.ashbyhq.com/ravenna/c4f3cfdd-353c-47b5-ac25-3c8359d2b590 | Ravenna | Forward Deployed Engineer | Remote — United States — moved to Procesadas (#688) 2026-05-10 (3.5/5 — Remote-US FDE at early-stage SaaS; Slack/Workspace/IdP integrations; integration+debug+reliability triangle 1:1; $130-180K disclosed; OPT-friendly remote-US; PDF generated)
+- [!] https://jobs.lever.co/aircall/70f40231-0f65-4620-89d6-bbd49fc6fb45 | Aircall | Forward Deployed Engineer | Seattle Office — verify on-site/hybrid — moved to Procesadas (#689) 2026-05-10 (2.6/5 — JD explicitly "not a software engineering role"; low-code orchestration + CRM automation; comp $84-96K materially below US FDE/AI Eng market; under-utilizes engineering depth; SKIP)
+- [!] https://jobs.lever.co/sprucesystems/c683a712-7a5a-4bed-b580-f899998f044a | Spruce | Full-Stack Software Engineer (New Grad) - Remote | Remote — United States — moved to Procesadas (#690) 2026-05-10 (2.7/5 — visa line "willing to relocate without visa assistance — TN are ok" hard signal F-1 OPT not part of program; backend stack Rust/Go/C#/Java off Python/TS primary; SKIP unless recruiter confirms OPT acceptance)
+- [!] https://jobs.lever.co/palantir/e1a6c138-98bf-45e2-97f7-2c70371cc38a | Palantir | Software Engineer, New Grad - Production Infrastructure | location verify — error: posting closed (Lever API "Document not found" 2026-05-10); archived
+- [!] https://www.workatastartup.com/jobs/86648 | Legion Health | Founding Engineer (AI-Native Mental Health Care) | San Francisco, CA — On-site — moved to Procesadas (#691) 2026-05-10 (4.4/5 — YC S21 healthcare AI agents psychiatric care; $140-220K + 0.2-0.8% equity; visa sponsorship YES; new grads explicitly welcome; LLM agents+tool use+memory+retries+safety + RAG + HIPAA pipelines + audit trails 1:1 with Healthcare RAG + Multi-agent Healthcare Claims + Manga Lens shipped; SF in-person requires relocation; PDF generated; STRONG APPLY)
+- [!] https://www.workatastartup.com/jobs/79665 | Elayne | Founding Senior Engineer (AI / ML) | New York City — On-site (NoMad) — error: posting closed (workatastartup.com HTTP 404 + YC Elayne page shows 0 open jobs 2026-05-10); archived
+- [!] https://www.workatastartup.com/jobs/70784 | Helicone | Founding Engineer | San Francisco, CA — verify — error: posting closed (workatastartup.com HTTP 404 + YC Helicone page shows 0 open jobs 2026-05-10); archived
+- [!] https://www.workatastartup.com/jobs/68959 | Solve Intelligence | AI Engineer | location verify — error: posting closed (Solve Intelligence YC page shows no AI Engineer role; only Growth/AE/Designer/Growth Engineer roles open 2026-05-10); archived
+
 
 ## Procesadas
 
@@ -1436,3 +1448,8 @@
 - [x] #675 | https://jobs.ashbyhq.com/zip/19f459ee-4907-4883-9d70-35eb96f62082 | Zip | Software Engineer, New Grad (2026 Start) | San Francisco, CA — Hybrid | 3.8/5 | PDF ✅
 - [x] #676 | https://jobs.ashbyhq.com/Speakeasy/def210b2-b6aa-421b-84c4-dcd278f95db9 | Speakeasy | Forward Deployed Engineer | San Francisco, CA — Remote/hybrid | 3.5/5 | PDF ✅
 - [x] #684 | https://apply.workable.com/m-files/j/2FB1B7812A | M-Files | AI Operations Engineer (Internal Agents & Workflow Automation) | Remote — United States | 3.4/5 | PDF ✅
+
+### 2026-05-10
+
+- [x] #688 | https://jobs.ashbyhq.com/ravenna/c4f3cfdd-353c-47b5-ac25-3c8359d2b590 | Ravenna | Forward Deployed Engineer | Remote — United States | 3.5/5 | PDF ✅
+- [x] #691 | https://www.workatastartup.com/jobs/86648 | Legion Health | Founding Engineer (AI-Native Mental Health Care) | San Francisco, CA — On-site | 4.4/5 | PDF ✅
