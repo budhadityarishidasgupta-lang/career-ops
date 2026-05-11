@@ -3,9 +3,20 @@
 **JD**：https://job-boards.greenhouse.io/appier/jobs/7830101
 **Location**：Taipei, Taiwan（remote/hybrid policy 待 HR 確認）
 **Apply**：2026-05-08（Greenhouse）
-**HR invite**：2026-05-11（D+3，與 Dcard 紀錄一致）
+**HR invite**：2026-05-11（D+3，與 Dcard 紀錄一致）— Anita @ Appier Recruitment Team
 **App entry**：[applications.md #35](../data/applications.md) | [recruiter-comms.md #35](../data/recruiter-comms.md)
 **Salary**：JD 未揭露 — HR call 必問（台北 Sr. FE 市場行情約 1.4M–2.4M TWD）
+
+### HR call — confirmed scope（2026-05-11 Anita 邀約信）
+
+- **形式**：Online interview, **60 分鐘**（比 Dcard 的 30 分長一倍，代表會深聊履歷不是純背景過水）
+- **內容**：Resume discussion + self-introduction（履歷逐項討論 + 自我介紹）
+- **時段池（候選人 5/11 回覆）**：
+  - Wed 2026-05-13 14:00–17:00 TPE
+  - Thu 2026-05-14 14:00–17:00 TPE
+  - **偏好**：2026-05-13 14:00
+- **辦公時段**：Mon–Fri 09:30–18:30 TPE
+- **狀態**：等 Anita 確認具體時間
 
 ---
 
@@ -57,7 +68,12 @@
 
 ---
 
-## 3. HR 電訪準備（最近一關，這週應該會發生）
+## 3. HR 電訪準備（5/13 或 5/14，60 分鐘）
+
+**Anita 信明示重點**：60 分鐘 + Resume discussion + Self-introduction
+→ 這不是 5–10 分鐘背景過水，是**逐項討論履歷**。準備邏輯：每段工作經歷都要能 1–2 分鐘深聊，加上 STAR 結尾。
+
+
 
 ### A. 你要問 HR 的（按優先序）
 
