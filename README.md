@@ -74,7 +74,7 @@ Built by someone who used it to evaluate 740+ job openings, generate 100+ tailor
 | **ATS PDF Generation** | Keyword-injected CVs with Space Grotesk + DM Sans design |
 | **Portal Scanner** | 45+ companies pre-configured (Anthropic, OpenAI, ElevenLabs, Retool, n8n...) + custom queries across Ashby, Greenhouse, Lever, Wellfound |
 | **Batch Processing** | Parallel evaluation with `claude -p` workers |
-| **Dashboard TUI** | Terminal UI to browse, filter, and sort your pipeline |
+| **Web Dashboard** | Interactive web UI to browse, filter, and manage your pipeline |
 | **Human-in-the-Loop** | AI evaluates and recommends, you decide and act. The system never submits an application -- you always have the final call |
 | **Pipeline Integrity** | Automated merge, dedup, status normalization, health checks |
 
@@ -217,17 +217,16 @@ The scanner comes with **45+ companies** ready to scan and **19 search queries**
 
 **Job boards searched:** Ashby, Greenhouse, Lever, Wellfound, Workable, RemoteFront
 
-## Dashboard TUI
+## Web Dashboard
 
-The built-in terminal dashboard lets you browse your pipeline visually:
+The web dashboard provides an interactive interface to manage your pipeline:
 
 ```bash
-cd dashboard
-go build -o career-dashboard .
-./career-dashboard --path ..
+cd web
+npm run dev
 ```
 
-Features: 6 filter tabs, 4 sort modes, grouped/flat view, lazy-loaded previews, inline status changes.
+Then open `http://localhost:5173` in your browser. Features: pipeline visualization, filtering, sorting, status updates, and inline application tracking.
 
 ## Project Structure
 
@@ -253,7 +252,7 @@ career-ops/
 ├── batch/
 │   ├── batch-prompt.md          # Self-contained worker prompt
 │   └── batch-runner.sh          # Orchestrator script
-├── dashboard/                   # Go TUI pipeline viewer
+├── web/                         # SvelteKit web dashboard
 ├── data/                        # Your tracking data (gitignored)
 ├── reports/                     # Evaluation reports (gitignored)
 ├── output/                      # Generated PDFs (gitignored)
@@ -273,7 +272,7 @@ career-ops/
 - **Agent**: Claude Code with custom skills and modes
 - **PDF**: Playwright/Puppeteer + HTML template
 - **Scanner**: Playwright + Greenhouse API + WebSearch
-- **Dashboard**: Go + Bubble Tea + Lipgloss (Catppuccin Mocha theme)
+- **Dashboard**: SvelteKit + Vite + TypeScript (responsive web UI)
 - **Data**: Markdown tables + YAML config + TSV batch files
 
 ## Also Open Source

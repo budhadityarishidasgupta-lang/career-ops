@@ -4,7 +4,6 @@
 
 - [Claude Code](https://claude.ai/code) installed and configured
 - Node.js 18+ (for PDF generation and utility scripts)
-- (Optional) Go 1.21+ (for the dashboard TUI)
 
 ## Quick Start (5 steps)
 
@@ -71,10 +70,11 @@ node cv-sync-check.mjs      # Check configuration
 node verify-pipeline.mjs     # Check pipeline integrity
 ```
 
-## Build Dashboard (Optional)
+## Start Web Dashboard (Optional)
 
 ```bash
-cd dashboard
-go build -o career-dashboard .
-./career-dashboard --path ..  # Opens TUI pipeline viewer
+cd web
+npm run dev
 ```
+
+Then open `http://localhost:5173` in your browser to browse and manage your pipeline interactively.
