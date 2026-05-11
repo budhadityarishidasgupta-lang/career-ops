@@ -1,0 +1,101 @@
+name: Scheduled Job Scan
+
+on:
+  schedule:
+    # Every 3 days at 09:00 UTC (≈ 5am ET / 2am PT)
+    - cron: '0 9 */3 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+        with:
+          ref: claude/update-realestate-companies-LfFdr
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run portal scan
+        id: scan
+        run: |
+          set -o pipefail
+          node scan.mjs 2>&1 | tee scan-output.log
+          # Count new offers from output line "New offers added: N"
+          NEW_COUNT=$(grep -oE 'New offers added:\s+[0-9]+' scan-output.log | grep -oE '[0-9]+' | head -1 || echo "0")
+          echo "new_count=${NEW_COUNT:-0}" >> "$GITHUB_OUTPUT"
+          echo "Found ${NEW_COUNT:-0} new offers"
+
+      - name: Commit pipeline updates
+        if: steps.scan.outputs.new_count != '0'
+        run: |
+          git config user.name "career-ops-bot"
+          git config user.email "actions@github.com"
+          # Force-add gitignored user-data files
+          git add -f data/pipeline.md data/scan-history.tsv 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No tracked changes to commit"
+            exit 0
+          fi
+          DATE=$(date -u +%Y-%m-%d)
+          git commit -m "chore(scan): ${{ steps.scan.outputs.new_count }} new offers on ${DATE}"
+          git push origin claude/update-realestate-companies-LfFdr
+
+      - name: Open issue with findings
+        if: steps.scan.outputs.new_count != '0'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('scan-output.log', 'utf8');
+            const date = new Date().toISOString().slice(0, 10);
+            const count = '${{ steps.scan.outputs.new_count }}';
+
+            // Extract the new-offers section from the scan output
+            const lines = log.split('\n');
+            const startIdx = lines.findIndex(l => l.includes('New offers added'));
+            const findings = startIdx >= 0
+              ? lines.slice(startIdx, startIdx + 50).filter(l => l.trim().startsWith('+')).join('\n')
+              : '(see workflow logs)';
+
+            const body = [
+              `## ${count} new offers found on ${date}`,
+              '',
+              '```',
+              findings || '(no detail available)',
+              '```',
+              '',
+              `**Next step:** Open Claude Code and run \`/career-ops pipeline\` to evaluate each one.`,
+              '',
+              `[View full scan log](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Scan] ${count} new offers — ${date}`,
+              body,
+              labels: ['scan-results']
+            });
+
+      - name: Upload scan log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-log
+          path: scan-output.log
+          retention-days: 30
