@@ -136,12 +136,14 @@ When evaluating Canadian job postings, be aware of:
 6. Generate a PDF without reading the JD first
 7. Use corporate-speak
 8. Ignore the tracker (every evaluated opening gets registered)
+9. Apply to more than one role at the same company within a 12-month rolling window, unless a previous application was Rejected or Discarded
 
 ### ALWAYS
 
 0. **Cover letter:** If the form allows it, ALWAYS include one. Same visual design as CV. JD quotes mapped to proof points. 1 page max.
 1. Read cv.md, _profile.md, and article-digest.md (if exists) before evaluating
 1b. **First evaluation of each session:** Run `node cv-sync-check.mjs`. If warnings, notify user.
+1c. **Company conflict check:** Before evaluating any role, read `data/applications.md` and `data/pipeline.md`. Search for rows where Company matches the current company. If any rows exist with status Applied/Responded/Interview/Evaluated within the last 12 months AND status is NOT Rejected/Discarded, surface a conflict notice and ask the user to proceed or skip (see opening.md Step -1)
 2. Detect the role archetype and adapt framing per _profile.md
 3. Cite exact lines from CV when matching
 4. Use WebSearch for comp and company data

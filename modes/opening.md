@@ -2,6 +2,40 @@
 
 When the candidate pastes an opening (text or URL), ALWAYS deliver all 7 blocks (A-F evaluation + G legitimacy):
 
+## Step -1 — Company Conflict Check
+
+Before beginning evaluation, check `data/applications.md` and `data/pipeline.md` for other roles at the same company.
+
+**Read applications.md and pipeline.md. Search for the same company name (case-insensitive substring match).**
+
+### Scenario A — Active application exists (Applied/Responded/Interview in last 12 months):
+
+> ⚠️ **Company Conflict:** You already have an active application at {Company} — {Prior Role} (status: {Status}, date: {Date}, score: {Score}).
+> 
+> Applying to a second role here is not recommended. Do you want to continue evaluating anyway? (y/n)
+
+If user says **no** → stop, do not proceed to Step 0. Mark this role as "SKIP" in pipeline.md with note "Company policy: already applied to [company] recently."
+
+If user says **yes** → proceed to Step 0.
+
+### Scenario B — Other evaluated (but unapplied) roles exist at this company:
+
+> 📋 **Multiple roles at {Company}:** The following roles are also in your pipeline or tracker:
+> - {Role A} — Score: X.X/5, Status: Evaluated
+> - {Role B} — Score: pending, Status: in pipeline
+> 
+> You've set a one-per-company rule. Want to: (1) Evaluate this role and compare all at the end, or (2) Skip this one for now? (1/2)
+
+If user says **1** → proceed to Step 0 (you'll compare scores at the end and pick the best one).
+
+If user says **2** → stop, do not proceed. Mark this role as "SKIP" in pipeline.md with note "Company policy: evaluate [best role] at [company] instead."
+
+### Scenario C — No conflicts found:
+
+Proceed silently with Step 0. No notice needed.
+
+---
+
 ## Step 0 — Archetype Detection
 
 Classify the opening into one of 6 archetypes (see `_shared.md`). If hybrid, indicate the 2 closest. This determines:
