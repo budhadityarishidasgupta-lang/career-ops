@@ -7,16 +7,14 @@
 **App entry**：[applications.md #35](../data/applications.md) | [recruiter-comms.md #35](../data/recruiter-comms.md)
 **Salary**：JD 未揭露 — HR call 必問（台北 Sr. FE 市場行情約 1.4M–2.4M TWD）
 
-### HR call — confirmed scope（2026-05-11 Anita 邀約信）
+### HR call — CONFIRMED（2026-05-11 Anita 回信）
 
+- **時間**：**Wednesday 2026-05-13 14:00 TPE (GMT+08:00)** ✅
 - **形式**：Online interview, **60 分鐘**（比 Dcard 的 30 分長一倍，代表會深聊履歷不是純背景過水）
+- **Meet link**：https://meet.google.com/qov-guqy-rru
+- **面試官**：**Frontend team leader**（不是 HR — 這是 hiring manager / team lead 直接過水履歷）
 - **內容**：Resume discussion + self-introduction（履歷逐項討論 + 自我介紹）
-- **時段池（候選人 5/11 回覆，6 個 1-hour slot，符合 5–8 要求）**：
-  - Wed 2026-05-13 14:00 / 15:00 / 16:00 TPE
-  - Thu 2026-05-14 14:00 / 15:00 / 16:00 TPE
-  - **偏好**：2026-05-13 14:00
-- **辦公時段**：Mon–Fri 09:30–18:30 TPE
-- **狀態**：等 Anita 確認具體時間
+- **Action**：候選人需 email 回覆 confirm 出席
 
 ---
 
@@ -68,23 +66,28 @@
 
 ---
 
-## 3. HR 電訪準備（5/13 或 5/14，60 分鐘）
+## 3. 一面準備（2026-05-13 14:00，60 分鐘）
 
-**Anita 信明示重點**：60 分鐘 + Resume discussion + Self-introduction
-→ 這不是 5–10 分鐘背景過水，是**逐項討論履歷**。準備邏輯：每段工作經歷都要能 1–2 分鐘深聊，加上 STAR 結尾。
+**面試官**：**Frontend team leader**（不是 HR — 是 hiring manager / tech lead 直接過水履歷）
+**內容**：60 分鐘 + Resume discussion + Self-introduction
 
+→ 這已經不是「背景過水」階段，這是 **hiring manager 一面**。準備邏輯升級：
+1. 每段工作經歷 1–2 分鐘深聊 + STAR 收尾
+2. 履歷上提到的每個技術點都要能延伸 30 秒「為什麼這樣做、有沒有其他選項、後來怎麼樣」
+3. 自我介紹要有 **tech depth signal**（不是純背景），讓 lead 第一分鐘就感受到「這人會寫 code」
+4. 準備 1–2 個技術深問問 lead（展示同 level 對話能力，不是只問 HR 該問的）
 
+### A. 你要問 Frontend lead 的（按優先序，已調整為對 tech lead）
 
-### A. 你要問 HR 的（按優先序）
+1. **Team structure** — Enterprise Solutions FE team 多大、目前手上幾條產品線、Reporting line
+2. **Tech stack 實際比例** — JD 寫 React + Vue，team 目前主力是哪個？Vue 還在 active development 還是 legacy？
+3. **AI 工具使用程度** — Cursor / Copilot 列為 required，team 是否 daily 用？有沒有 internal AI workflow / agent？
+4. **Frontend architecture 痛點** — 目前最想解決的工程問題？是 perf / DX / test coverage / micro-frontend / design system？
+5. **Coding 一面是什麼題型** — leetcode-style、live React component、還是 take-home？（讓他知道你想針對性準備）
+6. **Remote / Hybrid policy** — 台北 on-site 多少天/週？（deal-breaker 等級，但放後面問避免一開始就太「條件取向」）
+7. **薪資 band** — 可以放在 lead 面或後面 HR follow-up 問；若 lead 主動提就接住，沒提就留給後面 HR round
 
-1. **Remote / Hybrid policy** — 台北 on-site 多少天/週？可全 remote 嗎？（這是 deal-breaker 等級）
-2. **薪資 band** — 這個 level 的 base salary range？bonus / RSU 結構？
-3. **整個流程長度 + round 數量** — 對方說多少 round、預計多久跑完
-4. **Coding 一面是 leetcode-style 還是 take-home / live coding** — 提前知道準備方向
-5. **Team size + reporting line** — Enterprise Solutions team 多大、Hiring manager 是誰
-6. **使用 AI 工具的程度** — JD 寫 Cursor/Copilot required，team 是真的 daily 用還是寫上去而已
-
-### B. HR 會問你的，準備好答案
+### B. Frontend lead 會問你的，準備好答案
 
 **Why Appier**
 - EN：「Appier sits where I want to be — a Taiwan-grown company with global enterprise scale and AI built into the product, not bolted on. The JD listing Cursor and Copilot as required tools is a strong signal that engineering culture is already past the AI-skeptic phase. That matches how I've been working for the past year, both at Binance and on my own multi-agent K-Line project.」
