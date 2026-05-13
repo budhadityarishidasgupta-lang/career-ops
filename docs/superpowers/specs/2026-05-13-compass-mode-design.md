@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-13  
 **Status:** Approved  
-**PR scope:** `modes/compass.md` (new) + `AGENTS.md` (modified) + `.claude/skills/career-ops/career-ops.md` (modified)  
+**PR scope:** `modes/compass.md` (new) + `AGENTS.md` (modified) + `.agents/skills/career-ops/SKILL.md` (modified, symlinked from `.claude/`)  
 **Follow-on PR:** `/career-ops polish` — CV enhancement for target archetypes (out of scope here)
 
 ---
@@ -39,7 +39,7 @@ The mode is standalone (`/career-ops compass`) and reachable from onboarding whe
 |------|--------|
 | `modes/compass.md` | New mode file — all discovery logic |
 | `AGENTS.md` | Step 2 onboarding: add offramp for users who don't know their target roles |
-| `.claude/skills/career-ops/career-ops.md` | Add `compass` to routing table and discovery menu |
+| `.agents/skills/career-ops/SKILL.md` | Add `compass` to routing table and discovery menu (symlinked from `.claude/`) |
 
 ---
 
@@ -61,7 +61,9 @@ Read `config/profile.yml` and `modes/_profile.md`.
 
 #### Phase 1 — Silent CV Analysis
 
-Read `cv.md`. Do not show output to the user. Internally derive:
+Read `cv.md` if it exists. Do not show output to the user. Internally derive:
+
+If `cv.md` is absent, skip the analysis and proceed to Phase 2. Archetype detection becomes discovery-only; the Phase 3 reveal will omit the CV-derived baseline and present discovery findings directly.
 
 - **Domains** — what fields/industries the candidate has worked in
 - **Functions** — what they've actually done (build, consult, manage, train, sell, deploy, support)
@@ -166,15 +168,17 @@ Do not attempt to run compass inline during onboarding. Route to it as a standal
 
 ---
 
-### Router Changes (`.claude/skills/career-ops/career-ops.md`)
+### Router Changes (`.agents/skills/career-ops/SKILL.md`)
 
 Add to routing table:
-```
+
+```md
 | `compass` | `compass` |
 ```
 
 Add to discovery menu:
-```
+
+```md
 /career-ops compass  → Career discovery: figure out what you want + set up your profile
 ```
 

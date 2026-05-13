@@ -101,6 +101,8 @@ Present the three-part reveal. This is the moment where the two threads
 
 ### Part 1: What your background says
 
+If `cv.md` was present in Phase 1:
+
 > *"Before you told me anything, here's where your CV alone would have
 > pointed me..."*
 
@@ -112,6 +114,9 @@ Example:
 > companies is a strong signal for Solutions Architect or Forward
 > Deployed Engineer."*
 
+If `cv.md` was absent in Phase 1, skip Part 1 entirely and proceed
+directly to Part 2. The reveal will present discovery findings only.
+
 ### Part 2: What you told me
 
 > *"Here's what I heard from your answers..."*
@@ -120,6 +125,8 @@ Write a 3–5 sentence synthesis: what energizes them, what they want
 more of, their deal-breakers, and any strong directional signals.
 
 ### Part 3: Where they overlap — and where they don't
+
+If `cv.md` was present in Phase 1:
 
 > *"Here's where your background and your answers point to the same
 > place. That's your strongest signal."*
@@ -132,7 +139,13 @@ more of, their deal-breakers, and any strong directional signals.
   > worth pausing on — is [X] something you'd want to lean into, or
   > are you actively moving away from it?"*
 
-End with clear recommendations:
+If `cv.md` was absent in Phase 1, skip the overlap/gap framing and
+present discovery-derived archetype(s) directly:
+
+> *"Based on what you've told me, here are the directions that fit
+> you best..."*
+
+End with clear recommendations in either case:
 
 | Fit | Archetype(s) | Why |
 |-----|-------------|-----|
@@ -159,7 +172,18 @@ after each one. If the user requests edits, apply them and re-present
 the updated block for confirmation before moving on.
 
 **Block 1: candidate**
-Populate from `cv.md` (name, email, phone, location, LinkedIn, GitHub).
+If `cv.md` exists, populate from it (name, email, phone, location, LinkedIn, GitHub).
+If `cv.md` is absent, show the block with empty string placeholders and ask
+the user to fill in any blank fields before approving:
+```yaml
+candidate:
+  full_name: ""
+  email: ""
+  phone: ""
+  location: ""
+  linkedin: ""
+  github: ""
+```
 Show as a YAML preview.
 
 **Block 2: target_roles**
@@ -212,7 +236,11 @@ preferences from Phase 2.
 
 ### Write gate
 
-Only write files after the user has approved all sections of both files.
+Write files only after the user has either approved or explicitly skipped
+each section of both files. Approval and skip are distinct:
+- **Approved** — user confirmed the drafted content is correct
+- **Skipped** — user said to leave it blank or move on; the corresponding
+  section in the written file will remain as the template placeholder
 
 Write both files in sequence: `config/profile.yml` first, then
 `modes/_profile.md`.
@@ -220,6 +248,3 @@ Write both files in sequence: `config/profile.yml` first, then
 Confirm:
 > *"Profile saved. You're ready to start evaluating roles — paste a
 > job description or URL to run the full pipeline."*
-
-If the user skips a section, write the file with that section left as
-the template placeholder so they can fill it in later.
