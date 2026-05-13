@@ -4,15 +4,82 @@
 
 ## R2 預期
 
-| 項目 | 細節（lead 透露） |
-|------|------------------|
+| 項目 | 細節 |
+|------|------|
 | 時長 | 2–3 小時 |
 | 格式 | take-home + 接續 live session |
 | 內容 | live coding **或** agent collaborate |
-| 旁聽 | R1 lead 可能在場 |
+| **主面** | **資深 Sr（身份未知）** — 主導技術深度 + 架構判斷 |
+| **旁聽** | **Xinhe Hsu（R1 lead）** — 觀察 fit / culture / 合作 vibe |
 | 排程 | 等 Anita 確認 take-home 出題 + live 時段 |
 
 **判讀**：「agent collaborate」是罕見 format，等於要 demo 你跟 AI agent 協作寫 code 的真實能力。K-Line multi-agent pipeline 直接是 in-game asset。
+
+---
+
+## 面試結構（重要校準 2026-05-13）
+
+R1 = Xinhe Hsu screen pass，已通過。
+R2 = **1 主 + 1 旁** 雙人結構：資深 Sr 主面、Xinhe 旁聽。
+
+**重要校準（覆蓋 R1 當日推測）**：
+- ❌ 不是 panel consensus（3+ 人合議）
+- ❌ Xinhe 不是 R2 主面試官
+- ❌ Tz-Yu Lin 不一定旁聽（過去推測無依據）
+- ✅ 資深 Sr 1 人主導，Xinhe 1 人旁聽
+
+### 主面（資深 Sr）行為預測
+- 不會只問「會不會 Vue」，會問**架構決策原因、跨團隊溝通、tech debt 處理、scale 經驗**
+- 「agent collaborate」可能是他的偏好（資深越想看你能否 lead AI 工作流，而非會用 AI 工具）
+- 有 Sr II / Staff banding 判斷權限，**看技術深度判職級**
+
+### 旁聽（Xinhe）行為預測
+- 已從 evaluator 降為 observer，但意見仍影響 hire/no-hire
+- 評分維度：fit / culture / 跟她合作的 vibe
+- 她不會反對給你 Sr II（平級職位），反而可能加分
+- Yahoo Youcard intern + Advantech UI automation 背景仍是 mutual ground 切入點
+
+### 你要做的兩件事
+1. **贏資深 Sr 的技術深度判斷** — K-Line 案例從「我寫了什麼」升到「為什麼這樣設計、trade-off、如果重來改哪裡」
+2. **讓 Xinhe 覺得跟你工作會順** — 答題時 mention「will collaborate with」「pair on」這類詞彙，不要全 self-centered
+
+---
+
+## R2 準備 delta（5 條，R1 完成 + Appier 情資調查後）
+
+**這是 R2 準備優先序，覆蓋下文所有 §A–§D 之上**。
+
+1. **攻擊面 4 → 5：補 data visualization**
+   JD preferred 明列「data visualization」。30 秒 pitch：K-Line 渲染（canvas vs SVG trade-off）+ chart 函式庫選型。**不全套，只一個案例 + 一個 trade-off**。
+
+2. **自介前 30 秒：上 AI agent 工作流**
+   講 K-Line multi-agent + Diary PM/Architect/Engineer/Reviewer/QA/Designer 六角，**不講工具名**。對應 JD 把 Copilot/Cursor/Windsurf 列為 **required**（不是 preferred）。差異點：團隊已從「會用工具」進到「工具是常規」，你的工作流是超出職位線的信號。
+
+3. **Live coding 主軸：你 × Cursor / Claude Code 三步驟**
+   用「prompt → diff → review」demo agent collaborate。「agent collaborate」可能是**主面資深 Sr** 的偏好（資深越想看你能否 lead AI 工作流）。對應 Appier 三條 agent 產線（**Ad Agent / Personalization Agent / Data Agent**，FY25 Q4 財報 ship）— 公司戰略不是 buzzword。Live demo 時 show：給清楚 spec → 邊跑邊講 handoff → agent 跑錯時你介入修 prompt / rule。**不要 show**：一鍵自跑、過度依賴 agent。
+
+4. **R2 結尾不問薪資 + anchor 校準**
+   JD 寫 "Seniority level determined after interview"。R2 表現 = Sr I/II = 薪資 ceiling。**問「what's the team's next 6-month roadmap」**推他們揭 product roadmap + headcount → 反推職級。薪資留給 HR offer 階段。
+   **Anchor banding**（已校準）：
+   - 1.5–1.7M：Sr I band，1.7M 為合理上限
+   - **1.8–2.1M：Sr II band，2.0M 為主目標**（資深 Sr 主面有 Sr II 判斷權限 + Xinhe 旁聽不反對平級）
+   - Walk-away <1.5M（不變）
+
+5. **R2 前 24h LinkedIn 偵察兩位面試官**
+
+   **(a) Xinhe Hsu（許心和） — 旁聽**
+   已查到：[in/xinhe998](https://www.linkedin.com/in/xinhe998/)、Sr SWE II since 2020/07（≈5.8 年）、台中科大、Verizon Media Yahoo Youcard intern、Advantech UI automation intern、Trunk Studio。Appier IWD 2023 blog 引用她：「feel equal speaking mind with male peers」。
+   → mutual ground：Yahoo 經驗、UI automation 對應 Playwright blocking 問題
+   → 她實際做過 UI 自動化測試，**§D Playwright blocking 不是 small talk**，要練到反射回答
+
+   **(b) 資深 Sr（身份未知） — 主面**
+   R2 排程確認後上 LinkedIn 縮搜：
+   - `Appier "Staff Engineer"` + Taipei
+   - `Appier "Engineering Manager"` + Taipei
+   - `Appier "Principal"` + Taipei
+   - `Appier "Tech Lead"` + Taipei（Tz-Yu Lin 是候選人但偏後端）
+   - 篩任職 ≥5 年、Frontend / Full-stack 背景
+   - 確認後看他 publication / talk / GitHub / Medium 預判技術品味（pragmatic / academic / system-design heavy）
 
 ---
 
@@ -290,10 +357,12 @@ window.addEventListener('beforeunload', flush);
 
 ## 二面前要做的 LinkedIn 偵察
 
-R1 lead 是女性 Frontend tech lead — 二面排程 confirm 後：
-- LinkedIn search「Appier + Frontend Lead/Manager + female」narrow down
-- 找 mutual connection 看評價
-- 看她 publication / talk 預判技術品味（pragmatic / academic / system-design heavy）
+詳見 §R2 準備 delta item 5（dual-target：Xinhe 旁聽 + 資深 Sr 主面）。
+
+關鍵 actionable：
+- Xinhe 已查到 → 重點挖她 Advantech UI automation 細節，反推 §D Playwright 問題深度
+- 資深 Sr 待縮搜 → R2 排程確認後 24h 內鎖定
+- 找出資深 Sr 後，K-Line 案例調整講法以對應他的技術品味
 
 ---
 
