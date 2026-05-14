@@ -446,17 +446,18 @@ if (fileExists('templates/cv-template.tex')) {
   }
 
   // Must NOT use fontawesome or multicol (Jake's template doesn't need them)
-  if (!tex.includes('\\usepackage{fontawesome}')) {
+  // Regex catches both plain \usepackage{pkg} and optioned \usepackage[opts]{pkg} forms
+  if (!/\\usepackage\s*(?:\[[^\]]*\]\s*)?\{fontawesome\}/.test(tex)) {
     pass('cv-template.tex does not require fontawesome');
   } else {
     fail('cv-template.tex must not include fontawesome — unavailable in many LaTeX environments');
   }
-  if (!tex.includes('\\usepackage{fontawesome5}')) {
+  if (!/\\usepackage\s*(?:\[[^\]]*\]\s*)?\{fontawesome5\}/.test(tex)) {
     pass('cv-template.tex does not require fontawesome5');
   } else {
     fail('cv-template.tex must not include fontawesome5 — unavailable in many LaTeX environments');
   }
-  if (!tex.includes('\\usepackage{multicol}')) {
+  if (!/\\usepackage\s*(?:\[[^\]]*\]\s*)?\{multicol\}/.test(tex)) {
     pass('cv-template.tex does not require multicol');
   } else {
     fail('cv-template.tex must not include multicol — not used in Jake\'s single-column template');
@@ -468,8 +469,7 @@ if (fileExists('templates/cv-template.tex')) {
 // generate-latex.mjs section names match Jake's template
 if (fileExists('generate-latex.mjs')) {
   const genLatex = readFile('generate-latex.mjs');
-  if (genLatex.includes("'\\\\\\\\section{Experience}'") || genLatex.includes('"\\\\\\\\section{Experience}"')
-    || genLatex.includes("section{Experience}")) {
+  if (genLatex.includes('section{Experience}')) {
     pass('generate-latex.mjs validates \\section{Experience}');
   } else {
     fail('generate-latex.mjs REQUIRED_SECTIONS must use Experience not Work Experience');
