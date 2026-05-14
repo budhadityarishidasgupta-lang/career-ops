@@ -323,8 +323,8 @@ console.log('\n11. /add command integrity');
 if (fileExists('modes/add.md')) {
   const addMode = readFile('modes/add.md');
 
-  // Required structural sections
-  const addSections = ['Pipeline', 'Input Formats', 'Rules', 'Step 5', 'Step 6', 'Step 7'];
+  // Required structural sections (semantic names — not brittle step numbers)
+  const addSections = ['Pipeline', 'Input Formats', 'Rules', 'Show a preview', 'Locate the correct section', 'Append a new entry'];
   for (const section of addSections) {
     if (addMode.includes(section)) {
       pass(`add.md has section: ${section}`);
@@ -355,7 +355,7 @@ if (fileExists('modes/add.md')) {
   }
 
   // Must NOT invent data
-  if (addMode.toLowerCase().includes('never invent') || addMode.includes('NEVER invent')) {
+  if (addMode.toLowerCase().includes('never invent')) {
     pass('add.md enforces no-invention rule');
   } else {
     fail('add.md must explicitly state NEVER invent data');
