@@ -1,9 +1,10 @@
 # Portal Scanner Configuration
 # Used by /career-ops scan to discover new offers automatically.
 #
-# Strategy (3 levels):
+# Strategy (4 levels):
+#   0. Local parser → per-company `parser:` script for SSR/static career pages (zero-token)
 #   1. Playwright → careers_url of each company (real-time, reliable)
-#   2. Greenhouse API → structured JSON (fast, Greenhouse-only)
+#   2. HTTP JSON (WebFetch) → per-company `api:` on tracked_companies (see board_api_catalog below)
 #   3. WebSearch with site: filters (broad discovery, may be stale)
 #
 # IMPORTANT: Each company in tracked_companies MUST have careers_url.
@@ -313,8 +314,25 @@ search_queries:
 
 # -- Tracked companies --
 # Companies whose career pages are checked directly.
-# scan_method: playwright (default), websearch, greenhouse_api
+# scan_method: local_parser, playwright (default), websearch, greenhouse_api
 # For Greenhouse companies, add api: field for faster structured JSON access.
+# For SSR/static career pages, add parser.command + parser.script. The script
+# must print JSON jobs to stdout: [{ "title": "...", "url": "...", "location": "..." }]
+#
+# Example local parser:
+# - name: Cohere
+#   careers_url: https://jobs.ashbyhq.com/cohere
+#   scan_method: local_parser
+#   parser:
+#     command: python3
+#     script: scripts/parsers/cohere_jobs.py
+#     args:
+#       - --url
+#       - "{careers_url}"
+#       - --stdout-jobs
+#       - --no-output
+#     format: jobs-json-v1
+#   enabled: true
 
 tracked_companies:
 
@@ -566,6 +584,17 @@ tracked_companies:
 
   - name: Cohere
     careers_url: https://jobs.ashbyhq.com/cohere
+    scan_method: local_parser
+    parser:
+      command: python3
+      script: scripts/parsers/cohere_jobs.py
+      args:
+        - --url
+        - "{careers_url}"
+        - --stdout-jobs
+        - --no-output
+      format: jobs-json-v1
+      timeout_ms: 45000
     notes: "AI/LLM provider. Toronto + remote."
     enabled: true
 

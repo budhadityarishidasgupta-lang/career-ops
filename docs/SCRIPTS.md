@@ -180,7 +180,23 @@ Each URL gets a verdict: `active`, `expired`, or `uncertain` with a reason.
 
 ## scan
 
-Zero-token portal scanner. Hits ATS APIs (Greenhouse, Ashby, Lever) and career pages directly — no LLM tokens consumed. Reads `portals.yml` for target companies and search queries, outputs matching listings to stdout and optionally appends to `data/pipeline.md`.
+Zero-token portal scanner. Runs configured local parsers for SSR/static career pages and hits ATS APIs (Greenhouse, Ashby, Lever) directly — no LLM tokens consumed. Reads `portals.yml` for target companies, outputs matching listings to stdout, and optionally appends to `data/pipeline.md`.
+
+For custom SSR pages, configure a tracked company with `scan_method: local_parser` and a `parser` block. The parser command must print JSON jobs to stdout:
+
+```yaml
+parser:
+  command: python3
+  script: scripts/parsers/cohere_jobs.py
+  args:
+    - --url
+    - "{careers_url}"
+    - --stdout-jobs
+    - --no-output
+  format: jobs-json-v1
+```
+
+If a parser writes full extraction artifacts for debugging or audit, store them under `data/parser-output/{company}/`. `scan.mjs` reads stdout and does not require those JSON files after parsing.
 
 ```bash
 npm run scan

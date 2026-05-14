@@ -3,9 +3,9 @@
 /**
  * scan.mjs — Zero-token portal scanner
  *
- * Fetches Greenhouse, Ashby, and Lever APIs directly, applies title
- * filters from portals.yml, deduplicates against existing history,
- * and appends new offers to pipeline.md + scan-history.tsv.
+ * Runs configured local parsers or fetches Greenhouse, Ashby, and Lever APIs
+ * directly, applies title filters from portals.yml, deduplicates against
+ * existing history, and appends new offers to pipeline.md + scan-history.tsv.
  *
  * Zero Claude API tokens — pure HTTP + JSON.
  *
@@ -15,9 +15,12 @@
  *   node scan.mjs --company Cohere # scan a single company
  */
 
+import { execFile } from 'child_process';
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
+import { promisify } from 'util';
 import yaml from 'js-yaml';
 const parseYaml = yaml.load;
+const execFileAsync = promisify(execFile);
 
 // ── Config ──────────────────────────────────────────────────────────
 
@@ -31,6 +34,8 @@ mkdirSync('data', { recursive: true });
 
 const CONCURRENCY = 10;
 const FETCH_TIMEOUT_MS = 10_000;
+const LOCAL_PARSER_TIMEOUT_MS = 20_000;
+const LOCAL_PARSER_MAX_BUFFER_BYTES = 2_000_000;
 
 // ── API detection ───────────────────────────────────────────────────
 
@@ -72,6 +77,43 @@ function detectApi(company) {
   return null;
 }
 
+function expandParserArg(value, company) {
+  return String(value)
+    .replaceAll('{careers_url}', company.careers_url || '')
+    .replaceAll('{company}', company.name || '');
+}
+
+function getParserScriptPath(company) {
+  const parser = company.parser || {};
+  if (parser.script) return expandParserArg(parser.script, company);
+
+  const args = Array.isArray(parser.args) ? parser.args : [];
+  const scriptArg = args.find(arg => {
+    const value = String(arg);
+    return !value.startsWith('-') && /\.(py|mjs|js|sh)$/.test(value);
+  });
+
+  return scriptArg ? expandParserArg(scriptArg, company) : null;
+}
+
+function detectLocalParser(company) {
+  const parser = company.parser;
+  if (!parser?.command) return null;
+
+  const scriptPath = getParserScriptPath(company);
+  if (scriptPath && !existsSync(scriptPath)) return null;
+
+  return { kind: 'local-parser', parser };
+}
+
+function detectSource(company) {
+  const localParser = detectLocalParser(company);
+  if (localParser) return localParser;
+
+  const api = detectApi(company);
+  return api ? { kind: 'api', ...api } : null;
+}
+
 // ── API parsers ─────────────────────────────────────────────────────
 
 function parseGreenhouse(json, companyName) {
@@ -105,6 +147,78 @@ function parseLever(json, companyName) {
 }
 
 const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+
+// ── Local parser runner ───────────────────────────────────────────────
+
+function buildParserArgs(company) {
+  const parser = company.parser || {};
+  const args = [];
+
+  if (parser.script) args.push(parser.script);
+  if (Array.isArray(parser.args)) args.push(...parser.args);
+
+  return args.map(arg => expandParserArg(arg, company));
+}
+
+function normalizeJobUrl(rawUrl, baseUrl) {
+  if (!rawUrl) return '';
+  try {
+    return new URL(String(rawUrl).trim(), baseUrl || undefined).href;
+  } catch {
+    return '';
+  }
+}
+
+function normalizeLocation(value) {
+  if (!value) return '';
+  if (Array.isArray(value)) return value.map(normalizeLocation).filter(Boolean).join(', ');
+  if (typeof value === 'object') return value.name || value.text || '';
+  return String(value).trim();
+}
+
+function normalizeParserJob(job, company) {
+  if (!job || typeof job !== 'object') return null;
+
+  const title = String(job.title || job.name || '').trim();
+  const url = normalizeJobUrl(job.url || job.jobUrl || job.job_url || job.applyUrl || job.apply_url, company.careers_url);
+  if (!title || !url) return null;
+
+  return {
+    title,
+    url,
+    company: String(job.company || company.name || '').trim(),
+    location: normalizeLocation(job.location || job.locations),
+  };
+}
+
+async function runLocalParser(company) {
+  const parser = company.parser || {};
+  const args = buildParserArgs(company);
+  const timeout = Number(parser.timeout_ms || LOCAL_PARSER_TIMEOUT_MS);
+  const maxBuffer = Number(parser.max_buffer_bytes || LOCAL_PARSER_MAX_BUFFER_BYTES);
+
+  const { stdout } = await execFileAsync(parser.command, args, {
+    timeout,
+    maxBuffer,
+    windowsHide: true,
+  });
+
+  let payload;
+  try {
+    payload = JSON.parse(stdout);
+  } catch {
+    throw new Error('local parser returned invalid JSON');
+  }
+
+  const rawJobs = Array.isArray(payload) ? payload : payload.jobs || payload.results;
+  if (!Array.isArray(rawJobs)) {
+    throw new Error('local parser JSON must be an array or contain jobs[]/results[]');
+  }
+
+  return rawJobs
+    .map(job => normalizeParserJob(job, company))
+    .filter(Boolean);
+}
 
 // ── Fetch with timeout ──────────────────────────────────────────────
 
@@ -291,23 +405,27 @@ async function main() {
   const titleFilter = buildTitleFilter(config.title_filter);
   const locationFilter = buildLocationFilter(config.location_filter);
 
-  // 2. Filter to enabled companies with detectable APIs
-  const targets = companies
+  // 2. Filter to enabled companies with detectable scan sources
+  const selectedCompanies = companies
     .filter(c => c.enabled !== false)
-    .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany))
-    .map(c => ({ ...c, _api: detectApi(c) }))
-    .filter(c => c._api !== null);
+    .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany));
 
-  const skippedCount = companies.filter(c => c.enabled !== false).length - targets.length;
+  const targets = selectedCompanies
+    .map(c => ({ ...c, _source: detectSource(c) }))
+    .filter(c => c._source !== null);
 
-  console.log(`Scanning ${targets.length} companies via API (${skippedCount} skipped — no API detected)`);
+  const skippedCount = selectedCompanies.length - targets.length;
+  const apiCount = targets.filter(c => c._source.kind === 'api').length;
+  const localParserCount = targets.filter(c => c._source.kind === 'local-parser').length;
+
+  console.log(`Scanning ${targets.length} companies (${apiCount} API, ${localParserCount} local parser; ${skippedCount} skipped — no source detected)`);
   if (dryRun) console.log('(dry run — no files will be written)\n');
 
   // 3. Load dedup sets
   const seenUrls = loadSeenUrls();
   const seenCompanyRoles = loadSeenCompanyRoles();
 
-  // 4. Fetch all APIs
+  // 4. Fetch all scan sources
   const date = new Date().toISOString().slice(0, 10);
   let totalFound = 0;
   let totalFilteredTitle = 0;
@@ -317,10 +435,20 @@ async function main() {
   const errors = [];
 
   const tasks = targets.map(company => async () => {
-    const { type, url } = company._api;
     try {
-      const json = await fetchJson(url);
-      const jobs = PARSERS[type](json, company.name);
+      const source = company._source;
+      let jobs;
+      let sourceName;
+
+      if (source.kind === 'local-parser') {
+        jobs = await runLocalParser(company);
+        sourceName = 'local-parser';
+      } else {
+        const json = await fetchJson(source.url);
+        jobs = PARSERS[source.type](json, company.name);
+        sourceName = `${source.type}-api`;
+      }
+
       totalFound += jobs.length;
 
       for (const job of jobs) {
@@ -344,7 +472,7 @@ async function main() {
         // Mark as seen to avoid intra-scan dupes
         seenUrls.add(job.url);
         seenCompanyRoles.add(key);
-        newOffers.push({ ...job, source: `${type}-api` });
+        newOffers.push({ ...job, source: sourceName });
       }
     } catch (err) {
       errors.push({ company: company.name, error: err.message });
