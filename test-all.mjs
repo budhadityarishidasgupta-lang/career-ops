@@ -396,13 +396,15 @@ if (fileExists('.claude/skills/career-ops/SKILL.md')) {
 }
 
 // AGENTS.md skill modes table includes add
-{
+if (fileExists('AGENTS.md')) {
   const agentsMd = readFile('AGENTS.md');
   if (agentsMd.includes('`add`') && (agentsMd.includes('project') || agentsMd.includes('GitHub'))) {
     pass('AGENTS.md skill modes table includes add');
   } else {
     fail('AGENTS.md skill modes table missing add command');
   }
+} else {
+  fail('AGENTS.md does not exist');
 }
 
 // ── 12. JAKE'S RESUME TEMPLATE INTEGRITY ────────────────────────
