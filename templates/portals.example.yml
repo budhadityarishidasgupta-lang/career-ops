@@ -315,6 +315,14 @@ search_queries:
 # Companies whose career pages are checked directly.
 # scan_method: playwright (default), websearch, greenhouse_api
 # For Greenhouse companies, add api: field for faster structured JSON access.
+#
+# The scan.mjs zero-token tier auto-detects the ATS from careers_url. Patterns:
+#   Greenhouse      job-boards(.eu).greenhouse.io/<slug>  (or api: field)
+#   Ashby           jobs.ashbyhq.com/<slug>
+#   Lever           jobs.lever.co/<slug>
+#   Workable        apply.workable.com/<slug>
+#   SmartRecruiters careers.smartrecruiters.com/<slug> or jobs.smartrecruiters.com/<slug>
+#   Recruitee       <slug>.recruitee.com
 
 tracked_companies:
 

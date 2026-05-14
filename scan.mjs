@@ -60,6 +60,33 @@ function detectApi(company) {
     };
   }
 
+  // Workable (public markdown feed at /<slug>/jobs.md — no auth required)
+  const workableMatch = url.match(/apply\.workable\.com\/([^/?#]+)/);
+  if (workableMatch) {
+    return {
+      type: 'workable',
+      url: `https://apply.workable.com/${workableMatch[1]}/jobs.md`,
+    };
+  }
+
+  // SmartRecruiters
+  const smartRecruitersMatch = url.match(/(?:careers|jobs)\.smartrecruiters\.com\/([^/?#]+)/);
+  if (smartRecruitersMatch) {
+    return {
+      type: 'smartrecruiters',
+      url: `https://api.smartrecruiters.com/v1/companies/${smartRecruitersMatch[1]}/postings?limit=100&offset=0&status=PUBLIC`,
+    };
+  }
+
+  // Recruitee
+  const recruiteeMatch = url.match(/([a-z0-9-]+)\.recruitee\.com/);
+  if (recruiteeMatch) {
+    return {
+      type: 'recruitee',
+      url: `https://${recruiteeMatch[1]}.recruitee.com/api/offers/`,
+    };
+  }
+
   // Greenhouse EU boards
   const ghEuMatch = url.match(/job-boards(?:\.eu)?\.greenhouse\.io\/([^/?#]+)/);
   if (ghEuMatch && !company.api) {
@@ -104,7 +131,63 @@ function parseLever(json, companyName) {
   }));
 }
 
-const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+function parseWorkable(text, companyName) {
+  // Workable exposes a public markdown table at /<slug>/jobs.md (no auth needed).
+  // Format: | Title | Department | Location | Type | Salary | Posted | Details |
+  // where Details has a markdown link [View](https://apply.workable.com/<slug>/jobs/view/<id>.md)
+  if (typeof text !== 'string') return [];
+  const jobs = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    // Skip non-data lines: must be a table row with `[View](...)` link
+    if (!line.startsWith('|') || !line.includes('[View]')) continue;
+    const cols = line.split('|').map(c => c.trim());
+    // Cols: [empty, title, dept, location, type, salary, posted, details, empty]
+    if (cols.length < 8) continue;
+    const title = cols[1];
+    const location = cols[3];
+    const urlMatch = cols[7].match(/\(([^)]+)\)/);
+    let url = urlMatch ? urlMatch[1] : '';
+    // Strip the .md suffix to get the human-readable URL
+    if (url.endsWith('.md')) url = url.slice(0, -3);
+    if (!title || title === 'Title') continue;
+    jobs.push({ title, url, location, company: companyName });
+  }
+  return jobs;
+}
+
+function parseSmartRecruiters(json, companyName) {
+  return (json?.content || []).map(j => {
+    const loc = j.location || {};
+    const fullLocation = loc.fullLocation || [loc.city, loc.region, loc.country].filter(Boolean).join(', ');
+    const remote = loc.remote ? 'Remote' : '';
+    const location = [fullLocation, remote].filter(Boolean).join(', ');
+    const slugified = (j.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return {
+      title: j.name || '',
+      url: j.ref ? j.ref.replace('api.smartrecruiters.com/v1/companies/', 'jobs.smartrecruiters.com/') : `https://jobs.smartrecruiters.com/${companyName.toLowerCase()}/${j.id}-${slugified}`,
+      location,
+      company: companyName,
+    };
+  });
+}
+
+function parseRecruitee(json, companyName) {
+  return (json?.offers || []).map(j => {
+    const city = j.city || '';
+    const country = j.country || '';
+    const remote = j.remote ? 'Remote' : '';
+    const location = j.location || [city, country, remote].filter(Boolean).join(', ');
+    return {
+      title: j.title || '',
+      url: j.careers_url || j.url || '',
+      location,
+      company: companyName,
+    };
+  });
+}
+
+const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever, workable: parseWorkable, smartrecruiters: parseSmartRecruiters, recruitee: parseRecruitee };
 
 // ── Fetch with timeout ──────────────────────────────────────────────
 
@@ -115,6 +198,18 @@ async function fetchJson(url) {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchText(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
   } finally {
     clearTimeout(timer);
   }
@@ -319,8 +414,8 @@ async function main() {
   const tasks = targets.map(company => async () => {
     const { type, url } = company._api;
     try {
-      const json = await fetchJson(url);
-      const jobs = PARSERS[type](json, company.name);
+      const data = type === 'workable' ? await fetchText(url) : await fetchJson(url);
+      const jobs = PARSERS[type](data, company.name);
       totalFound += jobs.length;
 
       for (const job of jobs) {
