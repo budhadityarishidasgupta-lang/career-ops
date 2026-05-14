@@ -136,21 +136,25 @@ function buildTitleFilter(titleFilter) {
 
 // ── Location filter ─────────────────────────────────────────────────
 // Optional. If `location_filter` is absent from portals.yml, all locations pass.
-// Semantics:
+// Semantics (case-insensitive substring, in this order):
 //   - Empty location string → pass (don't penalize missing data)
-//   - `block` matches → reject (takes precedence over allow)
+//   - `always_allow` matches → pass (takes precedence over `block` — lets a
+//     multi-location string like "Remote, Belgium or France" through because
+//     the home region is an option, even though "france" is blocked)
+//   - `block` matches → reject
 //   - `allow` empty → pass (already cleared block)
 //   - `allow` non-empty → must match at least one keyword
-// All matches are case-insensitive substring.
 
 function buildLocationFilter(locationFilter) {
   if (!locationFilter) return () => true;
+  const alwaysAllow = (locationFilter.always_allow || []).map(k => k.toLowerCase());
   const allow = (locationFilter.allow || []).map(k => k.toLowerCase());
   const block = (locationFilter.block || []).map(k => k.toLowerCase());
 
   return (location) => {
     if (!location) return true;
     const lower = location.toLowerCase();
+    if (alwaysAllow.length > 0 && alwaysAllow.some(k => lower.includes(k))) return true;
     if (block.length > 0 && block.some(k => lower.includes(k))) return false;
     if (allow.length === 0) return true;
     return allow.some(k => lower.includes(k));
