@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/santifer/career-ops/compare/career-ops-v1.8.0...career-ops-v1.8.1) (2026-05-15)
+
+
+### Bug Fixes
+
+* **release:** sync VERSION file to 1.8.0 ([541917f](https://github.com/santifer/career-ops/commit/541917f627f3f328e5411a54685f5e8706761499))
+
 ## [1.8.0](https://github.com/santifer/career-ops/compare/career-ops-v1.7.1...career-ops-v1.8.0) (2026-05-15)
 
 
