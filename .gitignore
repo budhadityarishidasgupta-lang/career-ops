@@ -34,6 +34,11 @@ modes/_profile.md
 .resolved-prompt-*
 node_modules/
 bun.lock
+# Generated/private document outputs
+*.pdf
+*.docx
+*.doc
+*.rtf
 
 # OS
 .DS_Store
