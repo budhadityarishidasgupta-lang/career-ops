@@ -17,6 +17,13 @@ jobs:
         with:
           node-version: '20'
 
+
+      - name: Materialize private profile files from secrets
+        run: |
+          mkdir -p modes
+          printf "%s" "${{ secrets.CV_MD_CONTENT }}" > cv.md
+          printf "%s" "${{ secrets.PROFILE_MD_CONTENT }}" > modes/_profile.md
+
       - name: Run daily app-pack generator
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -7,8 +7,10 @@ This automation reads JDs from `jds/` and writes response-only packs to:
 ## GitHub-first setup (no local secrets required)
 
 1. Push this repo to GitHub.
-2. In GitHub repo settings, add secret:
-   - `OPENAI_API_KEY` (Repository Settings → Secrets and variables → Actions → New repository secret)
+2. In GitHub repo settings, add secrets:
+   - `OPENAI_API_KEY`
+   - `CV_MD_CONTENT` (full content of your private `cv.md`)
+   - `PROFILE_MD_CONTENT` (full content of your private `modes/_profile.md`)
 3. Optional repo variable:
    - `OPENAI_MODEL` (defaults to `gpt-5.3-codex`)
 4. Add JD files to `jds/` (`.md` or `.txt`).
