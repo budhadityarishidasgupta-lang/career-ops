@@ -1,0 +1,32 @@
+name: Daily Application Pack
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run daily app-pack generator
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.3-codex' }}
+        run: |
+          node batch/daily-app-pack.mjs
+
+      - name: Upload generated packs
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-packs
+          path: output/app-packs/
+          if-no-files-found: warn
