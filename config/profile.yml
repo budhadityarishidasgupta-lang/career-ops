@@ -1,0 +1,40 @@
+﻿candidate:
+  full_name: "Budhaditya Dasgupta"
+  email: "budhaditya.rishi.dasgupta@gmail.com"
+  phone: "+49 1623346916"
+  location: "Germany"
+  linkedin: "www.linkedin.com/in/budhadityarishi"
+
+target_roles:
+  primary:
+    - "Director People Operations"
+    - "Head of HR Operations"
+  archetypes:
+    - name: "HR Operations & Transformation"
+      level: "Director"
+      fit: "primary"
+
+narrative:
+  headline: "Global HR Operations and Transformation leader"
+  exit_story: "15+ years leading HR shared services, HR tech transformation, and people operations across multi-country environments."
+  superpowers:
+    - "HR Shared Services and Global Operations"
+    - "HR Technology and Process Automation"
+    - "People Analytics and Compliance Governance"
+
+compensation:
+  target_range: "TBD"
+  currency: "EUR"
+  minimum: "TBD"
+  location_flexibility: "Germany-based, open to EMEA/global roles"
+
+location:
+  country: "Germany"
+  city: "TBD"
+  timezone: "CET/CEST"
+  visa_status: "Authorized to work in Germany"
+
+cv:
+  output_format: "html"
+  canonical_source_docx: "data/base-cv/Budhaditya_Dasgupta__CV.docx"
+  canonical_source_markdown: "cv.md"

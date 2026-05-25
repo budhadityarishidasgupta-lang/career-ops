@@ -20,6 +20,8 @@ const projectRoot = __dirname;
 const warnings = [];
 const errors = [];
 
+const canonicalDocxPath = join(projectRoot, 'data', 'base-cv', 'Budhaditya_Dasgupta__CV.docx');
+
 // 1. Check cv.md exists
 const cvPath = join(projectRoot, 'cv.md');
 if (!existsSync(cvPath)) {
@@ -29,6 +31,13 @@ if (!existsSync(cvPath)) {
   if (cvContent.trim().length < 100) {
     warnings.push('cv.md seems too short. Make sure it contains your full CV.');
   }
+  if (!cvContent.includes('data/base-cv/Budhaditya_Dasgupta__CV.docx')) {
+    warnings.push('cv.md is missing the canonical source reference to data/base-cv/Budhaditya_Dasgupta__CV.docx.');
+  }
+}
+
+if (!existsSync(canonicalDocxPath)) {
+  errors.push('Canonical base CV not found at data/base-cv/Budhaditya_Dasgupta__CV.docx.');
 }
 
 // 2. Check profile.yml exists
