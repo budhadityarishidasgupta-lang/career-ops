@@ -1,9 +1,11 @@
 import os
 import re
 from pathlib import Path
+from io import BytesIO
 
 import streamlit as st
 from openai import OpenAI
+from docx import Document
 
 
 def tokenize_words(text: str) -> set[str]:
@@ -95,6 +97,36 @@ def build_prompts(
         ]
     )
     return system_prompt, user_prompt
+
+
+def markdown_to_docx_bytes(markdown_text: str) -> bytes:
+    doc = Document()
+    for raw in markdown_text.splitlines():
+        line = raw.rstrip()
+        if not line.strip():
+            doc.add_paragraph("")
+            continue
+        if line.startswith("### "):
+            doc.add_heading(line[4:].strip(), level=3)
+            continue
+        if line.startswith("## "):
+            doc.add_heading(line[3:].strip(), level=2)
+            continue
+        if line.startswith("# "):
+            doc.add_heading(line[2:].strip(), level=1)
+            continue
+        if line.startswith("- ") or line.startswith("• "):
+            doc.add_paragraph(line[2:].strip(), style="List Bullet")
+            continue
+        if re.match(r"^\d+\.\s+", line):
+            text = re.sub(r"^\d+\.\s+", "", line).strip()
+            doc.add_paragraph(text, style="List Number")
+            continue
+        doc.add_paragraph(line)
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 st.set_page_config(page_title="Career-Ops JD Pack", page_icon="🧭", layout="wide")
@@ -191,13 +223,23 @@ if should_run:
 
 if st.session_state.latest_output:
     st.markdown(st.session_state.latest_output)
-    st.download_button(
-        label="Download as Markdown",
-        data=st.session_state.latest_output.encode("utf-8"),
-        file_name="application-pack.md",
-        mime="text/markdown",
-        use_container_width=True,
-    )
+    d1, d2 = st.columns(2)
+    with d1:
+        st.download_button(
+            label="Download as Markdown",
+            data=st.session_state.latest_output.encode("utf-8"),
+            file_name="application-pack.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    with d2:
+        st.download_button(
+            label="Download as Word (.docx)",
+            data=markdown_to_docx_bytes(st.session_state.latest_output),
+            file_name="application-pack.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True,
+        )
 
 with st.expander("Session Learning Memory", expanded=False):
     if st.session_state.learning_notes:
