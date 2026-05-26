@@ -1,71 +1,89 @@
-# Modo: auto-pipeline — Pipeline Completo Automático
+# Mode: auto-pipeline - JD to Application Pack (No PDF)
 
-Cuando el usuario pega un JD (texto o URL) sin sub-comando explícito, ejecutar TODO el pipeline en secuencia:
+When the user pastes a JD (text or URL) with no sub-command, run this end-to-end flow.
 
-## Paso 0 — Extraer JD
+## Goal
 
-Si el input es una **URL** (no texto de JD pegado), seguir esta estrategia para extraer el contenido:
+Return a copy-paste-ready application pack with:
 
-**Orden de prioridad:**
+1. Comprehensive scoring/evaluation (A-G)
+2. Tailored CV text (markdown, no PDF)
+3. Tailored cover letter (plain text)
 
-1. **Playwright (preferido):** La mayoría de portales de empleo (Lever, Ashby, Greenhouse, Workday) son SPAs. Usar `browser_navigate` + `browser_snapshot` para renderizar y leer el JD.
-2. **WebFetch (fallback):** Para páginas estáticas (ZipRecruiter, WeLoveProduct, company career pages).
-3. **WebSearch (último recurso):** Buscar título del rol + empresa en portales secundarios que indexan el JD en HTML estático.
+Always use `cv.md` as the base CV source of truth.
 
-**Si ningún método funciona:** Pedir al candidato que pegue el JD manualmente o comparta un screenshot.
+## Step 0 - Extract JD
 
-**Si el input es texto de JD** (no URL): usar directamente, sin necesidad de fetch.
+If input is a URL:
 
-## Paso 1 — Evaluación A-G
-Ejecutar exactamente igual que el modo `oferta` (leer `modes/oferta.md` para todos los bloques A-F + Block G Posting Legitimacy).
+1. Prefer browser rendering/snapshot for SPA job pages
+2. Fallback to web fetch for static pages
+3. Last resort: web search
 
-## Paso 2 — Guardar Report .md
-Guardar la evaluación completa en `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (ver formato en `modes/oferta.md`).
-Include Block G in the saved report. Add `**Legitimacy:** {tier}` to the report header.
+If extraction fails, ask user to paste JD text.
 
-## Paso 3 — Generar PDF
-Read `config/profile.yml`. Check `cv.output_format`:
+If input is already JD text, use it directly.
 
-- If `"latex"`, execute the full pipeline from `modes/latex.md`
-- Otherwise (default), execute the full pipeline from `modes/pdf.md`
+## Step 1 - Run full A-G evaluation
 
-## Paso 4 — Draft Application Answers (solo si score >= 4.5)
+Execute the same A-G analysis logic as `modes/oferta.md`, including posting legitimacy.
 
-Si el score final es >= 4.5, generar borrador de respuestas para el formulario de aplicación:
+## Step 2 - Build tailored CV text (no PDF)
 
-1. **Extraer preguntas del formulario**: Usar Playwright para navegar al formulario y hacer snapshot. Si no se pueden extraer, usar las preguntas genéricas.
-2. **Generar respuestas** siguiendo el tono (ver abajo).
-3. **Guardar en el report** como sección `## H) Draft Application Answers`.
+Generate a JD-specific CV in markdown using only truthful content from `cv.md`.
 
-### Preguntas genéricas (usar si no se pueden extraer del formulario)
+Required sections:
 
-- Why are you interested in this role?
-- Why do you want to work at [Company]?
-- Tell us about a relevant project or achievement
-- What makes you a good fit for this position?
-- How did you hear about this role?
+- Target role headline
+- Professional summary (JD keyword aligned)
+- Core skills/competencies aligned to JD
+- Experience bullets reordered/reworded for JD relevance
+- Education and certifications
 
-### Tono para Form Answers
+Rules:
 
-**Posición: "I'm choosing you."** el candidato tiene opciones y está eligiendo esta empresa por razones concretas.
+- No invented experience, metrics, tools, or responsibilities
+- Use JD terminology only when supported by `cv.md`
+- Optimize for ATS readability (clean headings, concise bullets)
 
-**Reglas de tono:**
-- **Confiado sin arrogancia**: "I've spent the past year building production AI agent systems — your role is where I want to apply that experience next"
-- **Selectivo sin soberbia**: "I've been intentional about finding a team where I can contribute meaningfully from day one"
-- **Específico y concreto**: Siempre referenciar algo REAL del JD o de la empresa, y algo REAL de la experiencia del candidato
-- **Directo, sin fluff**: 2-4 frases por respuesta. Sin "I'm passionate about..." ni "I would love the opportunity to..."
-- **El hook es la prueba, no la afirmación**: En vez de "I'm great at X", decir "I built X that does Y"
+## Step 3 - Build tailored cover letter
 
-**Framework por pregunta:**
-- **Why this role?** → "Your [specific thing] maps directly to [specific thing I built]."
-- **Why this company?** → Mencionar algo concreto sobre la empresa. "I've been using [product] for [time/purpose]."
-- **Relevant experience?** → Un proof point cuantificado. "Built [X] that [metric]. Sold the company in 2025."
-- **Good fit?** → "I sit at the intersection of [A] and [B], which is exactly where this role lives."
-- **How did you hear?** → Honesto: "Found through [portal/scan], evaluated against my criteria, and it scored highest."
+Generate a role/company-specific cover letter using:
 
-**Idioma**: Siempre en el idioma del JD (EN default). Aplicar `/tech-translate`.
+- JD requirements
+- company profile context provided by user
+- evidence from `cv.md`
 
-## Paso 5 — Actualizar Tracker
-Registrar en `data/applications.md` con todas las columnas incluyendo Report y PDF en ✅.
+Rules:
 
-**Si algún paso falla**, continuar con los siguientes y marcar el paso fallido como pendiente en el tracker.
+- Confident, specific, concise
+- No generic fluff
+- No fabricated claims
+
+## Step 4 - Save report and update tracker
+
+Save evaluation report to:
+
+`reports/{###}-{company-slug}-{YYYY-MM-DD}.md`
+
+Update `data/applications.md`:
+
+- Set evaluation score
+- Mark report link
+- Mark PDF as not generated for this flow
+
+## Final response format (strict)
+
+Return exactly these top-level sections in this order:
+
+## 1) Comprehensive Scoring
+
+A-G summary with final score and key risks/mitigations.
+
+## 2) Customized CV (Copy-Paste)
+
+Full tailored CV markdown.
+
+## 3) Customized Cover Letter (Copy-Paste)
+
+Final cover letter text.

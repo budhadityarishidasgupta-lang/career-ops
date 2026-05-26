@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: career-ops-streamlit
+    runtime: python
+    plan: starter
+    autoDeploy: true
+    buildCommand: pip install -r requirements-streamlit.txt
+    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1

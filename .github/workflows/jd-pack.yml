@@ -1,0 +1,50 @@
+name: JD Application Pack
+
+on:
+  workflow_dispatch:
+    inputs:
+      jd_text:
+        description: "Paste the job description"
+        required: true
+        type: string
+      company_profile:
+        description: "Paste company profile/context (optional)"
+        required: false
+        type: string
+      model:
+        description: "OpenAI model"
+        required: false
+        default: "gpt-4.1"
+        type: string
+
+jobs:
+  generate-pack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate application pack
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          JD_TEXT: ${{ inputs.jd_text }}
+          COMPANY_PROFILE: ${{ inputs.company_profile }}
+          OPENAI_MODEL: ${{ inputs.model }}
+          OUTPUT_PATH: out/application-pack.md
+        run: node jd-pack.mjs
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-pack
+          path: out/application-pack.md
+          if-no-files-found: error
+
