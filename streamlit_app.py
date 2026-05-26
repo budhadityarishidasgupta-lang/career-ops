@@ -59,6 +59,10 @@ def build_prompts(
         "For CV, produce ATS-friendly markdown with role-aligned summary, skills, and tailored experience bullets.",
         "For cover letter, keep concise, specific to role/company, and practical for direct copy-paste.",
         "If user asks to improve score (e.g., 4.2 to 4.8), optimize framing, alignment, and prioritization without fabricating facts.",
+        "CV completeness rule: include ALL experience sections present in the base CV; never omit a role.",
+        "CV section order rule: header/contact, EXECUTIVE SUMMARY, KEY IMPACT, PROFESSIONAL EXPERIENCE, CORE SKILLS, EDUCATION, CERTIFICATIONS.",
+        "Place CORE SKILLS only after PROFESSIONAL EXPERIENCE.",
+        "If KEY IMPACT is not explicit in base CV, derive it only from existing evidence in base CV without inventing facts.",
     ]
     if compact_mode:
         style_rules.append("Be concise and avoid unnecessary verbosity to reduce token usage.")
@@ -129,7 +133,7 @@ with col1:
 with col2:
     compact_mode = st.checkbox("Token-optimized output", value=True)
 with col3:
-    use_relevant_slice = st.checkbox("Use relevant CV slice", value=True)
+    use_relevant_slice = st.checkbox("Use relevant CV slice", value=False)
 
 max_output_tokens = st.slider("Max output tokens", min_value=800, max_value=5000, value=1800, step=100)
 
