@@ -1,11 +1,25 @@
 import os
 import re
+import json
 from pathlib import Path
 from io import BytesIO
 
 import streamlit as st
 from openai import OpenAI
 from docx import Document
+
+
+MEMORY_PATH = Path("data/learning-memory.json")
+
+DEFAULT_REASONING_PROFILE = [
+    "Reason deeply about strategic fit before rewriting content.",
+    "Identify role archetype, required operating context, and likely interview risk factors.",
+    "Explicitly map candidate strengths and gaps against JD demands.",
+    "When asked to improve score (e.g., 4.2 to 4.8), prioritize repositioning and stronger evidence selection before adding wording changes.",
+    "For industrial or operations-heavy roles, bias language toward operational leadership, governance, workforce planning, multi-site partnership, and leadership maturity.",
+    "Reduce AI/startup-heavy vocabulary when role context requires operational credibility.",
+    "Keep output concise, but keep internal reasoning rigorous.",
+]
 
 
 def tokenize_words(text: str) -> set[str]:
@@ -40,12 +54,35 @@ def relevant_cv_slice(cv_text: str, jd_text: str, company_profile: str, max_line
     return "\n".join(selected[: max_lines * 2])
 
 
+def load_learning_memory() -> dict:
+    if not MEMORY_PATH.exists():
+        return {"notes": [], "reasoning_profile": DEFAULT_REASONING_PROFILE}
+    try:
+        data = json.loads(MEMORY_PATH.read_text(encoding="utf-8"))
+        notes = data.get("notes", [])
+        profile = data.get("reasoning_profile", DEFAULT_REASONING_PROFILE)
+        if not isinstance(notes, list):
+            notes = []
+        if not isinstance(profile, list) or not profile:
+            profile = DEFAULT_REASONING_PROFILE
+        return {"notes": notes, "reasoning_profile": profile}
+    except Exception:
+        return {"notes": [], "reasoning_profile": DEFAULT_REASONING_PROFILE}
+
+
+def save_learning_memory(notes: list[str], reasoning_profile: list[str]) -> None:
+    MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"notes": notes[-200:], "reasoning_profile": reasoning_profile}
+    MEMORY_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def build_prompts(
     cv_text: str,
     jd_text: str,
     company_profile: str,
     rewrite_request: str,
     learning_notes: list[str],
+    reasoning_profile: list[str],
     compact_mode: bool,
 ) -> tuple[str, str]:
     output_contract = [
@@ -69,13 +106,16 @@ def build_prompts(
     if compact_mode:
         style_rules.append("Be concise and avoid unnecessary verbosity to reduce token usage.")
 
-    learn_block = "\n".join(f"- {note}" for note in learning_notes[-8:]) if learning_notes else "- none yet"
+    learn_block = "\n".join(f"- {note}" for note in learning_notes[-12:]) if learning_notes else "- none yet"
+    reasoning_block = "\n".join(f"- {item}" for item in reasoning_profile) if reasoning_profile else "- none yet"
 
     system_prompt = "\n".join(
         [
             "You are an expert job application strategist.",
             *output_contract,
             *style_rules,
+            "Reasoning behavior to follow internally (do not expose chain-of-thought):",
+            reasoning_block,
             "Apply this persistent user preference memory:",
             learn_block,
         ]
@@ -139,7 +179,9 @@ if not cv_path.exists():
     st.stop()
 
 if "learning_notes" not in st.session_state:
-    st.session_state.learning_notes = []
+    memory = load_learning_memory()
+    st.session_state.learning_notes = memory["notes"]
+    st.session_state.reasoning_profile = memory["reasoning_profile"]
 if "latest_output" not in st.session_state:
     st.session_state.latest_output = ""
 
@@ -176,6 +218,7 @@ clear_learning = btn_col3.button("Clear Learning Memory", use_container_width=Tr
 
 if clear_learning:
     st.session_state.learning_notes = []
+    save_learning_memory(st.session_state.learning_notes, st.session_state.reasoning_profile)
     st.success("Learning memory cleared for this session.")
 
 should_run = generate or regenerate
@@ -192,6 +235,7 @@ if should_run:
 
     if rewrite_request.strip():
         st.session_state.learning_notes.append(rewrite_request.strip())
+        save_learning_memory(st.session_state.learning_notes, st.session_state.reasoning_profile)
 
     system_prompt, user_prompt = build_prompts(
         cv_context,
@@ -199,6 +243,7 @@ if should_run:
         company_profile,
         rewrite_request,
         st.session_state.learning_notes,
+        st.session_state.reasoning_profile,
         compact_mode,
     )
 
