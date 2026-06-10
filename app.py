@@ -22,6 +22,8 @@ import pdfplumber
 from bs4 import BeautifulSoup
 from openai import OpenAI
 from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # ── Optional Apify ──────────────────────────────────────────────────
 try:
@@ -47,7 +49,8 @@ TRACKER_PATH     = DATA_DIR / "tracker.json"
 SETTINGS_PATH    = DATA_DIR / "settings.json"
 GMAIL_TOKEN_PATH = DATA_DIR / "gmail_token.json"
 SYNC_SCHED_PATH  = DATA_DIR / "sync_schedule.json"
-CV_MD_PATH       = Path("cv.md")
+CV_MD_PATH        = Path("cv.md")
+CV_RAW_PATH       = DATA_DIR / "cv_raw.txt"  # persisted raw text of latest uploaded CV
 
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 SYNC_INTERVAL_DAYS = 4
@@ -105,6 +108,18 @@ def get_app_base_url() -> str:
 def extract_pdf_text(uploaded_file) -> str:
     with pdfplumber.open(uploaded_file) as pdf:
         return "\n".join(page.extract_text() or "" for page in pdf.pages)
+
+def extract_docx_text(uploaded_file) -> str:
+    doc = Document(uploaded_file)
+    return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+
+def extract_cv_text(uploaded_file) -> str:
+    name = uploaded_file.name.lower()
+    if name.endswith(".pdf"):
+        return extract_pdf_text(uploaded_file)
+    elif name.endswith(".docx"):
+        return extract_docx_text(uploaded_file)
+    return uploaded_file.read().decode("utf-8", errors="ignore")
 
 def fetch_url_text(url: str) -> str:
     try:
@@ -212,14 +227,26 @@ def scrape_jobs_apify(query: str, location: str, platforms: list, count: int = 1
 def build_cv_tailor_prompt(cv_text: str, jd: str, company: str) -> tuple:
     system = (
         "You are an expert job application strategist and ATS optimization specialist. "
-        "Use the base CV as canonical truth. NEVER invent claims, metrics, tools, dates, or responsibilities. "
-        "Return markdown with exactly these sections:\n"
-        "## Fitment Score\n## ATS-Tailored CV\n## Cover Letter\n## Interview Prep (3 likely questions + answers)"
+        "Use the base CV as the ONLY source of truth — NEVER invent claims, metrics, tools, dates, or responsibilities. "
+        "Return your response with EXACTLY these four sections separated by markdown headers:\n\n"
+        "## Fitment Score\n"
+        "(Score X/100 and 3-bullet rationale)\n\n"
+        "## ATS-Tailored CV\n"
+        "(Full CV rewritten to match the JD keywords while preserving all factual content. "
+        "Keep the EXACT same format as the base CV: ALL-CAPS name, contact line, ALL-CAPS tagline, "
+        "summary paragraph, then each role as: COMPANY | Location II Title | Dates, "
+        "followed by Role Scope, Responsibilities, Key Achievements with bullet points. "
+        "End with Education and Certifications sections.)\n\n"
+        "## Cover Letter\n"
+        "(3-paragraph professional cover letter)\n\n"
+        "## Interview Prep\n"
+        "(3 likely questions with concise answers based only on the CV)"
     )
     user = f"Base CV:\n{cv_text}\n\nJob Description:\n{jd}\n\nCompany Context:\n{company or 'Not provided'}"
     return system, user
 
 def markdown_to_docx(md: str) -> bytes:
+    """Generic markdown → docx (fallback)."""
     doc = Document()
     for line in md.splitlines():
         if line.startswith("## "):
@@ -232,6 +259,152 @@ def markdown_to_docx(md: str) -> bytes:
             doc.add_paragraph(re.sub(r"^\d+\.\s+", "", line).strip(), style="List Number")
         elif line.strip():
             doc.add_paragraph(line)
+    buf = BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def build_branded_cv_docx(cv_text: str) -> bytes:
+    """
+    Render the tailored CV text into a DOCX that matches Budhaditya's format:
+    - ALL-CAPS bold name as heading
+    - Contact line
+    - ALL-CAPS bold tagline
+    - Summary paragraph
+    - For each role: COMPANY | Location II Title | Dates (bold)
+      then Role Scope / Responsibilities / Key Achievements sections with bullets
+    - Education and Certifications as bullet lists
+    """
+    doc = Document()
+
+    # ── Page margins (narrow) ──
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    section = doc.sections[0]
+    section.top_margin    = Pt(36)
+    section.bottom_margin = Pt(36)
+    section.left_margin   = Pt(54)
+    section.right_margin  = Pt(54)
+
+    def add_para(text, bold=False, size=11, space_before=0, space_after=4,
+                 align=WD_ALIGN_PARAGRAPH.LEFT, color=None):
+        p = doc.add_paragraph()
+        p.alignment = align
+        p.paragraph_format.space_before = Pt(space_before)
+        p.paragraph_format.space_after  = Pt(space_after)
+        run = p.add_run(text)
+        run.bold = bold
+        run.font.size = Pt(size)
+        if color:
+            run.font.color.rgb = RGBColor(*color)
+        return p
+
+    def add_bullet(text, size=10.5):
+        p = doc.add_paragraph(style="List Bullet")
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after  = Pt(2)
+        run = p.add_run(text)
+        run.font.size = Pt(size)
+        return p
+
+    def add_section_heading(text):
+        p = add_para(text.upper(), bold=True, size=10.5, space_before=8, space_after=2)
+        # underline via border
+        pPr = p._p.get_or_add_pPr()
+        pBdr = OxmlElement("w:pBdr")
+        bottom = OxmlElement("w:bottom")
+        bottom.set(qn("w:val"), "single")
+        bottom.set(qn("w:sz"), "6")
+        bottom.set(qn("w:space"), "1")
+        bottom.set(qn("w:color"), "000000")
+        pBdr.append(bottom)
+        pPr.append(pBdr)
+        return p
+
+    lines = [l.rstrip() for l in cv_text.splitlines()]
+    i = 0
+    n = len(lines)
+
+    # ── Parse and render line by line ──
+    # Heuristics based on the known format:
+    # Line 0: NAME (all caps)
+    # Line 1: contact
+    # Line 2: tagline (all caps)
+    # Then paragraphs / role headers / bullets
+
+    name_written = False
+    contact_written = False
+    tagline_written = False
+
+    while i < n:
+        line = lines[i].strip()
+        if not line:
+            i += 1
+            continue
+
+        # Name — first non-empty line, all caps
+        if not name_written:
+            add_para(line, bold=True, size=16, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=2)
+            name_written = True
+            i += 1
+            continue
+
+        # Contact line — contains | and email/phone
+        if not contact_written and ("|" in line or "@" in line or "+" in line):
+            add_para(line, bold=False, size=10, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=6)
+            contact_written = True
+            i += 1
+            continue
+
+        # Tagline — short all-caps line after contact
+        if not tagline_written and line.isupper() and len(line) > 10:
+            add_para(line, bold=True, size=11, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=6)
+            tagline_written = True
+            i += 1
+            continue
+
+        # Section headings: EDUCATION, CERTIFICATIONS, SKILLS
+        if line.upper() in ("EDUCATION", "CERTIFICATIONS", "SKILLS", "LANGUAGES",
+                            "PROFESSIONAL SUMMARY", "SUMMARY", "KEY SKILLS"):
+            add_section_heading(line)
+            i += 1
+            continue
+
+        # Role header line: contains " | " and " II " or " – " with a year
+        if (" | " in line or " II " in line) and re.search(r"20\d\d", line):
+            p = doc.add_paragraph()
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after  = Pt(2)
+            run = p.add_run(line)
+            run.bold = True
+            run.font.size = Pt(11)
+            i += 1
+            continue
+
+        # Sub-headings inside roles: Role Scope, Responsibilities, Key Achievements
+        if line.rstrip(":") in ("Role Scope", "Responsibilities", "Key Achievements",
+                                 "Achievements", "Scope", "Key Responsibilities"):
+            p = doc.add_paragraph()
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after  = Pt(1)
+            run = p.add_run(line)
+            run.bold = True
+            run.underline = True
+            run.font.size = Pt(10.5)
+            i += 1
+            continue
+
+        # Bullet points
+        if line.startswith(("•", "-", "*", "▪")):
+            add_bullet(re.sub(r"^[•\-\*▪]\s*", "", line))
+            i += 1
+            continue
+
+        # Regular paragraph
+        add_para(line, size=10.5, space_before=2, space_after=3)
+        i += 1
+
     buf = BytesIO()
     doc.save(buf)
     buf.seek(0)
@@ -382,20 +555,23 @@ with tabs[0]:
     st.header("CV Profile")
     st.caption("Upload your CV once. All agents use this as the source of truth.")
     profile = load_json(CV_PROFILE_PATH, {})
-    uploaded = st.file_uploader("Upload your CV (PDF)", type=["pdf"])
+    uploaded = st.file_uploader("Upload your latest CV (PDF or DOCX)", type=["pdf", "docx"])
     if uploaded:
         client = get_openai_client()
         if not client:
             st.error("Set your OpenAI API key in ⚙️ Settings first.")
         else:
             with st.spinner("Parsing CV..."):
-                cv_text = extract_pdf_text(uploaded)
+                cv_text = extract_cv_text(uploaded)
                 try:
                     profile = parse_cv_with_llm(cv_text, client)
                     profile["raw_text"] = cv_text
+                    profile["uploaded_filename"] = uploaded.name
+                    profile["uploaded_at"] = datetime.now().isoformat()
                     save_json(CV_PROFILE_PATH, profile)
-                    CV_MD_PATH.write_text(cv_text)
-                    st.success("CV parsed and saved.")
+                    CV_MD_PATH.write_text(cv_text)      # used by JD Pack
+                    CV_RAW_PATH.write_text(cv_text)     # persistent raw backup
+                    st.success(f"✅ CV parsed and saved — *{uploaded.name}*")
                 except Exception as e:
                     st.error(f"Parsing failed: {e}")
     if profile:
@@ -406,11 +582,23 @@ with tabs[0]:
             st.write(f"**Experience:** {profile.get('years_of_experience', '—')} years")
             st.write(f"**Target Roles:** {', '.join(profile.get('target_roles', []))}")
             st.write(f"**Preferred Locations:** {', '.join(profile.get('preferred_locations', []))}")
+            if profile.get("uploaded_at"):
+                st.caption(f"Last updated: {profile['uploaded_at'][:10]}  |  File: {profile.get('uploaded_filename','')}")
         with col2:
             st.write("**Technical Skills:**")
             st.write(", ".join(profile.get("technical_skills", [])) or "—")
             st.write("**Summary:**")
             st.info(profile.get("professional_summary", "—"))
+        # Allow viewing/editing raw CV text
+        with st.expander("📄 View / Edit raw CV text"):
+            raw = CV_RAW_PATH.read_text() if CV_RAW_PATH.exists() else profile.get("raw_text", "")
+            edited = st.text_area("Raw CV (editable)", value=raw, height=400, key="raw_cv_edit")
+            if st.button("💾 Save edited CV text"):
+                CV_RAW_PATH.write_text(edited)
+                CV_MD_PATH.write_text(edited)
+                profile["raw_text"] = edited
+                save_json(CV_PROFILE_PATH, profile)
+                st.success("Raw CV text updated.")
     else:
         st.info("No CV profile yet. Upload your CV above.")
 
@@ -563,7 +751,10 @@ with tabs[2]:
                 st.error("Paste a job description first.")
             else:
                 cv_text = ""
-                if CV_MD_PATH.exists():
+                # Priority: raw backup > cv.md > profile json
+                if CV_RAW_PATH.exists():
+                    cv_text = CV_RAW_PATH.read_text()
+                elif CV_MD_PATH.exists():
                     cv_text = CV_MD_PATH.read_text()
                 elif CV_PROFILE_PATH.exists():
                     cv_text = load_json(CV_PROFILE_PATH, {}).get("raw_text", "")
@@ -582,15 +773,29 @@ with tabs[2]:
         output = st.session_state.get("jdpack_output", "")
         if output:
             st.markdown(output)
-            d1, d2 = st.columns(2)
+            # Extract just the ATS-Tailored CV section for the branded DOCX
+            cv_section = ""
+            m = re.search(r"## ATS-Tailored CV\n(.*?)(?=\n## |$)", output, re.DOTALL)
+            if m:
+                cv_section = m.group(1).strip()
+            d1, d2, d3 = st.columns(3)
             with d1:
-                st.download_button("⬇️ Markdown", data=output.encode(), file_name="application-pack.md",
-                    mime="text/markdown", use_container_width=True)
+                st.download_button("⬇️ Full Pack (Markdown)", data=output.encode(),
+                    file_name="application-pack.md", mime="text/markdown", use_container_width=True)
             with d2:
-                st.download_button("⬇️ Word (.docx)", data=markdown_to_docx(output),
+                st.download_button("⬇️ Full Pack (Word)", data=markdown_to_docx(output),
                     file_name="application-pack.docx",
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     use_container_width=True)
+            with d3:
+                if cv_section:
+                    st.download_button("⬇️ Tailored CV Only (Branded)",
+                        data=build_branded_cv_docx(cv_section),
+                        file_name="tailored-cv.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        use_container_width=True)
+                else:
+                    st.info("Generate a pack first to get the branded CV.")
 
 # ─────────────────────────────────────────────────────────────────────
 # TAB 4 — TRACKER
