@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.9.0](https://github.com/budhadityarishidasgupta-lang/career-ops/compare/career-ops-v1.8.0...career-ops-v1.9.0) (2026-06-12)
+
+
+### Features
+
+* add MVP app.py — Job Scout, JD Pack, Tracker, CV Profile tabs ([56141dc](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/56141dc641abf110f063dd35a47bb4a612488713))
+* DOCX upload, persistent CV memory, branded CV output ([e8d4529](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/e8d4529d7bbf0e153d1fc7e98785f0dcaf1b881a))
+* manual JD fallback, URL fetch, Gmail sync for rejection tracking ([3559660](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/35596608a86b8342124e7ba7e3312a2905f05fd9))
+
+
+### Bug Fixes
+
+* duplicate element key error in Job Scout results ([a7389ea](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/a7389ea924981b07fe5681a97e9523d330693180))
+* populate cv.md and data/cv_raw.txt with full employment history CV ([bb6417c](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/bb6417c5651417efc567e9ee605079f2f28ab9c4))
+* **release:** sync VERSION file to 1.8.0 ([541917f](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/541917f627f3f328e5411a54685f5e8706761499))
+* Render deployment + web-based Gmail OAuth + 4-day auto-sync ([013530b](https://github.com/budhadityarishidasgupta-lang/career-ops/commit/013530b24fe9ea07e007bcdbc6fee9b3847fc17c))
+
 ## [1.8.0](https://github.com/santifer/career-ops/compare/career-ops-v1.7.1...career-ops-v1.8.0) (2026-05-15)
 
 
