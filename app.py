@@ -706,26 +706,26 @@ with tabs[1]:
             st.subheader(f"Results ({len(scout_jobs)} jobs)")
             tracker_data = load_json(TRACKER_PATH, [])
             existing_urls = {j["url"] for j in tracker_data}
-            for job in scout_jobs:
-                with st.expander(f"{score_badge(job['score'])}  **{job['title']}** — {job['company']}  [{job['platform']}]"):
-                    st.write(f"📍 {job['location']}  |  🔗 [{job['url']}]({job['url']})")
-                    desc = job.get("description", "")
-                    st.write((desc[:500] + "...") if len(desc) > 500 else desc)
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        if st.button("💾 Save to Tracker", key=f"save_{job['url']}"):
-                            if job["url"] not in existing_urls:
-                                tracker_data.append(job)
-                                save_json(TRACKER_PATH, tracker_data)
-                                existing_urls.add(job["url"])
-                                st.success("Saved.")
-                            else:
-                                st.info("Already in Tracker.")
-                    with c2:
-                        if st.button("✍️ Tailor CV", key=f"tailor_{job['url']}"):
-                            st.session_state["jdpack_jd"]      = job.get("description", "")
-                            st.session_state["jdpack_company"] = job.get("company", "")
-                            st.info("JD loaded — switch to ✍️ JD Pack tab.")
+        for idx, job in enumerate(scout_jobs):
+            with st.expander(f"{score_badge(job['score'])}  **{job['title']}** — {job['company']}  [{job['platform']}]"):
+                st.write(f"📍 {job['location']}  |  🔗 [{job['url']}]({job['url']})")
+                desc = job.get("description", "")
+                st.write((desc[:500] + "...") if len(desc) > 500 else desc)
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("💾 Save to Tracker", key=f"save_{idx}"):
+                        if job["url"] not in existing_urls:
+                            tracker_data.append(job)
+                            save_json(TRACKER_PATH, tracker_data)
+                            existing_urls.add(job["url"])
+                            st.success("Saved.")
+                        else:
+                            st.info("Already in Tracker.")
+                with c2:
+                    if st.button("✍️ Tailor CV", key=f"tailor_{idx}"):
+                        st.session_state["jdpack_jd"]      = job.get("description", "")
+                        st.session_state["jdpack_company"] = job.get("company", "")
+                        st.info("JD loaded — switch to ✍️ JD Pack tab.")
 
 # ─────────────────────────────────────────────────────────────────────
 # TAB 3 — JD PACK
